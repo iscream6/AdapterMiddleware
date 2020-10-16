@@ -1,11 +1,7 @@
-﻿//using NexpaAdapterStandardLib.IO.Json;
-using Newtonsoft.Json.Linq;
+﻿using Newtonsoft.Json.Linq;
 using NexpaAdapterStandardLib;
-//using NexpaAdapterStandardLib.Payload;
 using System;
-using System.Collections.Generic;
 using System.ComponentModel;
-using System.Text;
 
 namespace NpmAdapter.Payload
 {

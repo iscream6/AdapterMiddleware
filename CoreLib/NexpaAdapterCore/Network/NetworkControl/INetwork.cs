@@ -60,8 +60,13 @@ namespace NexpaAdapterStandardLib
         /// 전송 에러
         /// </summary>
         trans_error,
-        car_location,
+        /// <summary>
+        /// 주차위치 맵 정보
+        /// </summary>
         location_map,
+        /// <summary>
+        /// 주차위치 리스트
+        /// </summary>
         location_list,
     }
 
