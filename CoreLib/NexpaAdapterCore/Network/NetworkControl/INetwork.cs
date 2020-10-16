@@ -68,6 +68,10 @@ namespace NexpaAdapterStandardLib
         /// 주차위치 리스트
         /// </summary>
         location_list,
+        /// <summary>
+        /// 별명 수정
+        /// </summary>
+        modify_alias,
     }
 
     public delegate void SendToPeer(byte[] buffer, long offset, long size, RequestEventArgs pEvent = null);

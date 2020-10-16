@@ -275,6 +275,19 @@ namespace NpmAdapter.Payload
                     }
                 case Type.location_nick:
                     {
+                        RequestPayload<RequestModifyAliasPayload> payload = new RequestPayload<RequestModifyAliasPayload>();
+                        payload.command = CmdType.modify_alias;
+
+                        RequestModifyAliasPayload data = new RequestModifyAliasPayload();
+                        dh = json["data"]["dongho"].ToString();//앞 4자리 동, 뒤 4자리 호
+                        data.dong = dh.Substring(0, 4).TrimStart(new Char[] { '0' });
+                        data.ho = dh.Substring(4).TrimStart(new Char[] { '0' });
+                        data.car_number = json["data"]["car_num"].ToString();
+                        data.alias = json["data"]["alias"].ToString();
+                        payload.data = data;
+
+                        result.payload = payload;
+                        result.type = payload.command;
                         return result;
                     }
                 case Type.location_car_list:
