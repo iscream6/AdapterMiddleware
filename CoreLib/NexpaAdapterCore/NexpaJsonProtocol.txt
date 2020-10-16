@@ -1,0 +1,289 @@
+﻿1.1.1	입차 통보(넥스파 -> 미들웨어)
+Body
+{
+  "command": ”alert_incar”,
+  "data": {
+      "dong" : "123",
+      "ho" : "456"
+      "car_number" : "차량번호",
+      "date_time" : "yyyyMMddHHmmss"
+  }
+}
+
+1.1.2	입차 통보 응답(1.1.1에 대한 응답)
+Body
+{
+  "command": ”alert_incar”,
+  "result": {
+      "status": "응답상태코드",
+      "message": "메시지"
+  }
+}
+
+1.1.3	출차 통보(넥스파 -> 미들웨어)
+Body
+{
+  "command": ”alert_outcar”,
+  "data": {
+      "dong": "123",
+      "ho" : "456"
+      "car_number": "차량번호",
+      "date_time": "yyyyMMddHHmmss"
+  }
+}
+
+
+1.1.4	출차 통보 응답(1.1.3에 대한 응답)
+Body
+{
+  "command": ” alert_outcar”,
+  "result": {
+      "status": "응답상태코드",
+      "message": "메시지"
+  }
+}
+
+1.1.5	입차 리스트 요청(미들웨어 -> 넥스파)
+Body
+{
+  "command": ”incar_list”,
+  "data": {
+      "dong" : "123",
+      "ho" : "456"
+      "type" : "all/family/visitor",  //전체, 가족, 방문(등록) 향후 추가될 수 있음.
+      "page" : “1”, //0 : 전체, 0보다 클 경우 : count수만큼 가져올 첫 row index 
+      "count" : "10" //0 : 전체, 0보다 클 경우 : 가져올 row count 
+  }
+}
+
+1.1.6	입차 리스트 응답 (1.1.3에 대한 응답)
+Body
+{
+  "command": ”incar_list”,
+  "data": {
+      "page" : "1", //조회한 page 번호, 요청이 0이면 0
+      "list_count" : "10", //조회된 List의 자료 수, 요청한 count 보다 클수 없다.
+      "remain_page": "1", //조회된 page 이후 남아 있는 page 수, page가 0이면 0
+      "list" : [	
+          {
+          "car_number" : "차량번호",
+          "type" : " family/visitor",  // 가족, 방문 (향후 추가될 수 있음)
+          "date_time": “yyyyMMddHHmmss”, //입차시간 
+          }
+      ]
+  },
+  "result": {
+      "status": "응답상태코드",
+      "message": "메시지"
+  }
+}
+
+1.1.7	방문차량 리스트 요청(미들웨어 -> 넥스파)
+Body
+{
+  "command": ”visit_list”,
+  "data": {
+      "dong": "123",
+      “ho” : ”456”
+      "page": “1”, //0 : 전체, 0보다 클 경우 : count수만큼 가져올 첫 row index 
+      "count": "10" //0 : 전체, 0보다 클 경우 : 가져올 row count 
+  }
+}
+
+1.1.8	방문차량 리스트 응답(1.1.5에 대한 응답)
+Body
+{
+"command": ”visit_list”,
+  "data": {
+      "page" : "1" //조회한 page 번호, 요청이 0이면 0
+      "list_count" : "10", //조회된 List의 자료 수, 요청한 count 보다 클수 없다.
+      "remain_page": "1", //조회된 page 이후 남아 있는 page 수, page가 0이면 0
+      "list" : [
+          {
+              “reg_no” : “방문차량식별키”,
+              "car_number" : "차량번호",
+              "date": “yyyyMMdd”, //등록(방문) 일 
+              "term" : "1", //방문일수
+              “visit_flag” : “y/n” //y:방문, n:미방문
+          }
+      ]
+  }
+  "result": {
+      "status": "응답상태코드",
+      "message": "메시지"
+  }
+}
+
+1.1.9	방문차량 등록 요청(미들웨어 -> 넥스파)
+Body
+{
+  "command": ”visit_reg”,
+  "data": {
+      "dong": "123",
+      “ho” : ”456”
+      "car_number": “차량번호”, 
+      "date": "yyyyMMdd", //등록(방문) 일 
+      "term": "1" //방문일수
+  }
+}
+
+1.1.10	방문차량 등록 응답(1.1.7에 대한 응답)
+Body
+{
+  "command": ”visit_reg”,
+  "data" : {
+      “reg_no” : “방문차량식별키”
+  }
+  "result": {
+      "status": "응답상태코드",
+      "message": "메시지"
+  }
+}
+
+1.1.11	방문차량 삭제 요청(미들웨어 -> 넥스파)
+Body
+{
+  "command": ”visit_del”,
+  "data": {
+      "dong": "123",
+      “ho” : ”456”,
+      “reg_no” : “방문차량식별키”,
+      "car_number": “차량번호”
+  }
+}
+
+1.1.12	방문차량 삭제 응답(1.1.9에 대한 응답)
+Body
+{
+  "command": ”visit_del”,
+  "result": {
+      "status": "응답상태코드",
+      "message": "메시지"
+  }
+}
+
+1.1.13	방문차량 즐겨찾기 리스트 요청(미들웨어 -> 넥스파)
+Body
+{
+  "command": ”visit_favo_list”,
+  "data": {
+      "dong": "123",
+      “ho” : ”456”
+  }
+}
+
+1.1.14	방문차량 즐겨찾기 리스트 응답(1.1.11에 대한 응답)
+Body
+{
+  "command": ”visit_favo_list”,
+  "data": {
+      "list" : [
+          {
+              “reg_no” : “방문차량즐겨찾기식별키”,
+              "car_number" : "차량번호",
+              "date_time" : “yyyyMMddHHmmss”, 
+              "register" : " 홍길동/월패드 ", 
+          }
+      ]
+  }
+  "result": {
+      "status": "응답상태코드",
+      "message": "메시지"
+  }
+}
+
+1.1.15	방문차량 즐겨찾기 등록 요청(미들웨어 -> 넥스파)
+Body
+{
+  "command": ”visit_favo_reg”,
+  "data": {
+      "dong": "123",
+      “ho” : ”456”
+      "car_number": “차량번호”,
+      “register” : “등록자” //App에서 등록시 등록자명, 월패드에서 등록시 ‘월패드’
+  }
+}
+
+1.1.16	방문차량 즐겨찾기 등록 응답(1.1.13에 대한 응답)
+Body
+{
+  "command" : ”visit_favo_reg”,
+  "result": {
+      "status": "응답상태코드",
+      "message": "메시지"
+  }
+}
+
+
+
+1.1.17	방문차량 즐겨찾기 삭제 요청(미들웨어 -> 넥스파)
+Body
+{
+  "command" : ”visit_favo_del”,
+  "data": {
+      "dong": "123",
+      “ho” : ”456”,
+      “reg_no” : “방문차량즐겨찾기식별키”,
+      "car_number": “차량번호”
+  }
+}
+
+1.1.18	방문차량 즐겨찾기 삭제 응답(1.1.15에 대한 응답)
+Body
+{
+  "command" : ”visit_favo_del”,
+  "result": {
+      "status": "응답상태코드",
+      "message": "메시지"
+  }
+}
+
+1.1.19	차량위치찾기 요청(미들웨어 -> 넥스파) 사용안하는듯.....
+Body
+{
+  "command" : ”car_location”,
+  "data": {
+      "car_number": “차량번호”
+  }
+}
+
+1.1.20	차량위치찾기 응답(넥스파 -> 미들웨어)
+Body
+{
+  "command" : ”location_map”,
+  "data": {
+      "car_number": "차량 번호",
+      "alias": "별칭",
+      "location_text": "위치정보 텍스트",
+      "pixel_x": "이미지 내 X좌표",
+      "pixel_y": "이미지 내 Y좌표",
+      "in_datetime": "yyyy-MM-dd hh:mm:ss"
+      "car_image":"http://10.31.3.103:9070/gImage/2018/05/28/01B1001005/20180528102640_97수1607.jpg"
+  }
+  "result": {
+      "status": "응답상태코드", 
+      "message": "메시지"
+  }
+}
+
+1.1.21	차량위치찾기 요청(미들웨어 - 1.1.19 과 연관)
+Body
+{
+  "command" : ”location_map”,
+  "data": {
+      "car_number": “차량번호”
+      "dong" : "123",
+      "ho" : "456"
+  }
+}
+
+1.1.22	차량리스트위치찾기 요청(미들웨어 - x.x.xx 과 연관)
+Body
+{
+  "command" : ”location_list”,
+  "data": {
+      "dong" : "123",
+      "ho" : "456",
+      "type" : "family/car" //가족, 차량
+  }
+}
