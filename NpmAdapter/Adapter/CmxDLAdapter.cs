@@ -447,6 +447,11 @@ namespace NpmAdapter.Adapter
                                 XmlElement sec = doc.CreateElement("sec");
                                 sec.InnerText = $"{dateTime.Second}";
 
+                                if(payload.data.kind != null && payload.data.kind != "")
+                                {
+                                    if (payload.data.kind.ToUpper().Equals("V")) sInOut = payload.data.kind.ToLower() + sInOut;
+                                }
+
                                 park.AppendChild(dong);
                                 park.AppendChild(ho);
                                 park.AppendChild(car);

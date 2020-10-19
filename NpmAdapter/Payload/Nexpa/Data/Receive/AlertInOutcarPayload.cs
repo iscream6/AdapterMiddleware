@@ -21,13 +21,18 @@ namespace NpmAdapter.Payload
         /// yyyyMMddHHmmss
         /// </summary>
         public string date_time { get; set; }
+        /// <summary>
+        /// 차량 구분 a : 세대원, v 방문객
+        /// </summary>
+        public string kind { get; set; }
 
         public void Deserialize(JObject json)
         {
-            dong = json["dong"].ToString();
-            ho = json["ho"].ToString();
-            car_number = json["car_number"].ToString();
-            date_time = json["date_time"].ToString();
+            dong = json["dong"]?.ToString();
+            ho = json["ho"]?.ToString();
+            car_number = json["car_number"]?.ToString();
+            date_time = json["date_time"]?.ToString();
+            kind = json["kind"]?.ToString();
         }
 
         public byte[] Serialize()
@@ -42,6 +47,7 @@ namespace NpmAdapter.Payload
             json["ho"] = ho;
             json["car_number"] = car_number;
             json["date_time"] = date_time;
+            json["kind"] = kind;
             return json;
         }
     }
