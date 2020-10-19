@@ -292,6 +292,17 @@ namespace NpmAdapter.Payload
                     }
                 case Type.location_car_list:
                     {
+                        RequestPayload<RequestCarInfoPayload> payload = new RequestPayload<RequestCarInfoPayload>();
+                        payload.command = CmdType.car_info;
+
+                        RequestCarInfoPayload data = new RequestCarInfoPayload();
+                        dh = json["data"]["dongho"].ToString();//앞 4자리 동, 뒤 4자리 호
+                        data.dong = dh.Substring(0, 4).TrimStart(new Char[] { '0' });
+                        data.ho = dh.Substring(4).TrimStart(new Char[] { '0' });
+                        payload.data = data;
+
+                        result.payload = payload;
+                        result.type = payload.command;
                         return result;
                     }
                 default:
@@ -327,6 +338,10 @@ namespace NpmAdapter.Payload
                     break;
                 case Type.visitor_car_book_add:
                     payload = new ResponseCmdRegNumData();
+                    payload.Deserialize(json);
+                    break;
+                case Type.location_car_list:
+                    payload = new ResponseCmdLocationCarListData();
                     payload.Deserialize(json);
                     break;
             }

@@ -97,12 +97,15 @@ namespace NpmAdapter.Adapter
             responseResult = new StatusPayload();
 
             //Alive Check
-            aliveCheckThread = new Thread(new ThreadStart(AliveCheck));
-            aliveCheckThread.Name = "Cmx thread for alive check";
-            if(!TimeSpan.TryParse(SysConfig.Instance.Sys_Option.GetValueToUpper("CmxAliveCheckTime"), out waitForWork))
+            if (SysConfig.Instance.Sys_Option.GetValueToUpper("CmxAliveCheckUse").Equals("Y"))
             {
-                //Default 30분
-                waitForWork = TimeSpan.FromMinutes(30);
+                aliveCheckThread = new Thread(new ThreadStart(AliveCheck));
+                aliveCheckThread.Name = "Cmx thread for alive check";
+                if (!TimeSpan.TryParse(SysConfig.Instance.Sys_Option.GetValueToUpper("CmxAliveCheckTime"), out waitForWork))
+                {
+                    //Default 30분
+                    waitForWork = TimeSpan.FromMinutes(30);
+                }
             }
             //Alive Check
 
@@ -130,15 +133,18 @@ namespace NpmAdapter.Adapter
                         break;
                 }
 
-                //Alive Check Thread 시작
-                if (aliveCheckThread.IsAlive)
+                if (SysConfig.Instance.Sys_Option.GetValueToUpper("CmxAliveCheckUse").Equals("Y"))
                 {
-                    _pauseEvent.Set();
-                }
-                else
-                {
-                    aliveCheckThread.Start();
-                    _pauseEvent.Set();
+                    //Alive Check Thread 시작
+                    if (aliveCheckThread.IsAlive)
+                    {
+                        _pauseEvent.Set();
+                    }
+                    else
+                    {
+                        aliveCheckThread.Start();
+                        _pauseEvent.Set();
+                    }
                 }
             }
             catch (Exception ex)
@@ -393,74 +399,87 @@ namespace NpmAdapter.Adapter
                             RequestPayload<AlertInOutCarPayload> payload = new RequestPayload<AlertInOutCarPayload>();
                             payload.Deserialize(jobj);
 
-                            string sInOut = "in";
-                            if (payload.command == CmdType.alert_incar)
+                            //동호가 없으면 PASS시킨다.
+                            if(payload.data.dong == null || payload.data.ho == null || payload.data.dong == "" || payload.data.ho == "")
                             {
-                                sInOut = "in";
+                                ResponseResultPayload resultPayload = new ResponseResultPayload();
+                                resultPayload.command = payload.command;
+                                resultPayload.Result = ResponseResultPayload.Status.FailFormatError;
+                                byte[] result = resultPayload.Serialize();
+                                TargetAdapter.SendMessage(result, 0, result.Length);
+                                Log.WriteLog(LogType.Info, $"CmxDLAdapter | SendMessage", $"전송메시지 : {resultPayload.ToJson().ToString()}", LogAdpType.Nexpa);
                             }
-                            else if (payload.command == CmdType.alert_outcar)
+                            else
                             {
-                                sInOut = "out";
+                                string sInOut = "in";
+                                if (payload.command == CmdType.alert_incar)
+                                {
+                                    sInOut = "in";
+                                }
+                                else if (payload.command == CmdType.alert_outcar)
+                                {
+                                    sInOut = "out";
+                                }
+
+                                XmlDocument doc = new XmlDocument();
+                                XmlElement cmx = doc.CreateElement("cmx");
+                                XmlElement park = doc.CreateElement("park");
+
+                                XmlElement dong = doc.CreateElement("dong");
+                                dong.InnerText = $"{payload.data.dong}";
+                                XmlElement ho = doc.CreateElement("ho");
+                                ho.InnerText = $"{payload.data.ho}";
+                                XmlElement car = doc.CreateElement("car");
+                                car.InnerText = $"{payload.data.car_number}";
+                                XmlElement inout = doc.CreateElement("inout");
+                                inout.InnerText = $"{sInOut}";
+                                DateTime dateTime = DateTime.ParseExact(payload.data.date_time, "yyyyMMddHHmmss", null);
+                                XmlElement year = doc.CreateElement("year");
+                                year.InnerText = $"{dateTime.Year}";
+                                XmlElement mon = doc.CreateElement("mon");
+                                mon.InnerText = $"{dateTime.Month}";
+                                XmlElement day = doc.CreateElement("day");
+                                day.InnerText = $"{dateTime.Day}";
+                                XmlElement hour = doc.CreateElement("hour");
+                                hour.InnerText = $"{dateTime.Hour}";
+                                XmlElement min = doc.CreateElement("min");
+                                min.InnerText = $"{dateTime.Minute}";
+                                XmlElement sec = doc.CreateElement("sec");
+                                sec.InnerText = $"{dateTime.Second}";
+
+                                park.AppendChild(dong);
+                                park.AppendChild(ho);
+                                park.AppendChild(car);
+                                park.AppendChild(inout);
+                                park.AppendChild(year);
+                                park.AppendChild(mon);
+                                park.AppendChild(day);
+                                park.AppendChild(hour);
+                                park.AppendChild(min);
+                                park.AppendChild(sec);
+
+                                cmx.AppendChild(park);
+
+                                byte[] dataBytes;
+                                using (StringWriter stringWriter = new StringWriter())
+                                using (XmlTextWriter xmlTextWriter = new XmlTextWriter(stringWriter))
+                                {
+                                    cmx.WriteTo(xmlTextWriter);
+                                    xmlTextWriter.Flush();
+                                    Log.WriteLog(LogType.Info, $"CmxDLAdapter | SendMessage", $"전송메시지 : {stringWriter.GetStringBuilder().ToString()}", LogAdpType.HomeNet);
+                                    dataBytes = stringWriter.GetStringBuilder().ToString().ToByte(SysConfig.Instance.HomeNet_Encoding);
+                                }
+
+                                //코맥스 대림 TCP로 Data를 전송한다.
+                                MyTcpNetwork.SendToPeer(dataBytes, 0, dataBytes.Length);
+
+                                //넥스파로 잘 받았다고 응답처리하자.
+                                ResponseResultPayload resultPayload = new ResponseResultPayload();
+                                resultPayload.command = payload.command;
+                                resultPayload.Result = ResponseResultPayload.Status.OK;
+                                byte[] result = resultPayload.Serialize();
+                                TargetAdapter.SendMessage(result, 0, result.Length);
                             }
-
-                            XmlDocument doc = new XmlDocument();
-                            XmlElement cmx = doc.CreateElement("cmx");
-                            XmlElement park = doc.CreateElement("park");
-
-                            XmlElement dong = doc.CreateElement("dong");
-                            dong.InnerText = $"{payload.data.dong}";
-                            XmlElement ho = doc.CreateElement("ho");
-                            ho.InnerText = $"{payload.data.ho}";
-                            XmlElement car = doc.CreateElement("car");
-                            car.InnerText = $"{payload.data.car_number}";
-                            XmlElement inout = doc.CreateElement("inout");
-                            inout.InnerText = $"{sInOut}";
-                            DateTime dateTime = DateTime.ParseExact(payload.data.date_time, "yyyyMMddHHmmss", null);
-                            XmlElement year = doc.CreateElement("year");
-                            year.InnerText = $"{dateTime.Year}";
-                            XmlElement mon = doc.CreateElement("mon");
-                            mon.InnerText = $"{dateTime.Month}";
-                            XmlElement day = doc.CreateElement("day");
-                            day.InnerText = $"{dateTime.Day}";
-                            XmlElement hour = doc.CreateElement("hour");
-                            hour.InnerText = $"{dateTime.Hour}";
-                            XmlElement min = doc.CreateElement("min");
-                            min.InnerText = $"{dateTime.Minute}";
-                            XmlElement sec = doc.CreateElement("sec");
-                            sec.InnerText = $"{dateTime.Second}";
-
-                            park.AppendChild(dong);
-                            park.AppendChild(ho);
-                            park.AppendChild(car);
-                            park.AppendChild(inout);
-                            park.AppendChild(year);
-                            park.AppendChild(mon);
-                            park.AppendChild(day);
-                            park.AppendChild(hour);
-                            park.AppendChild(min);
-                            park.AppendChild(sec);
-
-                            cmx.AppendChild(park);
-
-                            byte[] dataBytes;
-                            using (StringWriter stringWriter = new StringWriter())
-                            using (XmlTextWriter xmlTextWriter = new XmlTextWriter(stringWriter))
-                            {
-                                cmx.WriteTo(xmlTextWriter);
-                                xmlTextWriter.Flush();
-                                Log.WriteLog(LogType.Info, $"CmxDLAdapter | SendMessage", $"대림전송한 메시지 : {stringWriter.GetStringBuilder().ToString()}", LogAdpType.HomeNet);
-                                dataBytes = stringWriter.GetStringBuilder().ToString().ToByte(Encoding.UTF8);
-                            }
-
-                            //코맥스 대림 TCP로 Data를 전송한다.
-                            MyTcpNetwork.SendToPeer(dataBytes, 0, dataBytes.Length);
-
-                            //넥스파로 잘 받았다고 응답처리하자.
-                            ResponseResultPayload resultPayload = new ResponseResultPayload();
-                            resultPayload.command = payload.command;
-                            resultPayload.Result = ResponseResultPayload.Status.OK;
-                            byte[] result = resultPayload.Serialize();
-                            TargetAdapter.SendMessage(result, 0, result.Length);
                         }
                         else
                         {
@@ -664,7 +683,8 @@ namespace NpmAdapter.Adapter
                             
                             StatusPayload status = new StatusPayload();
                             status.Deserialize(jobj["result"] as JObject);
-                            
+                            responsePayload.result = status;
+
                             //Response 완료~!
                             bResponseSuccess = true;
                         }
@@ -677,7 +697,22 @@ namespace NpmAdapter.Adapter
                             bResponseSuccess = true;
                         }
                         break;
-                        #endregion
+                    #endregion
+
+                    case CmdType.car_info:
+                        if (runStatus == Status.TcpOnly || bResponseSuccess) return;
+
+                        {
+                            ResponseCmdLocationCarListData dataPayload = new ResponseCmdLocationCarListData();
+                            dataPayload.car_num = data["car_number"].ToString();
+                            dataPayload.reg_date = data["date"].ToString().ConvertDateTimeFormat("yyyyMMdd", "yyyy-MM-dd");
+                            dataPayload.alias = data["alias"].ToString();
+                            responsePayload.data = dataPayload;
+
+                            //Response 완료~!
+                            bResponseSuccess = true;
+                        }
+                        break;
                 }
             }
             catch (Exception ex)

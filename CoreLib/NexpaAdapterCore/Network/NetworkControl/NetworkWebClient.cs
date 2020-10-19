@@ -117,6 +117,7 @@ namespace NexpaAdapterStandardLib.Network
             {
                 Log.WriteLog(LogType.Error, "NetworkWebClient| SendDataPost", $"{exWeb.ToString()}");
                 response = (HttpWebResponse)exWeb.Response;
+                if (response == null) return false;
                 resGetStream = response.GetResponseStream();
 
                 resGetRead = new StreamReader(resGetStream, Encoding.UTF8, true);
