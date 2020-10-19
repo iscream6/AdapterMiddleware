@@ -29,6 +29,7 @@
         private void InitializeComponent()
         {
             this.components = new System.ComponentModel.Container();
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(frmMain));
             this.btnInit = new System.Windows.Forms.Button();
             this.btnSendTest = new System.Windows.Forms.Button();
             this.btnReceiveTest = new System.Windows.Forms.Button();
@@ -70,10 +71,15 @@
             this.txtMessage = new System.Windows.Forms.TextBox();
             this.rdoHomeNet = new System.Windows.Forms.RadioButton();
             this.grbTest = new System.Windows.Forms.GroupBox();
+            this.notifyTray = new System.Windows.Forms.NotifyIcon(this.components);
+            this.contextMenuTray = new System.Windows.Forms.ContextMenuStrip(this.components);
+            this.mnuShutdown = new System.Windows.Forms.ToolStripMenuItem();
+            this.mnuActive = new System.Windows.Forms.ToolStripMenuItem();
             this.grbSystem.SuspendLayout();
             this.pnlCmdTest.SuspendLayout();
             this.pnlSendMessageTest.SuspendLayout();
             this.grbTest.SuspendLayout();
+            this.contextMenuTray.SuspendLayout();
             this.SuspendLayout();
             // 
             // btnInit
@@ -510,6 +516,35 @@
             this.grbTest.TabStop = false;
             this.grbTest.Text = "Test";
             // 
+            // notifyTray
+            // 
+            this.notifyTray.ContextMenuStrip = this.contextMenuTray;
+            this.notifyTray.Icon = ((System.Drawing.Icon)(resources.GetObject("notifyTray.Icon")));
+            this.notifyTray.Text = "NexPipe";
+            this.notifyTray.Visible = true;
+            // 
+            // contextMenuTray
+            // 
+            this.contextMenuTray.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.mnuShutdown,
+            this.mnuActive});
+            this.contextMenuTray.Name = "contextMenuTray";
+            this.contextMenuTray.Size = new System.Drawing.Size(151, 48);
+            // 
+            // mnuShutdown
+            // 
+            this.mnuShutdown.Name = "mnuShutdown";
+            this.mnuShutdown.Size = new System.Drawing.Size(150, 22);
+            this.mnuShutdown.Text = "프로그램 종료";
+            this.mnuShutdown.Click += new System.EventHandler(this.mnuShutdown_Click);
+            // 
+            // mnuActive
+            // 
+            this.mnuActive.Name = "mnuActive";
+            this.mnuActive.Size = new System.Drawing.Size(150, 22);
+            this.mnuActive.Text = "창 활성화";
+            this.mnuActive.Click += new System.EventHandler(this.mnuActive_Click);
+            // 
             // frmMain
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 12F);
@@ -518,8 +553,10 @@
             this.Controls.Add(this.grbTest);
             this.Controls.Add(this.grbSystem);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
+            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "frmMain";
             this.Text = "NexPipe";
+            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.frmMain_FormClosing);
             this.FormClosed += new System.Windows.Forms.FormClosedEventHandler(this.frmMain_FormClosed);
             this.Load += new System.EventHandler(this.frmMain_Load);
             this.grbSystem.ResumeLayout(false);
@@ -529,6 +566,7 @@
             this.pnlSendMessageTest.ResumeLayout(false);
             this.pnlSendMessageTest.PerformLayout();
             this.grbTest.ResumeLayout(false);
+            this.contextMenuTray.ResumeLayout(false);
             this.ResumeLayout(false);
 
         }
@@ -576,6 +614,10 @@
         private System.Windows.Forms.TextBox txtMessage;
         private System.Windows.Forms.RadioButton rdoHomeNet;
         private System.Windows.Forms.GroupBox grbTest;
+        private System.Windows.Forms.NotifyIcon notifyTray;
+        private System.Windows.Forms.ContextMenuStrip contextMenuTray;
+        private System.Windows.Forms.ToolStripMenuItem mnuShutdown;
+        private System.Windows.Forms.ToolStripMenuItem mnuActive;
     }
 }
 

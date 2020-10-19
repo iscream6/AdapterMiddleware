@@ -15,11 +15,14 @@ namespace NexpaConnectWinApp
         private bool isRunNexpa = false;
         private bool isRunHomeNet = false;
         private bool autoClear = false;
+        private bool isShutdown = false;
 
         public frmMain()
         {
             InitializeComponent();
-            
+            this.WindowState = FormWindowState.Minimized;
+            this.ShowInTaskbar = false;
+
             pipe = new AdapterPipe();
             SystemStatus.Instance.StatusChanged += FrmMain_StatusChanged; ;
         }
@@ -27,6 +30,7 @@ namespace NexpaConnectWinApp
         private void frmMain_Load(object sender, EventArgs e)
         {
             Initialize();
+            isShutdown = false;
         }
 
         delegate void AppendLogText(Control ctl, string log);
@@ -47,7 +51,7 @@ namespace NexpaConnectWinApp
         {
             StringBuilder builder = new StringBuilder();
             builder.Append(DateTime.Now.ToString("yy-MM-dd hh:mm:ss "));
-            if(adapterType == LogAdpType.none)
+            if (adapterType == LogAdpType.none)
             {
                 builder.Append($"[Error] ");
             }
@@ -76,7 +80,7 @@ namespace NexpaConnectWinApp
             lblSttNexpa.Text = "";
 
             //테스트 모드 여부
-            if(SysConfig.Instance.Sys_Option.GetValueToUpper("TestMode") == "Y")
+            if (SysConfig.Instance.Sys_Option.GetValueToUpper("TestMode") == "Y")
             {
                 grbTest.Visible = true;
             }
@@ -238,7 +242,7 @@ namespace NexpaConnectWinApp
             {
                 throw;
             }
-            
+
         }
 
         #region Test
@@ -358,7 +362,7 @@ namespace NexpaConnectWinApp
                 TestTimer.Start();
                 btnCommaxTest.Text = "정지";
             }
-            
+
         }
 
         private void button1_Click(object sender, EventArgs e)
@@ -450,8 +454,35 @@ namespace NexpaConnectWinApp
         }
 
         private void frmMain_FormClosed(object sender, FormClosedEventArgs e)
+        { 
+            if(isShutdown) pipe.Dispose();
+        }
+
+        private void frmMain_FormClosing(object sender, FormClosingEventArgs e)
         {
-            pipe.Dispose();
+            if (isShutdown)
+            {
+                e.Cancel = false;
+            }
+            else
+            {
+                e.Cancel = true;
+                this.Visible = false; //화면을 닫지 않고 숨긴다.
+            }
+        }
+
+        private void mnuShutdown_Click(object sender, EventArgs e)
+        {
+            isShutdown = true;
+            this.Close();
+            this.Dispose();
+        }
+
+        private void mnuActive_Click(object sender, EventArgs e)
+        {
+            this.ShowInTaskbar = true;
+            this.Visible = true;
+            this.WindowState = FormWindowState.Normal;
         }
     }
 }
