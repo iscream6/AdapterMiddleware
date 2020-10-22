@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Text;
 
 namespace NpmAdapter.Adapter
 {
@@ -143,9 +144,8 @@ namespace NpmAdapter.Adapter
             {
                 List<byte> tempBytes = new List<byte>();
                 //Nextpa Server로부터 받은 자료를 Parsing 하여 SHT_5800 Format으로 변경 후 MyNetwork에 전달한다.
-                //string strJson = buffer.ToString(Encoding.Default);
-                var jobj = JObject.Parse(buffer.ToString(SysConfig.Instance.Nexpa_Encoding));
-                //var jobj = JObject.Parse(buffer);
+                string strJson = Encoding.Default.GetString(buffer, (int)offset, (int)size);
+                var jobj = JObject.Parse(strJson);
                 string cmd = jobj["command"].ToString();
 
                 CmdType cmdType = CmdType.none;
@@ -275,7 +275,12 @@ namespace NpmAdapter.Adapter
         {
             nexpaJson.Clear();
 
-            Log.WriteLog(LogType.Info, $"SHT5800Adapter | MyNetwork_ReceiveFromPeer", $"ReceiveMessge :  {buffer.ToHexString()}", LogAdpType.HomeNet);
+            //Alive 신호는 너무 많이 찍는다....
+            if(buffer[3] != (byte)DataPacket.AliveACK)
+            {
+                Log.WriteLog(LogType.Info, $"SHT5800Adapter | MyNetwork_ReceiveFromPeer", $"ReceiveMessge :  {buffer.ToHexString()}", LogAdpType.HomeNet);
+            }
+            
             if (buffer.CalCheckSum(0, buffer.Length - 1) != buffer[buffer.Length - 1])
             {
                 Log.WriteLog(LogType.Error, "SHT5800Adapter | MyNetwork_ReceiveFromPeer", $"CheckSum 오류");
@@ -306,7 +311,8 @@ namespace NpmAdapter.Adapter
                     break;
                 case (byte)DataPacket.AliveACK: //Polling Status Check 
                     //Status Check가 들어오면 Queue 가 있는지 없는지 보고 있으면 Q를 보내고 없으면 ACk를 보낸다.
-                    Log.WriteLog(LogType.Info, $"SHT5800Adapter | MyNetwork_ReceiveFromPeer", $"AliveACK", LogAdpType.HomeNet);
+                    //주석처리... 너무 많이 찍는다.
+                    //Log.WriteLog(LogType.Info, $"SHT5800Adapter | MyNetwork_ReceiveFromPeer", $"AliveACK", LogAdpType.HomeNet);
 
                     //전송할 데이터가 있으면 q에 넣어주자.
                     if (transmittedData.Count > 0)
