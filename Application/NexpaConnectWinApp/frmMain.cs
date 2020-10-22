@@ -62,6 +62,7 @@ namespace NexpaConnectWinApp
             builder.Append(statusMessage);
             //txtSysLog.AppendText(builder.ToString() + "\r");
             SafeAppendLogText(txtSysLog, builder.ToString() + "\r");
+            txtSysLog.SelectionStart = txtSysLog.Text.Length;
         }
 
         private void Initialize()
@@ -267,7 +268,7 @@ namespace NexpaConnectWinApp
             {
                 type = AdapterType.none;
             }
-            pipe.TestSendMessage(type, Encoding.Default.GetBytes(txtMessage.Text));
+            pipe.TestSendMessage(type, Encoding.UTF8.GetBytes(txtMessage.Text));
         }
 
         private void btnReceiveTest_Click(object sender, EventArgs e)
