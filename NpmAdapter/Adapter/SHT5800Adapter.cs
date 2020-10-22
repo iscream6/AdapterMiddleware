@@ -174,6 +174,13 @@ namespace NpmAdapter.Adapter
                             InOutCarPayload payload = new InOutCarPayload();
                             payload.Deserialize(json as JObject);
 
+                            //0동0호는 PASS한다.
+                            if (payload.dong == "0" && payload.ho == "0")
+                            {
+                                Log.WriteLog(LogType.Info, $"SHT5800Adapter | SendMessage", $"<< 0동 0호 PASS >>", LogAdpType.HomeNet);
+                                return;
+                            }
+
                             //동호정보 + 차량번호4자리 + 차량입차시간
                             //2-2. 동 2byte = 그냥 decimal hexa다..
                             //2020-09-11 : 하.... 삼성 이놈들이... 100단위 처리가 아니라 1단위 처리만한다..
@@ -347,36 +354,48 @@ namespace NpmAdapter.Adapter
                     break;
                 case (byte)DataPacket.InCar: //차량입차 ACK
                 case (byte)DataPacket.OutCar: //차량출차 ACK
-                    bData = MakeStatusAck();
-                    Log.WriteLog(LogType.Info, $"SHT5800Adapter | MyNetwork_ReceiveFromPeer", $"In/OutCar", LogAdpType.HomeNet);
-                    MyNetwork.SendToPeer(bData, 1, 4);
-
-                    //응답이 왔으면 전송할 Data에서 찾아 지워주자...
-                    //transmittedData
-                    byte[] checkBytes = buffer[3..(buffer.Length - 2)]; //동호...
-                    foreach (var key in transmittedData.Keys)
                     {
-                        if (StructuralComparisons.StructuralEqualityComparer.Equals(checkBytes, key[3..7]))
+                        bData = MakeStatusAck();
+                        Log.WriteLog(LogType.Info, $"SHT5800Adapter | MyNetwork_ReceiveFromPeer", $"In/OutCar", LogAdpType.HomeNet);
+                        MyNetwork.SendToPeer(bData, 1, 4);
+
+                        //응답이 왔으면 전송할 Data에서 찾아 지워주자...
+                        byte[] checkBytes = buffer[3..(buffer.Length - 2)]; //동호...
+                        foreach (var key in transmittedData.Keys)
                         {
-                            transmittedData.Remove(key);
-                            break;
+                            if (StructuralComparisons.StructuralEqualityComparer.Equals(checkBytes, key[3..7]))
+                            {
+                                transmittedData.Remove(key);
+                                break;
+                            }
                         }
                     }
+
                     break;
                 case (byte)DataPacket.InCarFailAck: //차량입차 통보 실패
                 case (byte)DataPacket.OutCarFailAck: //차량출차 통보 실패
-                    //byte[] packet1 = MakeFailAck(buffer.Range(3, buffer.Length - 3));
-                    byte[] packet1 = MakeFailAck(buffer[3..(buffer.Length - 2)]);
+                    {
+                        byte[] packet1 = MakeFailAck(buffer[3..(buffer.Length - 2)]);
+
+                        Log.WriteLog(LogType.Info, $"SHT5800Adapter | MyNetwork_ReceiveFromPeer", $"FailAck_입/출차 통보 실패", LogAdpType.HomeNet);
+                        MyNetwork.SendToPeer(packet1, 1, packet1.Length - 1);
+                        byte[] errorPacket1 = MakeTransError(buffer[8]);
+                        nexpaJson = errorPacket1.ToList();
+                        worker.RunWorkerAsync();
+                        //실패 전송이 오면 재전송하지 않는다.
+                        byte[] checkBytes = buffer[3..(buffer.Length - 3)]; //동호...
+                        foreach (var key in transmittedData.Keys)
+                        {
+                            if (StructuralComparisons.StructuralEqualityComparer.Equals(checkBytes, key[3..7]))
+                            {
+                                transmittedData.Remove(key);
+                                break;
+                            }
+                        }
+                    }
                     
-                    Log.WriteLog(LogType.Info, $"SHT5800Adapter | MyNetwork_ReceiveFromPeer", $"FailAck_입/출차 통보 실패", LogAdpType.HomeNet);
-                    MyNetwork.SendToPeer(packet1, 1, packet1.Length - 1);
-                    byte[] errorPacket1 = MakeTransError(buffer[8]);
-                    nexpaJson = errorPacket1.ToList();
-                    worker.RunWorkerAsync();
                     break;
             }
-
-            //Log.WriteLog(LogType.Info, $"SHT5800Adapter | MyNetwork_ReceiveFromPeer", $"SHT-5800으로부터 데이터 수신완료 ======", LogAdpType.HomeNet);
         }
 
         // Worker Thread가 실제 하는 일
