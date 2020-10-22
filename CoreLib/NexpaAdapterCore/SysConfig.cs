@@ -10,14 +10,16 @@ using System.Text;
 //              Cn0201014.2   [Nexpa_Config] -> Options 삭제, [SysConfig] -> TestOption 삭제
 //              Cn0201014.3   [Nexpa_Config] -> Encoding 추가
 // 2020-10-15   Cn0201015.1   [SysConfig] -> Options -> CmxAliveCheckTime|00:00:05 추가
+// 2020-10-20   Cn0201020.1   [HomeNet_Config] -> MyPort 추가
 
 namespace NexpaAdapterStandardLib
 {
     public class SysConfig : Singleton<SysConfig>
     {
-        #region Sections
+        public readonly string ConfigVersion = "Cn0201020.1";
 
-        public readonly string ConfigVersion = "Cn0201005.1";
+        #region Sections
+        
         private string SysSection { get => "SysConfig"; }
         private string NexpaSection { get => "Nexpa_Config"; }
         private string HomeNetSection { get => "HomeNet_Config"; }
@@ -33,7 +35,7 @@ namespace NexpaAdapterStandardLib
         /// </summary>
         public readonly string Sys_NexpaAdapter;
         /// <summary>
-        /// 홈넷 Adapter 설정 1=SHT5800, 2=CommaxDaelim(Tcp, Web), 2-1=CommaxDaelim(Tcp), 2-2=CommaxDaelim(Web)
+        /// 홈넷 Adapter 설정 1=SHT5800, 2=CommaxDaelim(Tcp, Web), 2-1=CommaxDaelim(Tcp), 2-2=CommaxDaelim(Web), 3=Commax 전용
         /// </summary>
         public readonly string Sys_HomeNetAdapter;
         /// <summary>
@@ -112,6 +114,10 @@ namespace NexpaAdapterStandardLib
         /// HomeNet Tcp Port
         /// </summary>
         public readonly string HT_Port;
+        /// <summary>
+        /// Homenet Tcp My Port
+        /// </summary>
+        public readonly string HT_MyPort;
 
         #endregion
 
@@ -145,8 +151,8 @@ namespace NexpaAdapterStandardLib
             HW_Port = ConfigManager.ReadConfig("config", HomeNetSection, "Web_Port");
             HT_IP = ConfigManager.ReadConfig("config", HomeNetSection, "Tcp_IP");
             HT_Port = ConfigManager.ReadConfig("config", HomeNetSection, "Tcp_Port");
+            HT_MyPort = ConfigManager.ReadConfig("config", HomeNetSection, "My_Port");
             HomeNet_Encoding = GetEncoding(ConfigManager.ReadConfig("config", HomeNetSection, "Encoding"));
-            
         }
 
         #endregion

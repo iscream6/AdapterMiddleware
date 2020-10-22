@@ -117,7 +117,6 @@ namespace NexpaAdapterStandardLib.Network
         {
             try
             {
-                //JObject.Parse(buffer);
                 Log.WriteLog(LogType.Info, "TcpServerNetwork| Session_receiveAction", $"Session_receiveAction Call");
                 ReceiveFromPeer?.Invoke(buffer, offset, size);
             }

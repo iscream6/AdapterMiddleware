@@ -34,7 +34,7 @@ namespace NexpaConnectApp
             //disc <=== 닫기
             //conn <== 열기
 
-            AdapterPipe pipe = new AdapterPipe();
+            NexPipe pipe = new NexPipe();
 
 
             bool bForever = true;

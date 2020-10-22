@@ -169,7 +169,6 @@ namespace NexpaAdapterStandardLib.Network
             if (buffer[0] == RetryPacket) isRetry = true;
             else isRetry = false;
             SendByte(sendBuffer, reTry: isRetry);
-            Log.WriteLog(LogType.Info, $"SerialNetwork | SendToPeer", $"Data : {sendBuffer.ToHexString()}", LogAdpType.HomeNet);
         }
 
         #endregion
@@ -209,7 +208,6 @@ namespace NexpaAdapterStandardLib.Network
                         }
                     }
 
-                    Log.WriteLog(LogType.Info, $"SerialNetwork | SendByte", $"데이터 송신 완료 : {pSendData.ToHexString()}", LogAdpType.HomeNet);
                     return true;
                 }
                 catch (Exception ex)

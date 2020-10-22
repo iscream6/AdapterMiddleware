@@ -11,7 +11,7 @@ namespace NexpaConnectWinApp
 {
     public partial class frmMain : Form
     {
-        private AdapterPipe pipe;
+        private NexPipe pipe;
         private bool isRunNexpa = false;
         private bool isRunHomeNet = false;
         private bool autoClear = false;
@@ -23,7 +23,7 @@ namespace NexpaConnectWinApp
             this.WindowState = FormWindowState.Minimized;
             this.ShowInTaskbar = false;
 
-            pipe = new AdapterPipe();
+            pipe = new NexPipe();
             SystemStatus.Instance.StatusChanged += FrmMain_StatusChanged; ;
         }
 

@@ -7,7 +7,7 @@ namespace NpmAdapter
     /// <summary>
     /// Peer to peer Pipe 역할
     /// </summary>
-    public class AdapterPipe : AbstractPipe, IDisposable
+    public class NexPipe : AbstractPipe, IDisposable
     {
         private IAdapter nexpa, homenet;
         //====== Config =====
@@ -80,6 +80,9 @@ namespace NpmAdapter
                         break;
                     case "2-2": //대림코맥스(Web만 가동)
                         homenet = new CmxDLAdapter(CmxDLAdapter.Status.WebOnly);
+                        break;
+                    case "3": //코맥스 전용
+                        homenet = new CmxAdapter();
                         break;
                     default:
                         homenet = null;
