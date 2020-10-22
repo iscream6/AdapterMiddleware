@@ -262,7 +262,7 @@ namespace NpmAdapter.Adapter
         {
             //Client 연결을 끊어줘야 하나?? 응답 메시지가 뭐가 날라올지 모르겠다....
             //일단 연결을 끊는다.
-            Log.WriteLog(LogType.Info, $"CmxDLAdapter | SendMessage", $"대림받은 메시지 : {buffer}", LogAdpType.HomeNet);
+            Log.WriteLog(LogType.Info, $"CmxDLAdapter | MyTcpNetwork_ReceiveFromPeer", $"대림받은 메시지 : {buffer}", LogAdpType.HomeNet);
             MyTcpNetwork.Down();
         }
 
@@ -421,6 +421,11 @@ namespace NpmAdapter.Adapter
                                     sInOut = "out";
                                 }
 
+                                if (payload.data.kind != null && payload.data.kind != "")
+                                {
+                                    if (payload.data.kind.ToUpper().Equals("V")) sInOut = payload.data.kind.ToLower() + sInOut;
+                                }
+
                                 XmlDocument doc = new XmlDocument();
                                 XmlElement cmx = doc.CreateElement("cmx");
                                 XmlElement park = doc.CreateElement("park");
@@ -446,11 +451,6 @@ namespace NpmAdapter.Adapter
                                 min.InnerText = $"{dateTime.Minute}";
                                 XmlElement sec = doc.CreateElement("sec");
                                 sec.InnerText = $"{dateTime.Second}";
-
-                                if(payload.data.kind != null && payload.data.kind != "")
-                                {
-                                    if (payload.data.kind.ToUpper().Equals("V")) sInOut = payload.data.kind.ToLower() + sInOut;
-                                }
 
                                 park.AppendChild(dong);
                                 park.AppendChild(ho);
