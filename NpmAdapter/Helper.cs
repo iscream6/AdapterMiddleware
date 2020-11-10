@@ -14,9 +14,18 @@ namespace NpmAdapter
     {
         private static readonly DateTime unixEpoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
-        public static string ToString(this byte[] bytes, Encoding encodeing)
+        public static string ToString(this byte[] bytes, Encoding encodeing, long size = 0)
         {
-            string str = encodeing.GetString(bytes); 
+            string str = "";
+            if (size == 0)
+            {
+                str = encodeing.GetString(bytes);
+            }
+            else
+            {
+                str = encodeing.GetString(bytes[..(int)size]);
+            }
+            
             return str;
         }
 
@@ -217,7 +226,14 @@ namespace NpmAdapter
 
         public static string ConvertDateTimeFormat(this string dateTime, string from, string to)
         {
-            return DateTime.ParseExact(dateTime, from, null).ToString(to);
+            if(dateTime == null || dateTime == "")
+            {
+                return "";
+            }
+            else
+            {
+                return DateTime.ParseExact(dateTime, from, null).ToString(to);
+            }
         }
 
         public static byte[] ToByteArray(this JObject json, Encoding encoding = null)

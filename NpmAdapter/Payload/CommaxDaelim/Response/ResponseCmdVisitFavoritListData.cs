@@ -18,6 +18,7 @@ namespace NpmAdapter.Payload
                 {
                     CommaxDaelimVisitFavoritResponseData t = new CommaxDaelimVisitFavoritResponseData();
                     t.Deserialize(item as JObject);
+                    if (list == null) list = new List<CommaxDaelimVisitFavoritResponseData>();
                     list.Add(t);
                 }
             }

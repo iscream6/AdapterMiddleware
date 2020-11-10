@@ -5,7 +5,7 @@ using System.Text;
 
 namespace NpmAdapter.Payload
 {
-    class ResponseCmdLocationCarListData : IPayload
+    class ResponseCmdFindCarListData : IPayload
     {
         public string car_num { get; set; }
         public string reg_date { get; set; }

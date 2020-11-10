@@ -154,8 +154,8 @@ namespace NpmAdapter
 
         public void Dispose()
         {
-            nexpa.Dispose();
-            homenet.Dispose();
+            nexpa?.Dispose();
+            homenet?.Dispose();
         }
 
         #region Test

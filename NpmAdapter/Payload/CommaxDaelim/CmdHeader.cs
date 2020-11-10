@@ -15,15 +15,15 @@ namespace NpmAdapter.Payload
     {
         public string category { get; set; }
 
-        public CmdPayloadManager.Type type { get; set; }
+        public CmdHelper.Type type { get; set; }
 
-        public CmdPayloadManager.Command command { get; set; }
+        public CmdHelper.Command command { get; set; }
 
         public void Deserialize(JObject json)
         {
             category = json["category"].ToString();
-            type = (CmdPayloadManager.Type)Enum.Parse(typeof(CmdPayloadManager.Type), json["type"].ToString()); 
-            command = (CmdPayloadManager.Command)Enum.Parse(typeof(CmdPayloadManager.Command), json["command"].ToString());
+            type = (CmdHelper.Type)Enum.Parse(typeof(CmdHelper.Type), json["type"].ToString()); 
+            command = (CmdHelper.Command)Enum.Parse(typeof(CmdHelper.Command), json["command"].ToString());
         }
 
         public byte[] Serialize()

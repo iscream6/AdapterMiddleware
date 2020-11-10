@@ -13,14 +13,14 @@ namespace NpmAdapter.Payload
     class RequestCmdInCarListData : IPayload
     {
         public string dongho { get; set; }
-        public CmdPayloadManager.CarType car_type { get; set; }
+        public CmdHelper.CarType car_type { get; set; }
         public string page { get; set; }
         public string count { get; set; }
 
         public void Deserialize(JObject json)
         {
             dongho = json["dongho"].ToString();
-            car_type = (CmdPayloadManager.CarType)Enum.Parse(typeof(CmdPayloadManager.CarType), json["car_type"].ToString());
+            car_type = (CmdHelper.CarType)Enum.Parse(typeof(CmdHelper.CarType), json["car_type"].ToString());
             page = json["page"].ToString();
             count = json["count"].ToString();
         }

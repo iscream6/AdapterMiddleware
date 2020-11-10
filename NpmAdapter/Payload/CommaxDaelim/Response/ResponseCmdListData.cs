@@ -18,6 +18,11 @@ namespace NpmAdapter.Payload
         public string next_page { get; set; }
         public List<T> list { get; set; }
 
+        public ResponseCmdListData()
+        {
+            list = new List<T>();
+        }
+
         public void Deserialize(JObject json)
         {
             page = json["page"].ToString();
@@ -29,9 +34,13 @@ namespace NpmAdapter.Payload
             {
                 foreach (var item in array)
                 {
-                    T t = new T();
-                    t.Deserialize(item as JObject);
-                    list.Add(t);
+                    if (item.HasValues)
+                    {
+                        T t = new T();
+                        t.Deserialize(item as JObject);
+                        if (list == null) list = new List<T>();
+                        list.Add(t);
+                    }
                 }
             }
         }
@@ -48,13 +57,17 @@ namespace NpmAdapter.Payload
             json["count"] = count;
             json["next_page"] = next_page;
             //json["list"] = list.Select(p => p.ToJson()).ToArray();
-            JArray array = new JArray();
-            foreach (var item in list)
+            if(list != null && list.Count > 0)
             {
-                array.Add(item.ToJson());
+                JArray array = new JArray();
+                foreach (var item in list)
+                {
+                    array.Add(item.ToJson());
+                }
+                json["list"] = array;
+
             }
-            json["list"] = array;
-            
+
             return json;
         }
     }
@@ -89,6 +102,8 @@ namespace NpmAdapter.Payload
 
     class ResponseCmdVisitListData : IPayload
     {
+        public string dong { get; set; }
+        public string ho { get; set; }
         public string reg_num { get; set; }
         public string car_num { get; set; }
         public string reg_date { get; set; }
@@ -97,11 +112,13 @@ namespace NpmAdapter.Payload
 
         public void Deserialize(JObject json)
         {
-            reg_num = json["reg_num"].ToString();
-            car_num = json["car_num"].ToString();
-            reg_date = json["reg_date"].ToString();
-            term = json["term"].ToString();
-            status = json["status"].ToString();
+            dong = json["dong"]?.ToString();
+            ho = json["ho"]?.ToString();
+            reg_num = json["reg_num"]?.ToString();
+            car_num = json["car_num"]?.ToString();
+            reg_date = json["reg_date"]?.ToString();
+            term = json["term"]?.ToString();
+            status = json["status"]?.ToString();
         }
 
         public byte[] Serialize()
@@ -112,6 +129,14 @@ namespace NpmAdapter.Payload
         public JObject ToJson()
         {
             JObject json = new JObject();
+            if(dong != null && dong != string.Empty)
+            {
+                json["dong"] = dong;
+            }
+            if (ho != null && ho != string.Empty)
+            {
+                json["ho"] = ho;
+            }
             json["reg_num"] = reg_num;
             json["car_num"] = car_num;
             json["reg_date"] = reg_date;

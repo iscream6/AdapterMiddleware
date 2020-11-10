@@ -6,7 +6,9 @@ using NexpaAdapterStandardLib;
 using NexpaAdapterStandardLib.Network;
 using NpmAdapter.Payload;
 using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Threading;
 
@@ -25,6 +27,8 @@ namespace NpmAdapter.Adapter
         private Status runStatus = Status.Full;
         private bool bResponseSuccess = false;
         private bool isRun = false;
+        private bool bSelfResponseSuccess = true;
+        private byte[] arrSelfResponseData = null;
 
         public static string REQ_POST_STATUS = "/nexpa/mdl/";
         
@@ -139,7 +143,15 @@ namespace NpmAdapter.Adapter
         private void MyTcpNetwork_ReceiveFromPeer(byte[] buffer, long offset, long size, RequestEventArgs pEvent = null)
         {
             Log.WriteLog(LogType.Info, "NexpaTcpAdapter | MyTcpNetwork_ReceiveFromPeer", "주차관제로부터 데이터 수신 ==========", LogAdpType.Nexpa);
-            TargetAdapter.SendMessage(buffer, offset, size);
+            if (!bSelfResponseSuccess)
+            {
+                arrSelfResponseData = buffer;
+                bSelfResponseSuccess = true;
+            }
+            else
+            {
+                TargetAdapter.SendMessage(buffer, offset, size);
+            }
             Log.WriteLog(LogType.Info, "NexpaTcpAdapter | MyTcpNetwork_ReceiveFromPeer", "주차관제로부터 데이터 수신 완료 =====", LogAdpType.Nexpa);
         }
 
@@ -206,63 +218,60 @@ namespace NpmAdapter.Adapter
         public void SendMessage(byte[] buffer, long offset, long size)
         {
             Log.WriteLog(LogType.Info, "NexpaTcpAdapter | SendMessage", "Target Adapter에게 받은 Message 를 주차관제로 전송", LogAdpType.Nexpa);
-            switch (runStatus)
+            CmdType cmd = buffer[..(int)size].GetCommand(SysConfig.Instance.Nexpa_Encoding);
+
+            if ((cmd == CmdType.location_map || cmd == CmdType.location_list) && SysConfig.Instance.Sys_Option.GetValueToUpper("UseLocationSearch") == "Y")
             {
-                case Status.TcpOnly:
+                //TODO : location map은 alias를 관제에서 관리한다..ㅠㅠ 관제를 통해 alias를 가져오는 로직이 추가되어야 한다.
+                RequestUDO_LocationMap(cmd, buffer);
+            }
+            else
+            {
+                switch (runStatus)
+                {
 
-                    if (buffer.GetCommand(SysConfig.Instance.Nexpa_Encoding) == CmdType.location_map && SysConfig.Instance.Sys_Option.GetValueToUpper("UseLocationSearch") == "Y")
-                    {
-                        RequestUDO_LocationMap(buffer);
-                    }
-                    else
-                    {
-                        MyTcpNetwork.SendToPeer(buffer, offset, size);
-                    }
+                    case Status.TcpOnly:
+                        
+                        {
+                            MyTcpNetwork.SendToPeer(buffer, offset, size);
+                        }
 
-                    //===================== Nexpa 응답 대기 =====================
-                    int iSec = 100; //1초
-                    while (iSec > 0 && !bResponseSuccess)
-                    {
-                        Thread.Sleep(10); //0.01초씩..쉰다...
-                        iSec -= 1;
-                    }
-                    //===================== Nexpa 응답 대기 =====================
+                        ////===================== Nexpa 응답 대기 =====================
+                        //int iSec = 100; //1초
+                        //while (iSec > 0 && !bResponseSuccess)
+                        //{
+                        //    Thread.Sleep(10); //0.01초씩..쉰다...
+                        //    iSec -= 1;
+                        //}
+                        ////===================== Nexpa 응답 대기 =====================
 
-                    //1초 내 응답이 안오면 죽은것으로 간주한다.
-                    if (bResponseSuccess == false)
-                    {
-                        bResponseSuccess = true;
-                        //응답 지연 에러....
-                    }
-                    bResponseSuccess = false;
+                        ////1초 내 응답이 안오면 죽은것으로 간주한다.
+                        //if (bResponseSuccess == false)
+                        //{
+                        //    bResponseSuccess = true;
+                        //    //응답 지연 에러....
+                        //}
+                        //bResponseSuccess = false;
 
-                    break;
-                case Status.WebOnly:
-                    
-                    if (buffer.GetCommand(SysConfig.Instance.Nexpa_Encoding) == CmdType.location_map && SysConfig.Instance.Sys_Option.GetValueToUpper("UseLocationSearch") == "Y")
-                    {
-                        RequestUDO_LocationMap(buffer);
-                    }
-                    else
-                    {
-                        MyHttpNetwork.SendToPeer(buffer, offset, size);
-                    }
-                    break;
-                case Status.Full:
-                    if (buffer.GetCommand(SysConfig.Instance.Nexpa_Encoding) == CmdType.location_map && SysConfig.Instance.Sys_Option.GetValueToUpper("UseLocationSearch") == "Y")
-                    {
-                        RequestUDO_LocationMap(buffer);
-                    }
-                    else
-                    {
-                        MyTcpNetwork.SendToPeer(buffer, offset, size);
-                        MyHttpNetwork.SendToPeer(buffer, offset, size);
-                    }
-                    break;
+                        break;
+                    case Status.WebOnly:
+                        
+                        {
+                            MyHttpNetwork.SendToPeer(buffer, offset, size);
+                        }
+                        break;
+                    case Status.Full:
+                        
+                        {
+                            MyTcpNetwork.SendToPeer(buffer, offset, size);
+                            MyHttpNetwork.SendToPeer(buffer, offset, size);
+                        }
+                        break;
+                }
             }
         }
 
-        private void RequestUDO_LocationMap(byte[] buffer)
+        private void RequestUDO_LocationMap(CmdType cmd, byte[] buffer)
         {
             //코맥스에서 요구하는 차량 위치찾기 기능을 구현해야 함.
             //1. 동호만 보내는경우, 차량번호를 포함해 보내는경우가 있음...
@@ -292,7 +301,9 @@ namespace NpmAdapter.Adapter
                 payload.Deserialize(data);
                 string responseData = string.Empty;
 
-                if (NetworkWebClient.Instance.SendDataPost(new Uri($"http://{_OptionDetail["UdoIP"]}:{_OptionDetail["UdoPort"]}/carfind"), payload.Serialize(), ref responseData))
+
+
+                if (NetworkWebClient.Instance.SendDataPost(new Uri($"http://{_OptionDetail["UdoIP"]}:{_OptionDetail["UdoPort"]}/carfind"), payload.Serialize(), ref responseData, ContentType.Json))
                 {
                     //responseData를 가공하자.....
                     var jobj = JObject.Parse(responseData);
@@ -315,28 +326,75 @@ namespace NpmAdapter.Adapter
                         }
                     }
 
+                    if(dataPayload != null)
+                    {
+                        //Alias를 요청하여 가져온다.
+                        JObject reqAliasJson = new JObject();
+                        reqAliasJson["command"] = "car_alias";
+
+                        JArray array = new JArray();
+                        JObject carNum = new JObject();
+                        carNum["car_number"] = dataPayload.car_number;
+                        array.Add(carNum);
+
+                        reqAliasJson["data"]["list"] = array;
+
+                        bSelfResponseSuccess = false;
+                        byte[] bytes = SysConfig.Instance.Nexpa_Encoding.GetBytes(reqAliasJson.ToString());
+                        MyTcpNetwork.SendToPeer(bytes, 0, bytes.Length);
+
+                        //===================== Nexpa 응답 대기 =====================
+                        
+                        int iSec = 100; //1초
+                        while (iSec > 0 && !bSelfResponseSuccess)
+                        {
+                            Thread.Sleep(10); //0.01초씩..쉰다...
+                            iSec -= 1;
+                        }
+                        //===================== Nexpa 응답 대기 =====================
+
+                        if (bSelfResponseSuccess && arrSelfResponseData != null)
+                        {
+                            string strAliasJson = arrSelfResponseData.ToString(SysConfig.Instance.Nexpa_Encoding);
+                            JObject aliasJson = JObject.Parse(strAliasJson);
+                            var aliasData = aliasJson["data"];
+                            JArray aliasArray = aliasData.Value<JArray>("list");
+                            if (aliasArray != null)
+                            {
+                                foreach (var item in aliasArray)
+                                {
+                                    //Alias 처리
+                                    dataPayload.alias = item.Value<string>("alias");
+                                }
+                            }
+                        }
+                    }
+
                     //홈넷 어댑터가 코맥스 대림일 경우.....
                     if (SysConfig.Instance.Sys_HomeNetAdapter.StartsWith("2"))
                     {
-                        if (dataPayload == null)
+                        if (jobj["totalCount"] == null)
                         {
-                            response.result = CmdPayloadManager.MakeResponseResultPayload(CmdPayloadManager.StatusCode.notinterface_udo);
+                            response.result = CmdHelper.MakeResponseResultPayload(CmdHelper.StatusCode.notinterface_udo);
                         }
                         else
                         {
                             response.data = dataPayload;
-                            response.result = CmdPayloadManager.MakeResponseResultPayload(CmdPayloadManager.StatusCode.ok);
+                            response.result = CmdHelper.MakeResponseResultPayload(CmdHelper.StatusCode.ok);
                         }
 
                         byte[] responseBuffer = response.Serialize();
                         TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);
                     }
+
+                    bSelfResponseSuccess = true;
+                    arrSelfResponseData = null;
                 }
                 else
                 {
                     if (SysConfig.Instance.Sys_HomeNetAdapter.StartsWith("2"))
                     {
-                        response.result = CmdPayloadManager.MakeResponseResultPayload(CmdPayloadManager.StatusCode.notinterface_udo);
+                        response.result = CmdHelper.MakeResponseResultPayload(CmdHelper.StatusCode.notinterface_udo);
 
                         byte[] responseBuffer = response.Serialize();
                         TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);
@@ -345,7 +403,137 @@ namespace NpmAdapter.Adapter
             }
             else if (json["command"].ToString() == "location_list") //차량리스트를 찾는경우
             {
+                ResponseDataPayload response = new ResponseDataPayload();
+                response.command = CmdType.location_list;
 
+                //1. 관제에 차량 번호를 조회...find_car
+                JObject data = json["data"] as JObject;
+                string dong = data["dong"]?.ToString();
+                string ho = data["ho"]?.ToString();
+                string type = data["location_type"]?.ToString();
+
+                JObject findCarObj = new JObject();
+                findCarObj["command"] = "find_car";
+                JObject findCarData = new JObject();
+                findCarData["dong"] = dong;
+                findCarData["ho"] = ho;
+                findCarObj["data"] = findCarData;
+
+                bSelfResponseSuccess = false;
+                byte[] bytes = SysConfig.Instance.Nexpa_Encoding.GetBytes(findCarObj.ToString());
+                MyTcpNetwork.SendToPeer(bytes, 0, bytes.Length);
+
+                //===================== Nexpa 응답 대기 =====================
+                
+                int iSec = 100; //1초
+                while (iSec > 0 && !bSelfResponseSuccess)
+                {
+                    Thread.Sleep(10); //0.01초씩..쉰다...
+                    iSec -= 1;
+                }
+                //===================== Nexpa 응답 대기 =====================
+
+                //2. 읽어온 차량번호로 일련의 Data를 만들어보자..
+                if (bSelfResponseSuccess && arrSelfResponseData != null)
+                {
+                    string strFindCarJson = arrSelfResponseData.ToString(SysConfig.Instance.Nexpa_Encoding);
+                    JObject findObj = JObject.Parse(strFindCarJson);
+                    JObject lstFind = findObj["data"] as JObject;
+                    JArray arrFind = lstFind.Value<JArray>("list");
+                    
+                    if (arrFind != null)
+                    {
+                        StringBuilder tempCarnos = new StringBuilder();
+                        //car_number
+                        int idx = 0;
+                        foreach (var item in arrFind)
+                        {
+                            idx += 1;
+                            tempCarnos.Append(item["car_number"].ToString());
+                            if (idx < arrFind.Count)
+                            {
+                                tempCarnos.Append(",");
+                            }
+                        }
+
+                        RequestFindCarLocPayload payload = new RequestFindCarLocPayload();
+                        payload.dong = dong;
+                        payload.ho = ho;
+                        payload.car_number = tempCarnos.ToString();
+                        string responseData = string.Empty;
+
+                        if (NetworkWebClient.Instance.SendDataPost(new Uri($"http://{_OptionDetail["UdoIP"]}:{_OptionDetail["UdoPort"]}/carfind"), payload.Serialize(), ref responseData, ContentType.Json))
+                        {
+                            //responseData를 가공하자.....
+                            var jobj = JObject.Parse(responseData);
+                            ResponseLocationListPayload dataPayload = new ResponseLocationListPayload();
+                            dataPayload.location_type = type;
+                            JArray carFindSub = jobj["carFindSub"] as JArray;
+                            if (carFindSub != null)
+                            {
+                                foreach (var item in carFindSub)
+                                {
+                                    ResponseLocationMapPayload subDataPayload = new ResponseLocationMapPayload();
+                                    subDataPayload.car_number = item.Value<string>("car_no");
+
+                                    var iNo = arrFind.Select(i => i.Value<string>("car_number"))
+                                         .Where(c => c == item.Value<string>("car_no"));
+                                    if (iNo != null && iNo.Count() > 0)
+                                    {
+                                        subDataPayload.alias = iNo.First();
+                                    }
+                                    else
+                                    {
+                                        subDataPayload.alias = item.Value<string>("alias");
+                                    }
+
+                                    subDataPayload.location_text = item.Value<string>("location");
+                                    subDataPayload.pixel_x = item.Value<string>("pointX");
+                                    subDataPayload.pixel_y = item.Value<string>("pointY");
+                                    subDataPayload.in_datetime = item.Value<string>("car_indate");
+                                    subDataPayload.car_image = item.Value<string>("car_image");
+                                    dataPayload.list.Add(subDataPayload);
+                                }
+                            }
+
+                            //홈넷 어댑터가 코맥스 대림일 경우.....
+                            if (SysConfig.Instance.Sys_HomeNetAdapter.StartsWith("2"))
+                            {
+                                if (jobj["totalCount"] == null)
+                                {
+                                    response.result = CmdHelper.MakeResponseResultPayload(CmdHelper.StatusCode.notinterface_udo);
+                                }
+                                else
+                                {
+                                    response.data = dataPayload;
+                                    response.result = CmdHelper.MakeResponseResultPayload(CmdHelper.StatusCode.ok);
+                                }
+
+                                byte[] responseBuffer = response.Serialize();
+                                TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);
+                            }
+                        }
+                        else
+                        {
+                            if (SysConfig.Instance.Sys_HomeNetAdapter.StartsWith("2"))
+                            {
+                                response.result = CmdHelper.MakeResponseResultPayload(CmdHelper.StatusCode.notinterface_udo);
+
+                                byte[] responseBuffer = response.Serialize();
+                                TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    response.result = CmdHelper.MakeResponseResultPayload(CmdHelper.StatusCode.notinterface_udo);
+                    byte[] responseBuffer = response.Serialize();
+                    TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);
+                }
+
+                bSelfResponseSuccess = true;
+                arrSelfResponseData = null;
             }
         }
 

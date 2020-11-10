@@ -73,9 +73,9 @@ namespace NexpaAdapterStandardLib
         /// </summary>
         modify_alias,
         /// <summary>
-        /// 차량 정보 조회
+        /// 세대등록 차량찾기
         /// </summary>
-        car_info,
+        find_car
     }
 
     public delegate void SendToPeer(byte[] buffer, long offset, long size, RequestEventArgs pEvent = null);

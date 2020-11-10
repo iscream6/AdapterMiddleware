@@ -49,13 +49,13 @@ namespace NpmAdapter.Payload
 
             if (json["data"] != null)
             {
-                data = CmdPayloadManager.MakeResponseDataPayload(header.type, json["data"] as JObject);
+                data = CmdHelper.MakeResponseDataPayload(header.type, json["data"] as JObject);
             }
         }
 
-        public void DeserializeData(CmdPayloadManager.Type type, JObject json)
+        public void DeserializeData(CmdHelper.Type type, JObject json)
         {
-            data = CmdPayloadManager.MakeResponseDataPayload(type, json);
+            data = CmdHelper.MakeResponseDataPayload(type, json);
         }
 
         public byte[] Serialize()
@@ -66,12 +66,12 @@ namespace NpmAdapter.Payload
         public JObject ToJson()
         {
             JObject json = new JObject();
-            json["header"] = header.ToJson();
+            json["header"] = header?.ToJson();
             if (data != null)
             {
-                json["data"] = data.ToJson();
+                json["data"] = data?.ToJson();
             }
-            json["result"] = result.ToJson();
+            json["result"] = result?.ToJson();
             return json;
         }
     }

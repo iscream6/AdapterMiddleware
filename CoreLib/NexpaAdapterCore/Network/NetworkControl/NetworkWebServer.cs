@@ -53,7 +53,7 @@ namespace NexpaAdapterStandardLib.Network
         {
             string strJson = buffer.ToString(Encoding.UTF8);
             //string cmd = buffer.GetCommand();
-
+            //TODO : 웹서버에서 Peer 서버로 전달 로직을 개발해야함. Peer Web Server To Peer Web Server 용!
             NetworkHttpControl httpControl = new NetworkHttpControl("");
             //cmd에 따라 UrlCmdType 을 지정한다.
 

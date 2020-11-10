@@ -46,7 +46,9 @@ namespace NexpaConnectWinApp
                 ctl.Text += log;
             }
         }
+        delegate void CrossThreadSafetySetText(Control ctl, String text);
 
+        
         private void FrmMain_StatusChanged(LogAdpType adapterType, string statusMessage)
         {
             StringBuilder builder = new StringBuilder();
@@ -62,8 +64,22 @@ namespace NexpaConnectWinApp
             builder.Append(statusMessage);
             //txtSysLog.AppendText(builder.ToString() + "\r");
             SafeAppendLogText(txtSysLog, builder.ToString() + "\r");
+            if (this.InvokeRequired)
+            {
+                this.Invoke(new MethodInvoker(delegate () { txtSysLog.SelectionStart = txtSysLog.Text.Length; }));
+            }
+            else
+            {
+                txtSysLog.SelectionStart = txtSysLog.Text.Length;
+            }
+        }
+
+        private void CNotSafetySetText()
+        {
             txtSysLog.SelectionStart = txtSysLog.Text.Length;
         }
+
+        
 
         private void Initialize()
         {

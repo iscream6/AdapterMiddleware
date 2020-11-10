@@ -5,7 +5,7 @@ using System.ComponentModel;
 
 namespace NpmAdapter.Payload
 {
-    public static class CmdPayloadManager
+    public static class CmdHelper
     {
         public enum Category
         {
@@ -34,6 +34,8 @@ namespace NpmAdapter.Payload
             notresponse = 102,
             [Description("이미 즐겨찾기에 등록된 방문차량 번호 입니다")]
             already_reg_favorit_carnumber = 319,
+            [Description("BAD REQUEST")]
+            bad_request = 400,
             [Description("현재 주차관제 서버와 연동중이지 않습니다")]
             notinterface_kwanje = 503,
             [Description("현재 주차위치 서버와 연동중이지 않습니다")]
@@ -136,12 +138,15 @@ namespace NpmAdapter.Payload
                         payload.command = CmdType.incar_list;
 
                         RequestCarListPayload data = new RequestCarListPayload();
-                        dh = json["data"]["dongho"].ToString();//앞 4자리 동, 뒤 4자리 호
-                        data.dong = dh.Substring(0, 4).TrimStart(new Char[] { '0' });
-                        data.ho = dh.Substring(4).TrimStart(new Char[] { '0' });
+                        dh = json["data"]["dongho"]?.ToString();//앞 4자리 동, 뒤 4자리 호
+                        if (dh != null && dh.Trim() != string.Empty)
+                        {
+                            data.dong = dh.Substring(0, 4).TrimStart(new Char[] { '0' });
+                            data.ho = dh.Substring(4).TrimStart(new Char[] { '0' });
+                        }
                         data.type = (NexpaPayloadManager.Type)Enum.Parse(typeof(NexpaPayloadManager.Type), json["data"]["car_type"].ToString());
-                        data.page = json["data"]["page"].ToString();
-                        data.count = json["data"]["count"].ToString();
+                        data.page = json["data"]["page"]?.ToString();
+                        data.count = json["data"]["count"]?.ToString();
                         payload.data = data;
 
                         result.payload = payload;
@@ -154,11 +159,14 @@ namespace NpmAdapter.Payload
                         payload.command = CmdType.visit_list;
 
                         RequestVisitListPayload data = new RequestVisitListPayload();
-                        dh = json["data"]["dongho"].ToString();//앞 4자리 동, 뒤 4자리 호
-                        data.dong = dh.Substring(0, 4).TrimStart(new Char[] { '0' });
-                        data.ho = dh.Substring(4).TrimStart(new Char[] { '0' });
-                        data.page = json["data"]["page"].ToString();
-                        data.count = json["data"]["count"].ToString();
+                        dh = json["data"]["dongho"]?.ToString();//앞 4자리 동, 뒤 4자리 호
+                        if(dh != null && dh.Trim() != string.Empty)
+                        {
+                            data.dong = dh.Substring(0, 4).TrimStart(new Char[] { '0' });
+                            data.ho = dh.Substring(4).TrimStart(new Char[] { '0' });
+                        }
+                        data.page = json["data"]["page"]?.ToString();
+                        data.count = json["data"]["count"]?.ToString();
                         payload.data = data;
 
                         result.payload = payload;
@@ -171,12 +179,15 @@ namespace NpmAdapter.Payload
                         payload.command = CmdType.visit_reg;
 
                         RequestVisitRegPayload data = new RequestVisitRegPayload();
-                        dh = json["data"]["dongho"].ToString();//앞 4자리 동, 뒤 4자리 호
-                        data.dong = dh.Substring(0, 4).TrimStart(new Char[] { '0' });
-                        data.ho = dh.Substring(4).TrimStart(new Char[] { '0' });
-                        data.car_number = json["data"]["car_num"].ToString();
-                        data.date = json["data"]["reg_date"].ToString().Replace("-", string.Empty);
-                        data.term = json["data"]["term"].ToString();
+                        dh = json["data"]["dongho"]?.ToString();//앞 4자리 동, 뒤 4자리 호
+                        if (dh != null && dh.Trim() != string.Empty)
+                        {
+                            data.dong = dh.Substring(0, 4).TrimStart(new Char[] { '0' });
+                            data.ho = dh.Substring(4).TrimStart(new Char[] { '0' });
+                        }
+                        data.car_number = json["data"]["car_num"]?.ToString();
+                        data.date = json["data"]["reg_date"]?.ToString().Replace("-", string.Empty);
+                        data.term = json["data"]["term"]?.ToString();
                         payload.data = data;
 
                         result.payload = payload;
@@ -190,11 +201,14 @@ namespace NpmAdapter.Payload
                         payload.command = CmdType.visit_del;
 
                         RequestVisitDelPayload data = new RequestVisitDelPayload();
-                        dh = json["data"]["dongho"].ToString();//앞 4자리 동, 뒤 4자리 호
-                        data.dong = dh.Substring(0, 4).TrimStart(new Char[] { '0' });
-                        data.ho = dh.Substring(4).TrimStart(new Char[] { '0' });
-                        data.reg_no = json["data"]["reg_num"].ToString();
-                        data.car_number = json["data"]["car_num"].ToString();
+                        dh = json["data"]["dongho"]?.ToString();//앞 4자리 동, 뒤 4자리 호
+                        if (dh != null && dh.Trim() != string.Empty)
+                        {
+                            data.dong = dh.Substring(0, 4).TrimStart(new Char[] { '0' });
+                            data.ho = dh.Substring(4).TrimStart(new Char[] { '0' });
+                        }
+                        data.reg_no = json["data"]["reg_num"]?.ToString();
+                        data.car_number = json["data"]["car_num"]?.ToString();
                         payload.data = data;
 
                         result.payload = payload;
@@ -208,9 +222,12 @@ namespace NpmAdapter.Payload
                         payload.command = CmdType.visit_favo_list;
 
                         RequestVisitFavoListPayload data = new RequestVisitFavoListPayload();
-                        dh = json["data"]["dongho"].ToString();//앞 4자리 동, 뒤 4자리 호
-                        data.dong = dh.Substring(0, 4).TrimStart(new Char[] { '0' });
-                        data.ho = dh.Substring(4).TrimStart(new Char[] { '0' });
+                        dh = json["data"]["dongho"]?.ToString();//앞 4자리 동, 뒤 4자리 호
+                        if (dh != null && dh.Trim() != string.Empty)
+                        {
+                            data.dong = dh.Substring(0, 4).TrimStart(new Char[] { '0' });
+                            data.ho = dh.Substring(4).TrimStart(new Char[] { '0' });
+                        }
                         payload.data = data;
 
                         result.payload = payload;
@@ -224,11 +241,14 @@ namespace NpmAdapter.Payload
                         payload.command = CmdType.visit_favo_reg;
 
                         RequestVisitFavoRegPayload data = new RequestVisitFavoRegPayload();
-                        dh = json["data"]["dongho"].ToString();//앞 4자리 동, 뒤 4자리 호
-                        data.dong = dh.Substring(0, 4).TrimStart(new Char[] { '0' });
-                        data.ho = dh.Substring(4).TrimStart(new Char[] { '0' });
-                        data.car_number = json["data"]["car_num"].ToString();
-                        data.register = json["data"]["register"].ToString(); //신규 추가됨.
+                        dh = json["data"]["dongho"]?.ToString();//앞 4자리 동, 뒤 4자리 호
+                        if (dh != null && dh.Trim() != string.Empty)
+                        {
+                            data.dong = dh.Substring(0, 4).TrimStart(new Char[] { '0' });
+                            data.ho = dh.Substring(4).TrimStart(new Char[] { '0' });
+                        }
+                        data.car_number = json["data"]["car_num"]?.ToString();
+                        data.register = json["data"]["register"]?.ToString(); //신규 추가됨.
                         payload.data = data;
 
                         result.payload = payload;
@@ -242,11 +262,14 @@ namespace NpmAdapter.Payload
                         payload.command = CmdType.visit_favo_del;
 
                         RequestVisitFavoDelPayload data = new RequestVisitFavoDelPayload();
-                        dh = json["data"]["dongho"].ToString();//앞 4자리 동, 뒤 4자리 호
-                        data.dong = dh.Substring(0, 4).TrimStart(new Char[] { '0' });
-                        data.ho = dh.Substring(4).TrimStart(new Char[] { '0' });
-                        data.reg_no = json["data"]["reg_num"].ToString();
-                        data.car_number = json["data"]["car_num"].ToString();
+                        dh = json["data"]["dongho"]?.ToString();//앞 4자리 동, 뒤 4자리 호
+                        if (dh != null && dh.Trim() != string.Empty)
+                        {
+                            data.dong = dh.Substring(0, 4).TrimStart(new Char[] { '0' });
+                            data.ho = dh.Substring(4).TrimStart(new Char[] { '0' });
+                        }
+                        data.reg_no = json["data"]["reg_num"]?.ToString();
+                        data.car_number = json["data"]["car_num"]?.ToString();
                         payload.data = data;
 
                         result.payload = payload;
@@ -255,6 +278,22 @@ namespace NpmAdapter.Payload
                     }
                 case Type.location_list:
                     {
+                        //넥스파로 뭘 보내야 할까..
+                        RequestPayload<RequestFindCarLocListPayload> payload = new RequestPayload<RequestFindCarLocListPayload>();
+                        payload.command = CmdType.location_list;
+
+                        RequestFindCarLocListPayload data = new RequestFindCarLocListPayload();
+                        dh = json["data"]["dongho"]?.ToString();//앞 4자리 동, 뒤 4자리 호
+                        if (dh != null && dh.Trim() != string.Empty)
+                        {
+                            data.dong = dh.Substring(0, 4).TrimStart(new Char[] { '0' });
+                            data.ho = dh.Substring(4).TrimStart(new Char[] { '0' });
+                        }
+                        data.location_type = json["data"]["location_type"]?.ToString();
+                        payload.data = data;
+
+                        result.payload = payload;
+                        result.type = payload.command;
                         return result;
                     }
                 case Type.location_map:
@@ -263,10 +302,13 @@ namespace NpmAdapter.Payload
                         payload.command = CmdType.location_map;
 
                         RequestFindCarLocPayload data = new RequestFindCarLocPayload();
-                        dh = json["data"]["dongho"].ToString();//앞 4자리 동, 뒤 4자리 호
-                        data.dong = dh.Substring(0, 4).TrimStart(new Char[] { '0' });
-                        data.ho = dh.Substring(4).TrimStart(new Char[] { '0' });
-                        data.car_number = json["data"]["tag_num"].ToString();
+                        dh = json["data"]["dongho"]?.ToString();//앞 4자리 동, 뒤 4자리 호
+                        if (dh != null && dh.Trim() != string.Empty)
+                        {
+                            data.dong = dh.Substring(0, 4).TrimStart(new Char[] { '0' });
+                            data.ho = dh.Substring(4).TrimStart(new Char[] { '0' });
+                        }
+                        data.car_number = json["data"]["tag_num"]?.ToString();
                         payload.data = data;
 
                         result.payload = payload;
@@ -279,11 +321,14 @@ namespace NpmAdapter.Payload
                         payload.command = CmdType.modify_alias;
 
                         RequestModifyAliasPayload data = new RequestModifyAliasPayload();
-                        dh = json["data"]["dongho"].ToString();//앞 4자리 동, 뒤 4자리 호
-                        data.dong = dh.Substring(0, 4).TrimStart(new Char[] { '0' });
-                        data.ho = dh.Substring(4).TrimStart(new Char[] { '0' });
-                        data.car_number = json["data"]["car_num"].ToString();
-                        data.alias = json["data"]["alias"].ToString();
+                        dh = json["data"]["dongho"]?.ToString();//앞 4자리 동, 뒤 4자리 호
+                        if (dh != null && dh.Trim() != string.Empty)
+                        {
+                            data.dong = dh.Substring(0, 4).TrimStart(new Char[] { '0' });
+                            data.ho = dh.Substring(4).TrimStart(new Char[] { '0' });
+                        }
+                        data.car_number = json["data"]["car_num"]?.ToString();
+                        data.alias = json["data"]["alias"]?.ToString();
                         payload.data = data;
 
                         result.payload = payload;
@@ -293,12 +338,15 @@ namespace NpmAdapter.Payload
                 case Type.location_car_list:
                     {
                         RequestPayload<RequestCarInfoPayload> payload = new RequestPayload<RequestCarInfoPayload>();
-                        payload.command = CmdType.car_info;
+                        payload.command = CmdType.find_car;
 
                         RequestCarInfoPayload data = new RequestCarInfoPayload();
-                        dh = json["data"]["dongho"].ToString();//앞 4자리 동, 뒤 4자리 호
-                        data.dong = dh.Substring(0, 4).TrimStart(new Char[] { '0' });
-                        data.ho = dh.Substring(4).TrimStart(new Char[] { '0' });
+                        dh = json["data"]["dongho"]?.ToString();//앞 4자리 동, 뒤 4자리 호
+                        if (dh != null && dh.Trim() != string.Empty)
+                        {
+                            data.dong = dh.Substring(0, 4).TrimStart(new Char[] { '0' });
+                            data.ho = dh.Substring(4).TrimStart(new Char[] { '0' });
+                        }
                         payload.data = data;
 
                         result.payload = payload;
@@ -341,7 +389,7 @@ namespace NpmAdapter.Payload
                     payload.Deserialize(json);
                     break;
                 case Type.location_car_list:
-                    payload = new ResponseCmdLocationCarListData();
+                    payload = new ResponseCmdFindCarListData();
                     payload.Deserialize(json);
                     break;
             }

@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
+using System.Net.Http;
 using System.Text;
 using System.Threading;
 
@@ -12,13 +13,22 @@ namespace NexpaAdapterStandardLib.Network
     public delegate void WebSocketReceive(string strData);
     public delegate void WebSocketClose();
 
+    public enum ContentType
+    {
+        Json,
+        FormData
+    }
+
     public class NetworkWebClient : Singleton<NetworkWebClient>
     {
         public static event WebSocketConnected OnWebSocketConnected;
         public static event WebSocketReceive OnWebSocketReceive;
         public static event WebSocketClose OnWebSocketClose;
 
-        public bool SendDataPost(Uri uri, byte[] sendData, ref string strJsonData)
+        private const string ContentTypeFormData = "application/x-www-form-urlencoded;charset=UTF-8";
+        private const string ContentTypeJson = "application/json;charset=UTF-8";
+
+        public bool SendDataPost(Uri uri, byte[] sendData, ref string strJsonData, ContentType contentType)
         {
             bool bResult = true;
             HttpWebResponse response = null;
@@ -33,9 +43,24 @@ namespace NexpaAdapterStandardLib.Network
                 HttpWebRequest request = (HttpWebRequest)WebRequest.Create(uri);
                 request.Method = "POST";
                 //request.ContinueTimeout = 3000;
-                request.ContentType = "application/json;charset=UTF-8";
-                request.Headers.Add("appKey", "fcbfb6b7-f5e6-4a50-a506-f3e45c6523d8");
-                request.Headers.Add("Authorization", "Basic bmV4cGEtMDA6ZjNlNDVjNjUyM2Q4");
+
+                if(contentType == ContentType.FormData)
+                {
+                    request.ContentType = ContentTypeFormData;
+                }
+                else if(contentType == ContentType.Json)
+                {
+                    request.ContentType = ContentTypeJson;
+                }
+                else
+                {
+                    //Default Json
+                    request.ContentType = ContentTypeJson;
+                }
+                
+                //request.Headers.Add("appKey", "fcbfb6b7-f5e6-4a50-a506-f3e45c6523d8");
+                //request.Headers.Add("Authorization", "Basic bmV4cGEtMDA6ZjNlNDVjNjUyM2Q4");
+
                 request.ContentLength = (long)sendData.Length;
 
                 Stream requestPostStream = request.GetRequestStream();
