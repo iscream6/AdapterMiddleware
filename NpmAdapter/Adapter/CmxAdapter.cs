@@ -94,10 +94,10 @@ namespace NpmAdapter.Adapter
         {
             try
             {
-                var jobj = JObject.Parse(buffer.ToString(SysConfig.Instance.Nexpa_Encoding));
+                var jobj = JObject.Parse(buffer.ToString(SysConfig.Instance.Nexpa_Encoding, size));
                 Log.WriteLog(LogType.Info, $"CmxDLAdapter | SendMessage", $"넥스파에서 받은 메시지 : {jobj}", LogAdpType.HomeNet);
                 JObject data = jobj["data"] as JObject;
-                switch (buffer.GetCommand(SysConfig.Instance.Nexpa_Encoding))
+                switch (buffer[..(int)size].GetCommand(SysConfig.Instance.Nexpa_Encoding))
                 {
                     #region 입출차 통보
 
