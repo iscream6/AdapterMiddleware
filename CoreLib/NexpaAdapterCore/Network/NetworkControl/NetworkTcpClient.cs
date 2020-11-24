@@ -2,17 +2,23 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading;
 
 namespace NexpaAdapterStandardLib.Network
 {
     class NetworkTcpClient : TcpClient, INetwork
     {
+        public Action OnConnectionAction { get; set; }
         public event SendToPeer ReceiveFromPeer;
-
+        private bool _stop;
+        private int _stopCnt = 0;
+        
         public NetworkTcpClient(string address, int port) : base(address, port) { }
 
         public bool Down()
         {
+            _stop = true;
+
             if (IsConnected)
             {
                 return Disconnect();
@@ -25,6 +31,8 @@ namespace NexpaAdapterStandardLib.Network
 
         public bool Run()
         {
+            _stop = false;
+
             if (IsConnected)
             {
                 Disconnect();
@@ -56,12 +64,33 @@ namespace NexpaAdapterStandardLib.Network
             }
         }
 
+        protected override void OnConnected()
+        {
+            Log.WriteLog(LogType.Info, "TcpClientNetwork| OnConnected", $"Chat TCP client connected a new session with Id {Id}");
+            if(OnConnectionAction != null) OnConnectionAction();
+        }
+
+
+
         protected override void OnDisconnected()
         {
             //서버에서 끊어짐....
             Log.WriteLog(LogType.Info, "TcpClientNetwork| OnDisconnected", $"client disconnected a session with Id {Id}");
-            //연결을 끊어준다.
-            Disconnect();
+            // Wait for a while...
+            Thread.Sleep(500);
+            //연결 재 시도...
+            _stopCnt += 1;
+            if (_stopCnt >= 3)
+            {
+                _stop = true;
+            }
+
+            if (!_stop)
+            {
+                Connect();
+            }
+
+            _stopCnt = 0;
         }
     }
 }

@@ -26,6 +26,7 @@ namespace NexpaAdapterStandardLib.Network
         {
             get => _dicClientSession.Count;
         }
+        public Action OnConnectionAction { get; set; }
 
         #region Implements IHomeNetServerAdapter
 
@@ -103,7 +104,7 @@ namespace NexpaAdapterStandardLib.Network
             _dicClientSession.Add(session.Id, session);
 
             Log.WriteLog(LogType.Info, $"TcpServerNetwork | CreateSession", $"Client 접속 ID : {session.Id}", LogAdpType.Nexpa);
-
+            if (OnConnectionAction != null) OnConnectionAction();
             return session;
         }
 

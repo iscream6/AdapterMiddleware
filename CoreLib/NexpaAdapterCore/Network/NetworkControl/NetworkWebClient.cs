@@ -28,6 +28,136 @@ namespace NexpaAdapterStandardLib.Network
         private const string ContentTypeFormData = "application/x-www-form-urlencoded;charset=UTF-8";
         private const string ContentTypeJson = "application/json;charset=UTF-8";
 
+        public enum RequestType
+        {
+            GET,
+            POST,
+            PUT,
+            DELETE
+        }
+
+        public bool SendData(Uri uri, byte[] sendData, ref string strData, RequestType requestType, ContentType contentType, Dictionary<string, string> header = null)
+        {
+            bool bResult = true;
+
+            strData = string.Empty;
+
+            try
+            {
+                Log.WriteLog(LogType.Info, "NetworkWebClient| SendData", $"Request Type : {requestType}, Request URI : {uri}");
+                HttpWebRequest request = (HttpWebRequest)WebRequest.Create(uri);
+                request.Method = requestType.ToString();
+
+                if (contentType == ContentType.FormData)
+                {
+                    request.ContentType = ContentTypeFormData;
+                }
+                else if (contentType == ContentType.Json)
+                {
+                    request.ContentType = ContentTypeJson;
+                }
+                else
+                {
+                    //Default Json
+                    request.ContentType = ContentTypeJson;
+                }
+
+                request.ContentLength = (long)sendData.Length;
+
+                if(header != null)
+                {
+                    foreach (var item in header)
+                    {
+                        request.Headers.Add(item.Key, item.Value);
+                    }
+                }
+
+                using (Stream requestStream = request.GetRequestStream())
+                {
+                    requestStream.Write(sendData, 0, Convert.ToInt32(request.ContentLength));
+                }
+
+                // Response 처리
+                using (HttpWebResponse response = (HttpWebResponse)request.GetResponse())
+                {
+                    if (response != null)
+                    {
+                        switch (response.StatusCode)
+                        {
+                            case HttpStatusCode.Created:
+                            case HttpStatusCode.OK:
+                                using (Stream respStream = response.GetResponseStream())
+                                using (StreamReader sr = new StreamReader(respStream))
+                                {
+                                    int nCount = 0;
+                                    while (strData == string.Empty)
+                                    {
+                                        strData = sr.ReadToEnd();
+
+                                        if (nCount > 20)
+                                        {
+                                            bResult = false;
+                                            break;
+                                        }
+                                        nCount++;
+                                        Thread.Sleep(100);
+                                    }
+
+                                    if (bResult)
+                                    {
+                                        //성공                            
+                                        Log.WriteLog(LogType.Info, "NetworkWebClient| SendDataPost", $"응답성공 : {strData}", LogAdpType.Nexpa);
+                                    }
+                                    else
+                                    {
+                                        //실패
+                                        Log.WriteLog(LogType.Info, "NetworkWebClient| SendDataPost", $"응답실패 : {strData}");
+                                    }
+                                }
+
+                                break;
+                            default:
+                                //에러
+                                Log.WriteLog(LogType.Info, "NetworkWebClient| SendDataPost", $"response is null");
+                                break;
+                        }
+                    }
+                    else
+                    {
+                            
+                    }
+                        
+                }
+            }
+            catch (WebException exWeb)
+            {
+                Log.WriteLog(LogType.Error, "NetworkWebClient| SendDataPost", $"{exWeb.ToString()}");
+                using (HttpWebResponse response = (HttpWebResponse)exWeb.Response)
+                {
+                    if (response == null) return false;
+
+                    using (Stream resGetStream = response.GetResponseStream())
+                    using (StreamReader resGetRead = new StreamReader(resGetStream, Encoding.UTF8, true))
+                    {
+                        strData = resGetRead.ReadToEnd();
+                    }
+
+                    if (strData != null && strData != "")
+                        bResult = true;
+                    else
+                        bResult = false;
+                }
+            }
+            catch (Exception)
+            {
+                bResult = false;
+                OnWebSocketClose?.Invoke();
+            }
+
+            return bResult;
+        }
+
+
         public bool SendDataPost(Uri uri, byte[] sendData, ref string strJsonData, ContentType contentType)
         {
             bool bResult = true;

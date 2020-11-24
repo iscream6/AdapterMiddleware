@@ -37,6 +37,10 @@ namespace NexpaAdapterStandardLib
         /// </summary>
         visit_reg,
         /// <summary>
+        /// 방문 차량 수정
+        /// </summary>
+        visit_modify,
+        /// <summary>
         /// 방문 차량 삭제
         /// </summary>
         visit_del,
@@ -75,7 +79,23 @@ namespace NexpaAdapterStandardLib
         /// <summary>
         /// 세대등록 차량찾기
         /// </summary>
-        find_car
+        find_car,
+        /// <summary>
+        /// 블랙리스트 리스트
+        /// </summary>
+        blacklist_list,
+        /// <summary>
+        /// 블랙리스트 등록
+        /// </summary>
+        blacklist_reg,
+        /// <summary>
+        /// 블랙리스트 삭제
+        /// </summary>
+        blacklist_del,
+        /// <summary>
+        /// 블랙리스트 단일차량 조회
+        /// </summary>
+        blacklist_car
     }
 
     public delegate void SendToPeer(byte[] buffer, long offset, long size, RequestEventArgs pEvent = null);
@@ -83,6 +103,8 @@ namespace NexpaAdapterStandardLib
     public interface INetwork
     {
         event SendToPeer ReceiveFromPeer;
+
+        public Action OnConnectionAction { get; set; }
 
         void SendToPeer(byte[] buffer, long offset, long size);
 

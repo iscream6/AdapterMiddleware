@@ -11,12 +11,13 @@ using System.Text;
 //              Cn0201014.3   [Nexpa_Config] -> Encoding 추가
 // 2020-10-15   Cn0201015.1   [SysConfig] -> Options -> CmxAliveCheckTime|00:00:05 추가
 // 2020-10-20   Cn0201020.1   [HomeNet_Config] -> MyPort 추가
+// 2020-11-19   Cn0201119.1   [HomeNet_Config] -> Web_Domain, HId, HPw 추가
 
 namespace NexpaAdapterStandardLib
 {
     public class SysConfig : Singleton<SysConfig>
     {
-        public readonly string ConfigVersion = "Cn0201020.1";
+        public readonly string ConfigVersion = "Cn0201119.1";
 
         #region Sections
         
@@ -35,7 +36,7 @@ namespace NexpaAdapterStandardLib
         /// </summary>
         public readonly string Sys_NexpaAdapter;
         /// <summary>
-        /// 홈넷 Adapter 설정 1=SHT5800, 2=CommaxDaelim(Tcp, Web), 2-1=CommaxDaelim(Tcp), 2-2=CommaxDaelim(Web), 3=Commax 전용
+        /// 홈넷 Adapter 설정 1=SHT5800, 2=CommaxDaelim(Tcp, Web), 2-1=CommaxDaelim(Tcp), 2-2=CommaxDaelim(Web), 3=Commax 전용, CCM=코콤
         /// </summary>
         public readonly string Sys_HomeNetAdapter;
         /// <summary>
@@ -78,6 +79,19 @@ namespace NexpaAdapterStandardLib
 
         #endregion
 
+        #region HomeNet_Common
+
+        /// <summary>
+        /// HomeNet ID
+        /// </summary>
+        public readonly string HC_Id;
+        /// <summary>
+        /// HomeNet Password
+        /// </summary>
+        public readonly string HC_Pw;
+
+        #endregion
+
         #region HomeNet_SerialConfig
 
         /// <summary>
@@ -101,7 +115,11 @@ namespace NexpaAdapterStandardLib
         /// HomeNet Web Port
         /// </summary>
         public readonly string HW_Port;
-
+        /// <summary>
+        /// HomeNet Web Domain
+        /// </summary>
+        public readonly string HW_Domain;
+        
         #endregion
 
         #region HomeNet_TcpConfig
@@ -149,9 +167,12 @@ namespace NexpaAdapterStandardLib
             HS_PortName = ConfigManager.ReadConfig("config", HomeNetSection, "Serial_PortName");
             HS_Parity = ConfigManager.ReadConfig("config", HomeNetSection, "Serial_Parity");
             HW_Port = ConfigManager.ReadConfig("config", HomeNetSection, "Web_Port");
+            HW_Domain = ConfigManager.ReadConfig("config", HomeNetSection, "Web_Domain");
             HT_IP = ConfigManager.ReadConfig("config", HomeNetSection, "Tcp_IP");
             HT_Port = ConfigManager.ReadConfig("config", HomeNetSection, "Tcp_Port");
             HT_MyPort = ConfigManager.ReadConfig("config", HomeNetSection, "My_Port");
+            HC_Id = ConfigManager.ReadConfig("config", HomeNetSection, "HId");
+            HC_Pw = ConfigManager.ReadConfig("config", HomeNetSection, "HPw");
             HomeNet_Encoding = GetEncoding(ConfigManager.ReadConfig("config", HomeNetSection, "Encoding"));
         }
 
@@ -196,6 +217,10 @@ namespace NexpaAdapterStandardLib
                     return Encoding.Default;
                 case "8":
                     return Encoding.UTF8;
+                case "kr":
+                    int iEuckr = 51949;
+                    Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
+                    return Encoding.GetEncoding(iEuckr);
                 default:
                     return Encoding.UTF8;
             }

@@ -30,6 +30,8 @@ namespace NexpaAdapterStandardLib.Network
 
         private object lockThis = new object();
 
+        public Action OnConnectionAction { get; set; }
+
         public event SendToPeer ReceiveFromPeer;
 
         public NetworkSerial()

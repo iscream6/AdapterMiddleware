@@ -17,6 +17,9 @@ namespace NexpaAdapterStandardLib.Network
         //private NetworkCore.HttpServer m_listener = null;
         private HttpListener m_listener = null;
         private int _port;
+
+        public Action OnConnectionAction { get; set; }
+
         public NetworkWebServer(int port)
         {
             _port = port;
@@ -92,7 +95,7 @@ namespace NexpaAdapterStandardLib.Network
         private void onAccept(object sender, SocketFilterEventArgs e)
         {
             IPEndPoint remoteIpEndPoint = e.Socket.RemoteEndPoint as IPEndPoint;
-
+            if (OnConnectionAction != null) OnConnectionAction();
             //TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "NPHttpServer | onAccept", "[서버에 클라이언트 접속]" + remoteIpEndPoint.Address);
         }
         private void OnRequestReceive(object sender, RequestEventArgs e)
