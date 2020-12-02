@@ -1,5 +1,6 @@
 ﻿//using NexpaAdapterStandardLib.IO.Json;
 using Newtonsoft.Json.Linq;
+using NexpaAdapterStandardLib;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -26,19 +27,22 @@ namespace NpmAdapter.Payload
 
         public byte[] Serialize()
         {
-            return ToJson().ToByteArray();
+            return ToJson().ToByteArray(SysConfig.Instance.HomeNet_Encoding);
         }
 
         public JObject ToJson()
         {
             JObject json = new JObject();
             //json["list"] = list.Select(p => p.ToJson()).ToArray();
-            JArray array = new JArray();
-            foreach (var item in list)
+            if (list != null && list.Count > 0)
             {
-                array.Add(item.ToJson());
+                JArray array = new JArray();
+                foreach (var item in list)
+                {
+                    array.Add(item.ToJson());
+                }
+                json["list"] = array;
             }
-            json["list"] = array;
             return json;
         }
     }
@@ -52,15 +56,15 @@ namespace NpmAdapter.Payload
 
         public void Deserialize(JObject json)
         {
-            reg_num = json["reg_num"].ToString();
-            car_num = json["car_num"].ToString();
-            reg_date = json["reg_date"].ToString();
-            register = json["register"].ToString();
+            reg_num = Helper.NVL(json["reg_num"]);
+            car_num = Helper.NVL(json["car_num"]);
+            reg_date = Helper.NVL(json["reg_date"]);
+            register = Helper.NVL(json["register"]);
         }
 
         public byte[] Serialize()
         {
-            return ToJson().ToByteArray();
+            return ToJson().ToByteArray(SysConfig.Instance.HomeNet_Encoding);
         }
 
         public JObject ToJson()

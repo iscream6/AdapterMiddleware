@@ -10,9 +10,9 @@ namespace NpmAdapter.Payload
         public string ho { get; set; }
         public void Deserialize(JObject json)
         {
-            car_number = json["car_no"].ToString();
-            dong = json["dong"].ToString();
-            ho = json["ho"].ToString();
+            car_number = Helper.NVL(json["car_no"]);
+            dong = Helper.NVL(json["dong"]);
+            ho = Helper.NVL(json["ho"]);
         }
 
         public byte[] Serialize()

@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json.Linq;
+using NexpaAdapterStandardLib;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -13,14 +14,14 @@ namespace NpmAdapter.Payload
 
         public void Deserialize(JObject json)
         {
-            car_num = json["car_num"].ToString();
-            reg_date = json["reg_date"].ToString();
-            alias = json["alias"].ToString();
+            car_num = Helper.NVL(json["car_num"]);
+            reg_date = Helper.NVL(json["reg_date"]);
+            alias = Helper.NVL(json["alias"]);
         }
 
         public byte[] Serialize()
         {
-            return ToJson().ToByteArray();
+            return ToJson().ToByteArray(SysConfig.Instance.HomeNet_Encoding);
         }
 
         public JObject ToJson()

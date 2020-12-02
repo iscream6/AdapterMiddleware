@@ -1,4 +1,5 @@
 ﻿using NexpaAdapterStandardLib;
+using NexpaAdapterStandardLib.Network;
 using NpmAdapter.Adapter;
 using System;
 
@@ -83,6 +84,18 @@ namespace NpmAdapter
                         break;
                     case "3": //코맥스 전용
                         homenet = new CmxAdapter();
+                        break;
+                    case "CCM": //코콤
+                        homenet = new CcmAdapter();
+                        break;
+                    case "APS": //아파트스토리
+                        homenet = new AptStAdapter();
+                        break;
+                    case "SMTV": //스마트빌리지
+                        homenet = new SmtvAdapter();
+                        break;
+                    case "SML": //샘물
+                        homenet = new SamulAdapter();
                         break;
                     default:
                         homenet = null;

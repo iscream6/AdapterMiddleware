@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Windows.Forms;
 
@@ -13,6 +14,8 @@ namespace NexpaConnectWinApp
         [STAThread]
         static void Main()
         {
+            Process[] procs = Process.GetProcessesByName("NexpaConnectWinApp");
+            if (procs.Length > 1) return;
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
             Application.Run(new frmMain());

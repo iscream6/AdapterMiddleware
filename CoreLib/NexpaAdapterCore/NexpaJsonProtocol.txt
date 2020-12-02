@@ -7,7 +7,9 @@ Body
       "ho" : "456"
       "car_number" : "차량번호",
       "date_time" : "yyyyMMddHHmmss",
-      "kind" : "a/v" //a:세대원, v:방문객
+      "kind" : "a/v", //a:세대원, v:방문객
+      "lprid" : "Lpr 식별 번호",
+      "car_image" : "차량 이미지 경로" //미들웨어에서도 이미지를 Loading 할 수 있는 경로
   }
 }
 
@@ -31,7 +33,9 @@ Body
       "dong": "123",
       "ho" : "456"
       "car_number": "차량번호",
-      "date_time": "yyyyMMddHHmmss"
+      "date_time": "yyyyMMddHHmmss",
+      "lprid" : "Lpr 식별 번호",
+      "car_image" : "차량 이미지 경로" //미들웨어에서도 이미지를 Loading 할 수 있는 경로
   }
 }
 

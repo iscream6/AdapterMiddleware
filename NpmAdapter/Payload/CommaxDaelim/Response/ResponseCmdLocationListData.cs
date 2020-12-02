@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json.Linq;
+using NexpaAdapterStandardLib;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -33,7 +34,7 @@ namespace NpmAdapter.Payload.CommaxDaelim.Response
 
         public byte[] Serialize()
         {
-            return ToJson().ToByteArray();
+            return ToJson().ToByteArray(SysConfig.Instance.HomeNet_Encoding);
         }
 
         public JObject ToJson()
@@ -70,7 +71,7 @@ namespace NpmAdapter.Payload.CommaxDaelim.Response
 
         public byte[] Serialize()
         {
-            return ToJson().ToByteArray();
+            return ToJson().ToByteArray(SysConfig.Instance.HomeNet_Encoding);
         }
 
         public JObject ToJson()

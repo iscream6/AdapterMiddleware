@@ -42,19 +42,19 @@ namespace NpmAdapter.Payload
         /// <summary>
         /// 단지 내 있음(y)/없음(n)
         /// </summary>
-        public string im_complex { get; set; }
+        public string in_complex { get; set; }
 
         public void Deserialize(JObject json)
         {
-            car_number = json["tag_num"].ToString();
-            alias = json["alias"].ToString();
-            location_text = json["location_text"].ToString();
-            pixel_x = json["pixel_x"].ToString();
-            pixel_y = json["pixel_y"].ToString();
-            datetime = json["datetime"].ToString();
-            image = json["image"].ToString();
-            bettery = json["bettery"].ToString();
-            im_complex = json["im_complex"].ToString();
+            car_number = Helper.NVL(json["tag_num"]);
+            alias = Helper.NVL(json["alias"]);
+            location_text = Helper.NVL(json["location_text"]);
+            pixel_x = Helper.NVL(json["pixel_x"]);
+            pixel_y = Helper.NVL(json["pixel_y"]);
+            datetime = Helper.NVL(json["datetime"]);
+            image = Helper.NVL(json["image"]);
+            bettery = Helper.NVL(json["bettery"]);
+            in_complex = Helper.NVL(json["in_complex"]);
         }
 
         public byte[] Serialize()
@@ -73,7 +73,7 @@ namespace NpmAdapter.Payload
             json["datetime"] = datetime;
             json["image"] = image;
             json["bettery"] = "00";
-            json["im_complex"] = "y";
+            json["in_complex"] = "y";
             return json;
         }
     }

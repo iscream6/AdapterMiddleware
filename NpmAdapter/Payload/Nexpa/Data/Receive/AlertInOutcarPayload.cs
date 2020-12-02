@@ -25,14 +25,26 @@ namespace NpmAdapter.Payload
         /// 차량 구분 a : 세대원, v 방문객
         /// </summary>
         public string kind { get; set; }
+        /// <summary>
+        /// LPR 번호
+        /// </summary>
+        public string lprID { get; set; }
+        /// <summary>
+        /// 차량 이미지 정보
+        /// </summary>
+        public string car_image { get; set; }
 
         public void Deserialize(JObject json)
         {
-            dong = json["dong"]?.ToString();
-            ho = json["ho"]?.ToString();
-            car_number = json["car_number"]?.ToString();
-            date_time = json["date_time"]?.ToString();
-            kind = json["kind"]?.ToString();
+            if (json == null) return;
+
+            dong = json.NPGetValue(NPElements.Dong);
+            ho = json.NPGetValue(NPElements.Ho);
+            car_number = json.NPGetValue(NPElements.Car_Number);
+            date_time = json.NPGetValue(NPElements.Date_Time);
+            kind = json.NPGetValue(NPElements.Kind);
+            lprID = json.NPGetValue(NPElements.LprID);
+            car_image = json.NPGetValue(NPElements.Car_Image);
         }
 
         public byte[] Serialize()
@@ -48,6 +60,8 @@ namespace NpmAdapter.Payload
             json["car_number"] = car_number;
             json["date_time"] = date_time;
             json["kind"] = kind;
+            json["lprid"] = lprID;
+            json["car_image"] = car_image;
             return json;
         }
     }

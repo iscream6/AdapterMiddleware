@@ -32,11 +32,13 @@ namespace NpmAdapter.Payload
 
         public void Deserialize(JObject json)
         {
-            dong = json["dong"].ToString();
-            ho = json["ho"].ToString();
-            car_number = json["car_number"].ToString();
-            date = json["date"].ToString();
-            term = json["term"].ToString();
+            if (json == null) return;
+
+            dong = Helper.NVL(json["dong"]);
+            ho = Helper.NVL(json["ho"]);
+            car_number = Helper.NVL(json["car_number"]);
+            date = Helper.NVL(json["date"]);
+            term = Helper.NVL(json["term"]);
         }
 
         public byte[] Serialize()

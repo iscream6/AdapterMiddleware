@@ -75,6 +75,7 @@
             this.contextMenuTray = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.mnuShutdown = new System.Windows.Forms.ToolStripMenuItem();
             this.mnuActive = new System.Windows.Forms.ToolStripMenuItem();
+            this.timerDeath = new System.Windows.Forms.Timer(this.components);
             this.grbSystem.SuspendLayout();
             this.pnlCmdTest.SuspendLayout();
             this.pnlSendMessageTest.SuspendLayout();
@@ -526,8 +527,8 @@
             // contextMenuTray
             // 
             this.contextMenuTray.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.mnuShutdown,
-            this.mnuActive});
+            this.mnuActive,
+            this.mnuShutdown});
             this.contextMenuTray.Name = "contextMenuTray";
             this.contextMenuTray.Size = new System.Drawing.Size(151, 48);
             // 
@@ -544,6 +545,11 @@
             this.mnuActive.Size = new System.Drawing.Size(150, 22);
             this.mnuActive.Text = "창 활성화";
             this.mnuActive.Click += new System.EventHandler(this.mnuActive_Click);
+            // 
+            // timerDeath
+            // 
+            this.timerDeath.Interval = 20;
+            this.timerDeath.Tick += new System.EventHandler(this.timerDeath_Tick);
             // 
             // frmMain
             // 
@@ -618,6 +624,7 @@
         private System.Windows.Forms.ContextMenuStrip contextMenuTray;
         private System.Windows.Forms.ToolStripMenuItem mnuShutdown;
         private System.Windows.Forms.ToolStripMenuItem mnuActive;
+        private System.Windows.Forms.Timer timerDeath;
     }
 }
 

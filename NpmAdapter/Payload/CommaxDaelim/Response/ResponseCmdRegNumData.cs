@@ -1,5 +1,6 @@
 ﻿//using NexpaAdapterStandardLib.IO.Json;
 using Newtonsoft.Json.Linq;
+using NexpaAdapterStandardLib;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -12,12 +13,12 @@ namespace NpmAdapter.Payload
 
         public void Deserialize(JObject json)
         {
-            reg_num = json["reg_num"].ToString();
+            reg_num = Helper.NVL(json["reg_num"]);
         }
 
         public byte[] Serialize()
         {
-            return ToJson().ToByteArray();
+            return ToJson().ToByteArray(SysConfig.Instance.HomeNet_Encoding);
         }
 
         public JObject ToJson()

@@ -23,7 +23,15 @@ namespace NpmAdapter.Payload
         {
             category = json["category"].ToString();
             type = (CmdHelper.Type)Enum.Parse(typeof(CmdHelper.Type), json["type"].ToString()); 
-            command = (CmdHelper.Command)Enum.Parse(typeof(CmdHelper.Command), json["command"].ToString());
+            //command = (CmdHelper.Command)Enum.Parse(typeof(CmdHelper.Command), json["command"].ToString());
+            if((CmdHelper.Command)Enum.Parse(typeof(CmdHelper.Command), json["command"].ToString()) == CmdHelper.Command.query_request)
+            {
+                command = CmdHelper.Command.query_response;
+            }
+            else if((CmdHelper.Command)Enum.Parse(typeof(CmdHelper.Command), json["command"].ToString()) == CmdHelper.Command.control_request)
+            {
+                command = CmdHelper.Command.control_response;
+            }
         }
 
         public byte[] Serialize()

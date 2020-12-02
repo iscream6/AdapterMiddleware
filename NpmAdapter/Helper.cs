@@ -10,6 +10,33 @@ using System.Xml;
 
 namespace NpmAdapter
 {
+    public enum NPElements
+    {
+        Code,
+        Dong,
+        Ho,
+        Car_Number,
+        Date,
+        Date_Time,
+        Kind,
+        Type,
+        Page,
+        Count,
+        Term,
+        Reg_No,
+        Visit_Flag,
+        Register,
+        Alias,
+        Location_Text,
+        Pixel_X,
+        Pixel_Y,
+        In_DateTime,
+        Car_Image,
+        Remain_Page,
+        Reason,
+        LprID
+    }
+
     public static class Helper
     {
         private static readonly DateTime unixEpoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
@@ -258,6 +285,72 @@ namespace NpmAdapter
         {
             if (dic.ContainsKey(key)) return dic[key];
             else return "";
+        }
+
+        public static Dictionary<string, string> DoubleSplit(this string str, char BigSep, char SmallSep)
+        {
+            Dictionary<string, string> dicResult = new Dictionary<string, string>();
+
+            try
+            {
+                string[] bigSplit = str.Split(BigSep);
+                foreach (var item in bigSplit)
+                {
+                    string[] smallSplit = item.Split(SmallSep);
+                    dicResult.Add(smallSplit[0].ToUpper(), smallSplit[1]);
+                }
+                return dicResult;
+            }
+            catch (Exception)
+            {
+                return dicResult;
+            }
+        }
+
+        public static string NVL(JObject jObject, string defaultValue = "")
+        {
+            if (jObject == null) return defaultValue;
+            else
+            {
+                return jObject.ToString();
+            }
+        }
+
+        public static string NVL(JToken jToken, string defaultValue = "")
+        {
+            if (jToken == null) return defaultValue;
+            else
+            {
+                return jToken.ToString();
+            }
+        }
+
+        public static string NPGetValue(this JObject jObject, NPElements elements, string defaultValue = "")
+        {
+            var key = elements.ToString().ToLower();
+            return NVL(jObject[key], defaultValue);
+        }
+
+        public static string NPGetValue(this JToken jToken, NPElements elements, string defaultValue = "")
+        {
+            var key = elements.ToString().ToLower();
+            return NVL(jToken[key], defaultValue);
+        }
+
+        public static string Base64Encode(this string data)
+        {
+            try
+            {
+                byte[] encData_byte = new byte[data.Length];
+                encData_byte = System.Text.Encoding.UTF8.GetBytes(data);
+                string encodedData = Convert.ToBase64String(encData_byte);
+                return encodedData;
+            }
+            catch (Exception e)
+            {
+                throw new Exception("Error in Base64Encode: " + e.Message);
+            }
+
         }
     }
 }

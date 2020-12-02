@@ -1,5 +1,6 @@
 ﻿//using NexpaAdapterStandardLib.IO.Json;
 using Newtonsoft.Json.Linq;
+using NexpaAdapterStandardLib;
 //using NexpaAdapterStandardLib.Payload;
 using System;
 using System.Collections.Generic;
@@ -47,7 +48,7 @@ namespace NpmAdapter.Payload
 
         public byte[] Serialize()
         {
-            return ToJson().ToByteArray();
+            return ToJson().ToByteArray(SysConfig.Instance.HomeNet_Encoding);
         }
 
         public JObject ToJson()
@@ -87,7 +88,7 @@ namespace NpmAdapter.Payload
 
         public byte[] Serialize()
         {
-            return ToJson().ToByteArray();
+            return ToJson().ToByteArray(SysConfig.Instance.HomeNet_Encoding);
         }
 
         public JObject ToJson()
@@ -123,7 +124,7 @@ namespace NpmAdapter.Payload
 
         public byte[] Serialize()
         {
-            return ToJson().ToByteArray();
+            return ToJson().ToByteArray(SysConfig.Instance.HomeNet_Encoding);
         }
 
         public JObject ToJson()
@@ -142,6 +143,40 @@ namespace NpmAdapter.Payload
             json["reg_date"] = reg_date;
             json["term"] = term;
             json["status"] = status;
+            return json;
+        }
+    }
+
+    class ResponseCmdBlackListData : IPayload
+    {
+        public string code { get; set; }
+        public string reg_num { get; set; }
+        public string car_num { get; set; }
+        public string reg_date { get; set; }
+        public string reason { get; set; }
+
+        public void Deserialize(JObject json)
+        {
+            code = Helper.NVL(json["reg_num"], "y");
+            reg_num = Helper.NVL(json["reg_num"]);
+            car_num = Helper.NVL(json["car_num"]);
+            reg_date = Helper.NVL(json["reg_date"]);
+            reason = Helper.NVL(json["reason"]);
+        }
+
+        public byte[] Serialize()
+        {
+            return ToJson().ToByteArray(SysConfig.Instance.HomeNet_Encoding);
+        }
+
+        public JObject ToJson()
+        {
+            JObject json = new JObject();
+            json["code"] = code;
+            json["reg_num"] = reg_num;
+            json["car_num"] = car_num;
+            json["reg_date"] = reg_date;
+            json["reason"] = reason;
             return json;
         }
     }

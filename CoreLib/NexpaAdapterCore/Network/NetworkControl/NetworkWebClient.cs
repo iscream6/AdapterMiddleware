@@ -16,7 +16,8 @@ namespace NexpaAdapterStandardLib.Network
     public enum ContentType
     {
         Json,
-        FormData
+        FormData,
+        Multipart_FormData
     }
 
     public class NetworkWebClient : Singleton<NetworkWebClient>
@@ -25,6 +26,7 @@ namespace NexpaAdapterStandardLib.Network
         public static event WebSocketReceive OnWebSocketReceive;
         public static event WebSocketClose OnWebSocketClose;
 
+        private const string ContentTypeMultiFormData = "multipart/form-data";
         private const string ContentTypeFormData = "application/x-www-form-urlencoded;charset=UTF-8";
         private const string ContentTypeJson = "application/json;charset=UTF-8";
 
@@ -36,7 +38,7 @@ namespace NexpaAdapterStandardLib.Network
             DELETE
         }
 
-        public bool SendData(Uri uri, byte[] sendData, ref string strData, RequestType requestType, ContentType contentType, Dictionary<string, string> header = null)
+        public bool SendData(Uri uri, RequestType requestType, ContentType contentType, byte[] sendData, ref string strData, Dictionary<string, string> header = null, Dictionary<string, string> content = null)
         {
             bool bResult = true;
 
@@ -48,20 +50,36 @@ namespace NexpaAdapterStandardLib.Network
                 HttpWebRequest request = (HttpWebRequest)WebRequest.Create(uri);
                 request.Method = requestType.ToString();
 
+                //ContentType 설정 ===============
+                StringBuilder sContentType = new StringBuilder();
                 if (contentType == ContentType.FormData)
                 {
-                    request.ContentType = ContentTypeFormData;
+                    sContentType.Append(ContentTypeFormData);
                 }
                 else if (contentType == ContentType.Json)
                 {
-                    request.ContentType = ContentTypeJson;
+                    sContentType.Append(ContentTypeJson);
+                }
+                else if (contentType == ContentType.Multipart_FormData)
+                {
+                    sContentType.Append(ContentTypeMultiFormData);
                 }
                 else
                 {
-                    //Default Json
-                    request.ContentType = ContentTypeJson;
+                    sContentType.Append(ContentTypeJson);
                 }
 
+                if(content != null)
+                {
+                    foreach (var item in content)
+                    {
+                        sContentType.Append($"; {item.Key}={item.Value}");
+                    }
+                }
+
+                //ContentType 설정 ===============
+
+                request.ContentType = sContentType.ToString();
                 request.ContentLength = (long)sendData.Length;
 
                 if(header != null)
@@ -106,12 +124,12 @@ namespace NexpaAdapterStandardLib.Network
                                     if (bResult)
                                     {
                                         //성공                            
-                                        Log.WriteLog(LogType.Info, "NetworkWebClient| SendDataPost", $"응답성공 : {strData}", LogAdpType.Nexpa);
+                                        Log.WriteLog(LogType.Info, "NetworkWebClient| SendData", $"응답성공 : {strData}", LogAdpType.Nexpa);
                                     }
                                     else
                                     {
                                         //실패
-                                        Log.WriteLog(LogType.Info, "NetworkWebClient| SendDataPost", $"응답실패 : {strData}");
+                                        Log.WriteLog(LogType.Info, "NetworkWebClient| SendData", $"응답실패 : {strData}");
                                     }
                                 }
 
@@ -158,7 +176,7 @@ namespace NexpaAdapterStandardLib.Network
         }
 
 
-        public bool SendDataPost(Uri uri, byte[] sendData, ref string strJsonData, ContentType contentType)
+        public bool SendDataPost(Uri uri, byte[] sendData, ref string strJsonData, ContentType contentType, Dictionary<string, string> content = null)
         {
             bool bResult = true;
             HttpWebResponse response = null;
@@ -174,23 +192,36 @@ namespace NexpaAdapterStandardLib.Network
                 request.Method = "POST";
                 //request.ContinueTimeout = 3000;
 
-                if(contentType == ContentType.FormData)
+                //ContentType 설정 ===============
+                StringBuilder sContentType = new StringBuilder();
+                if (contentType == ContentType.FormData)
                 {
-                    request.ContentType = ContentTypeFormData;
+                    sContentType.Append(ContentTypeFormData);
                 }
-                else if(contentType == ContentType.Json)
+                else if (contentType == ContentType.Json)
                 {
-                    request.ContentType = ContentTypeJson;
+                    sContentType.Append(ContentTypeJson);
+                }
+                else if (contentType == ContentType.Multipart_FormData)
+                {
+                    sContentType.Append(ContentTypeMultiFormData);
                 }
                 else
                 {
-                    //Default Json
-                    request.ContentType = ContentTypeJson;
+                    sContentType.Append(ContentTypeJson);
                 }
-                
-                //request.Headers.Add("appKey", "fcbfb6b7-f5e6-4a50-a506-f3e45c6523d8");
-                //request.Headers.Add("Authorization", "Basic bmV4cGEtMDA6ZjNlNDVjNjUyM2Q4");
 
+                if (content != null)
+                {
+                    foreach (var item in content)
+                    {
+                        sContentType.Append($"; {item.Key}={item.Value}");
+                    }
+                }
+
+                //ContentType 설정 ===============
+
+                request.ContentType = sContentType.ToString();
                 request.ContentLength = (long)sendData.Length;
 
                 Stream requestPostStream = request.GetRequestStream();

@@ -144,7 +144,7 @@ namespace NpmAdapter.Adapter
             {
                 List<byte> tempBytes = new List<byte>();
                 //Nextpa Server로부터 받은 자료를 Parsing 하여 SHT_5800 Format으로 변경 후 MyNetwork에 전달한다.
-                string strJson = Encoding.Default.GetString(buffer, (int)offset, (int)size);
+                string strJson = Encoding.Default.GetString(buffer[..(int)size]);
                 var jobj = JObject.Parse(strJson);
                 string cmd = jobj["command"].ToString();
 
@@ -269,7 +269,7 @@ namespace NpmAdapter.Adapter
                 if(buffer[0] == 0xE8 && buffer[1] == 0xE8)
                 {
                     //Log.WriteLog(LogType.Info, $"SHT5800Adapter | MyNetwork_ReceiveFromPeer", $"SHT-5800으로부터 데이터 수신 ==========", LogAdpType.HomeNet);
-                    OperateMessage(buffer);
+                    OperateMessage(buffer[..(int)size]);
                 }
             }
             catch (Exception ex)
@@ -283,11 +283,11 @@ namespace NpmAdapter.Adapter
             nexpaJson.Clear();
 
             //Alive 신호는 너무 많이 찍는다....
-            if(buffer[3] != (byte)DataPacket.AliveACK)
+            if (buffer[3] != (byte)DataPacket.AliveACK)
             {
                 Log.WriteLog(LogType.Info, $"SHT5800Adapter | MyNetwork_ReceiveFromPeer", $"ReceiveMessge :  {buffer.ToHexString()}", LogAdpType.HomeNet);
             }
-            
+
             if (buffer.CalCheckSum(0, buffer.Length - 1) != buffer[buffer.Length - 1])
             {
                 Log.WriteLog(LogType.Error, "SHT5800Adapter | MyNetwork_ReceiveFromPeer", $"CheckSum 오류");
@@ -300,13 +300,13 @@ namespace NpmAdapter.Adapter
                 Log.WriteLog(LogType.Error, "SHT5800Adapter | MyNetwork_ReceiveFromPeer", $"{buffer[0]} {buffer[1]}");
                 return;
             }
-            var framelength = buffer[2] ^ 0xA0;
-            if (buffer.Length != framelength)
-            {
-                Log.WriteLog(LogType.Error, "SHT5800Adapter | MyNetwork_ReceiveFromPeer", $"Frame 길이 오류");
-                Log.WriteLog(LogType.Error, "SHT5800Adapter | MyNetwork_ReceiveFromPeer", $"{buffer.Length} : {framelength}");
-                return;
-            }
+            //var framelength = buffer[2] ^ 0xA0;
+            //if (buffer.Length != framelength)
+            //{
+            //    Log.WriteLog(LogType.Error, "SHT5800Adapter | MyNetwork_ReceiveFromPeer", $"Frame 길이 오류");
+            //    Log.WriteLog(LogType.Error, "SHT5800Adapter | MyNetwork_ReceiveFromPeer", $"{buffer.Length} : {framelength}");
+            //    return;
+            //}
 
             byte[] bData;
             switch (buffer[3])
@@ -356,9 +356,8 @@ namespace NpmAdapter.Adapter
                 case (byte)DataPacket.OutCar: //차량출차 ACK
                     {
                         bData = MakeStatusAck();
-                        Log.WriteLog(LogType.Info, $"SHT5800Adapter | MyNetwork_ReceiveFromPeer", $"In/OutCar", LogAdpType.HomeNet);
+                        Log.WriteLog(LogType.Info, $"SHT5800Adapter | MyNetwork_ReceiveFromPeer", $"In/OutCar : {bData.ToHexString()}", LogAdpType.HomeNet);
                         MyNetwork.SendToPeer(bData, 1, 4);
-
                         //응답이 왔으면 전송할 Data에서 찾아 지워주자...
                         byte[] checkBytes = buffer[3..(buffer.Length - 2)]; //동호...
                         foreach (var key in transmittedData.Keys)

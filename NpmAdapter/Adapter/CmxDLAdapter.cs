@@ -13,6 +13,7 @@ using System.Net.NetworkInformation;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Xml;
 
 namespace NpmAdapter.Adapter
@@ -31,29 +32,17 @@ namespace NpmAdapter.Adapter
         
         public static string REQ_POST_STATUS = "/nxmdl/cmx";
 
-        private INetwork MyTcpNetwork { get; set; }
-        private INetwork MyHttpNetwork { get; set; }
-        public IAdapter TargetAdapter { get; set; }
-        public bool IsRuning { get => isRun; }
-
+        private object lockObj = new object();
         private string webport = "42141";
         private string tcpServerIp = "0.0.0.0";
         private string tcpport = "29712";
-        
-        /// <summary>
-        /// 넥스파 요청에 대한 응답이 왔는지 여부
-        /// </summary>
-        private bool bResponseSuccess = false;
+        private StringBuilder receiveMessageBuffer = new StringBuilder();
         private ResponseCmdPayload responsePayload = null;
-        private StatusPayload responseResult = null;
-        private object lockObj = new object();
-        //메시지 처리 관리를 위해 List를 운용하자.....제기랄것....젠장!! 칙쇼!!!!
-        private Dictionary<CmdType, HttpServer.RequestEventArgs> Jobs;
+        private SyncResonseWait resonseWait;
         /// <summary>
         /// Adapter 실행모드 : TCP/WEB 
         /// </summary>
         private Status runStatus = Status.Full;
-
         //==== Alive Check ====
         private Thread aliveCheckThread;
         private TimeSpan waitForWork;
@@ -63,10 +52,14 @@ namespace NpmAdapter.Adapter
         private bool isRun;
         //==== Alive Check ====
 
+        private INetwork MyTcpNetwork { get; set; }
+        private INetwork MyHttpNetwork { get; set; }
+        public IAdapter TargetAdapter { get; set; }
+        public bool IsRuning { get => isRun; }
+
         public CmxDLAdapter(Status status)
         {
             runStatus = status;
-            Jobs = new Dictionary<CmdType, HttpServer.RequestEventArgs>();
         }
 
         public bool Initialize()
@@ -78,14 +71,19 @@ namespace NpmAdapter.Adapter
                 return false;
             }
 
+            resonseWait = new SyncResonseWait();
+
             webport = SysConfig.Instance.HW_Port;
             tcpServerIp = SysConfig.Instance.HT_IP;
             tcpport = SysConfig.Instance.HT_Port;
             
             MyHttpNetwork = NetworkFactory.GetInstance().MakeNetworkControl(NetworkFactory.Adapters.HttpServer, webport);
             MyTcpNetwork = NetworkFactory.GetInstance().MakeNetworkControl(NetworkFactory.Adapters.TcpClient, tcpServerIp, tcpport);
+
+            Log.WriteLog(LogType.Info, $"CmxDLAdapter | Initialize", $"TpcNetwork iP :{tcpServerIp}, Port :{tcpport}", LogAdpType.HomeNet);
+
             responsePayload = new ResponseCmdPayload();
-            responseResult = new StatusPayload();
+            //responseResult = new StatusPayload();
 
             //Alive Check
             if (SysConfig.Instance.Sys_Option.GetValueToUpper("CmxAliveCheckUse").Equals("Y"))
@@ -174,7 +172,7 @@ namespace NpmAdapter.Adapter
             }
             catch (Exception ex)
             {
-                Log.WriteLog(LogType.Error, "CmxDLAdapter | StartAdapter", $"{ex.Message}", LogAdpType.HomeNet);
+                Log.WriteLog(LogType.Error, "CmxDLAdapter | StopAdapter", $"{ex.Message}", LogAdpType.HomeNet);
                 return false;
             }
             isRun = !bResult;
@@ -269,7 +267,7 @@ namespace NpmAdapter.Adapter
             lock (lockObj)
             {
                 responsePayload.Initialize();
-                JObject json = JObject.Parse(SysConfig.Instance.HomeNet_Encoding.GetString(buffer));
+                JObject json = JObject.Parse(SysConfig.Instance.HomeNet_Encoding.GetString(buffer[..(int)size]));
 
                 //DefaultURL을 만들어야 함.....
                 //http://localhost:42142/nxmdl/cmx/... 까지..
@@ -294,15 +292,14 @@ namespace NpmAdapter.Adapter
                 }
                 else
                 {
+                    Log.WriteLog(LogType.Info, $"CmxDLAdapter | MyHttpNetwork_ReceiveFromPeer", $"{json}", LogAdpType.HomeNet);
+                    RequestToNexpa(json);
+                    byte[] result = responsePayload.Serialize();
+
                     e.Response.Connection.Type = ConnectionType.Close;
                     e.Response.ContentType = new ContentTypeHeader("application/json;charset=UTF-8");
                     e.Response.Reason = "OK";
-
-                    IPayload response = RequestToNexpa(json);
-                    byte[] result = response.Serialize();
-                    //응답을 보낸다.
                     e.Response.Body.Write(result, 0, result.Length);
-                    
                 }
             }
         }
@@ -310,14 +307,14 @@ namespace NpmAdapter.Adapter
         /// <summary>
         /// Nexpa로 데이터를 전달하여 응답값을 받아 리턴한다.
         /// </summary>
-        private IPayload RequestToNexpa(JObject json)
+        private void RequestToNexpa(JObject json)
         {
             // ResponsePayload의 Header를 만든다.
             CmdHeader responseHeader = new CmdHeader();
             responseHeader.Deserialize(json["header"] as JObject);
             responsePayload.header = responseHeader;
 
-            bResponseSuccess = false;
+            resonseWait.bResponseSuccess = false;
             //넥스파 Payload를 가져온다.
             CmdHelper.ResultReqInfo result = CmdHelper.ConvertNexpaRequestPayload(json);
 
@@ -326,39 +323,24 @@ namespace NpmAdapter.Adapter
                 //넥스파로 payload를 보낸다.
                 byte[] sendMsg = result.payload.Serialize();
 
-                using (BackgroundWorker worker = new BackgroundWorker())
-                {
-                    worker.WorkerReportsProgress = false;
-                    worker.WorkerSupportsCancellation = true;
-                    worker.DoWork += ((object sender, DoWorkEventArgs e) =>
-                    {
-                        TargetAdapter.SendMessage(sendMsg, 0, sendMsg.Length);
-                    });
+                TargetAdapter.SendMessage(sendMsg, 0, sendMsg.Length);
 
-                    worker.RunWorkerAsync();
-                }
-                //TargetAdapter.SendMessage(sendMsg, 0, sendMsg.Length);
-
-                //===================== Nexpa 응답 대기 =====================
-                int iSec = 300; //3초
-                while (iSec > 0 && !bResponseSuccess)
+                int iSec = 3 * 100; //3초
+                while (iSec > 0 && !resonseWait.bResponseSuccess)
                 {
                     Thread.Sleep(10); //0.01초씩..쉰다...
                     iSec -= 1;
                 }
-                //===================== Nexpa 응답 대기 =====================
 
                 receiveMessageBuffer.Clear();
 
-                if (bResponseSuccess) //응답성공
+                if (resonseWait.bResponseSuccess) //응답성공
                 {
                     //응답이 왔으므로.... Data는 채워져 있을거임...
                     if(responsePayload.result == null)
                     {
                         responsePayload.result = CmdHelper.MakeResponseResultPayload(CmdHelper.StatusCode.ok);
                     }
-
-                    return responsePayload;
                 }
                 else //응답 실패
                 {
@@ -378,19 +360,17 @@ namespace NpmAdapter.Adapter
                             responsePayload.result = CmdHelper.MakeResponseResultPayload(CmdHelper.StatusCode.notresponse);
                             break;
                     }
-                    
-                    return responsePayload;
                 }
             }
             else //요청 페이로드를 못만들었다.
             {
                 //에러 Payload를 만들어 보낸다.
                 responsePayload.result = CmdHelper.MakeResponseResultPayload(CmdHelper.StatusCode.notresponse);
-                return responsePayload;
             }
         }
 
-        private StringBuilder receiveMessageBuffer = new StringBuilder();
+        
+
         /// <summary>
         /// Nexpa Adpater로부터 온 Message를 처리한다. JSon임...
         /// </summary>
@@ -401,13 +381,16 @@ namespace NpmAdapter.Adapter
         {
             try
             {
-                receiveMessageBuffer.Append(buffer.ToString(SysConfig.Instance.Nexpa_Encoding, size));
+                receiveMessageBuffer.Append(buffer[..(int)size].ToString(SysConfig.Instance.Nexpa_Encoding, size));
                 var jobj = JObject.Parse(receiveMessageBuffer.ToString());
                 Thread.Sleep(10);
                 receiveMessageBuffer.Clear();
 
                 Log.WriteLog(LogType.Info, $"CmxDLAdapter | SendMessage", $"넥스파에서 받은 메시지 : {jobj}", LogAdpType.HomeNet);
                 JObject data = jobj["data"] as JObject;
+
+                if (data == null || data.Count == 0) return;
+
                 string cmd = jobj["command"].ToString();
                 switch ((CmdType)Enum.Parse(typeof(CmdType), cmd))
                 {
@@ -425,7 +408,7 @@ namespace NpmAdapter.Adapter
                             payload.Deserialize(jobj);
 
                             //동호가 없으면 PASS시킨다.
-                            if(payload.data.dong == null || payload.data.ho == null || payload.data.dong == "" || payload.data.ho == "")
+                            if(payload.data == null || payload.data.dong == null || payload.data.ho == null || payload.data.dong == "" || payload.data.ho == "")
                             {
                                 ResponseResultPayload resultPayload = new ResponseResultPayload();
                                 resultPayload.command = payload.command;
@@ -463,6 +446,7 @@ namespace NpmAdapter.Adapter
                                 car.InnerText = $"{payload.data.car_number}";
                                 XmlElement inout = doc.CreateElement("inout");
                                 inout.InnerText = $"{sInOut}";
+
                                 DateTime dateTime = DateTime.ParseExact(payload.data.date_time, "yyyyMMddHHmmss", null);
                                 XmlElement year = doc.CreateElement("year");
                                 year.InnerText = $"{dateTime.Year}";
@@ -502,13 +486,15 @@ namespace NpmAdapter.Adapter
 
                                 //코맥스 대림 TCP로 Data를 전송한다.
                                 MyTcpNetwork.SendToPeer(dataBytes, 0, dataBytes.Length);
-
+                                Log.WriteLog(LogType.Info, $"CmxDLAdapter | SendMessage", $"전송완료", LogAdpType.HomeNet);
                                 //넥스파로 잘 받았다고 응답처리하자.
                                 ResponseResultPayload resultPayload = new ResponseResultPayload();
                                 resultPayload.command = payload.command;
                                 resultPayload.Result = ResponseResultPayload.Status.OK;
                                 byte[] result = resultPayload.Serialize();
+                                
                                 TargetAdapter.SendMessage(result, 0, result.Length);
+                                MyTcpNetwork.Down();
                             }
                         }
                         else
@@ -523,7 +509,7 @@ namespace NpmAdapter.Adapter
                     #region 입차리스트 응답 처리
 
                     case CmdType.incar_list: //입차리스트 응답
-                        if (runStatus == Status.TcpOnly || bResponseSuccess) return;
+                        if (runStatus == Status.TcpOnly || resonseWait.bResponseSuccess) return;
 
                         {
                             if (data != null && data.HasValues)
@@ -560,9 +546,9 @@ namespace NpmAdapter.Adapter
                             {
                                 
                             }
-                                
+
                             //Response 완료~!
-                            bResponseSuccess = true;
+                            resonseWait.bResponseSuccess = true;
                         }
 
                         break;
@@ -572,7 +558,7 @@ namespace NpmAdapter.Adapter
                     #region 방문자 응답 처리
 
                     case CmdType.visit_list: //방문자 리스트 응답
-                        if (runStatus == Status.TcpOnly || bResponseSuccess) return;
+                        if (runStatus == Status.TcpOnly || resonseWait.bResponseSuccess) return;
                         {
                             if (data != null && data.HasValues)
                             {
@@ -602,20 +588,20 @@ namespace NpmAdapter.Adapter
                                         visitlst.car_num = item["car_number"].ToString();
                                         visitlst.reg_date = item["date"].ToString().ConvertDateTimeFormat("yyyyMMdd", "yyyy-MM-dd");
                                         visitlst.term = item["term"].ToString();
-                                        visitlst.status = item["visit_flag"].ToString() == "y" ? "방문완료" : "미방문";
+                                        visitlst.status = item["visit_flag"].ToString().ToLower() == "y" ? "방문완료" : "미방문";
                                         dataPayload.list.Add(visitlst);
                                     }
                                 }
                                 responsePayload.DeserializeData(responsePayload.header.type, dataPayload.ToJson());
                             }
-                                
+
                             //Response 완료~!
-                            bResponseSuccess = true;
+                            resonseWait.bResponseSuccess = true;
                         }
 
                         break;
                     case CmdType.visit_reg:
-                        if (runStatus == Status.TcpOnly || bResponseSuccess) return;
+                        if (runStatus == Status.TcpOnly || resonseWait.bResponseSuccess) return;
 
                         {
                             if (data != null && data.HasValues)
@@ -628,17 +614,17 @@ namespace NpmAdapter.Adapter
                             {
                                 responsePayload.result = CmdHelper.MakeResponseResultPayload(CmdHelper.StatusCode.notinterface_kwanje);
                             }
-                                
+
                             //Response 완료~!
-                            bResponseSuccess = true;
+                            resonseWait.bResponseSuccess = true;
                         }
                         break;
                     case CmdType.visit_del:
-                        if (runStatus == Status.TcpOnly || bResponseSuccess) return;
+                        if (runStatus == Status.TcpOnly || resonseWait.bResponseSuccess) return;
 
                         {
                             //Response 완료~!
-                            bResponseSuccess = true;
+                            resonseWait.bResponseSuccess = true;
                         }
                         break;
 
@@ -647,7 +633,7 @@ namespace NpmAdapter.Adapter
                     #region 방문자 즐겨찾기 처리
 
                     case CmdType.visit_favo_list:
-                        if (runStatus == Status.TcpOnly || bResponseSuccess) return;
+                        if (runStatus == Status.TcpOnly || resonseWait.bResponseSuccess) return;
 
                         {
                             if (data != null && data.HasValues)
@@ -671,13 +657,13 @@ namespace NpmAdapter.Adapter
 
                                 responsePayload.DeserializeData(responsePayload.header.type, dataPayload.ToJson());
                             }
-                                
+
                             //Response 완료~!
-                            bResponseSuccess = true;
+                            resonseWait.bResponseSuccess = true;
                         }
                         break;
                     case CmdType.visit_favo_reg:
-                        if (runStatus == Status.TcpOnly || bResponseSuccess) return;
+                        if (runStatus == Status.TcpOnly || resonseWait.bResponseSuccess) return;
 
                         {
                             var result = jobj["result"];
@@ -687,15 +673,15 @@ namespace NpmAdapter.Adapter
                                 responsePayload.result = CmdHelper.MakeResponseResultPayload(CmdHelper.StatusCode.already_reg_favorit_carnumber);
                             }
                             //Response 완료~!
-                            bResponseSuccess = true;
+                            resonseWait.bResponseSuccess = true;
                         }
                         break;
                     case CmdType.visit_favo_del:
-                        if (runStatus == Status.TcpOnly || bResponseSuccess) return;
+                        if (runStatus == Status.TcpOnly || resonseWait.bResponseSuccess) return;
 
                         {
                             //Response 완료~!
-                            bResponseSuccess = true;
+                            resonseWait.bResponseSuccess = true;
                             //503 현재 주차관제 서버와 연동중이지 않습니다
                         }
                         break;
@@ -704,8 +690,8 @@ namespace NpmAdapter.Adapter
 
                     #region 차량위치찾기
                     case CmdType.location_map:
-                        if (runStatus == Status.TcpOnly || bResponseSuccess) return;
-
+                        if (runStatus == Status.TcpOnly || resonseWait.bResponseSuccess) return;
+                        Log.WriteLog(LogType.Info, "CmxDLAdapter | SendMessage", $"==location_map==", LogAdpType.HomeNet);
                         {
                             //responsePayload 의 Data를 채워넣는다......
                             if (data != null && data.HasValues)
@@ -726,38 +712,42 @@ namespace NpmAdapter.Adapter
                             responsePayload.result = status;
 
                             //Response 완료~!
-                            bResponseSuccess = true;
+                            resonseWait.bResponseSuccess = true;
                         }
                         break;
                     case CmdType.location_list:
-                        if (runStatus == Status.TcpOnly || bResponseSuccess) return;
+                        if (runStatus == Status.TcpOnly || resonseWait.bResponseSuccess) return;
 
                         {
                             ResponseCmdLocationListData dataPayload = new ResponseCmdLocationListData();
-                            JArray list = data["list"] as JArray;
-                            if (list != null)
+                            if(data != null)
                             {
-                                foreach (JObject item in list)
+                                JArray list = data["list"] as JArray;
+                                if (list != null && list.Count > 0)
                                 {
-                                    SubLocationListData subDataPayload = new SubLocationListData();
-                                    subDataPayload.car_number = item["car_number"].ToString();
-                                    subDataPayload.alias = item["alias"].ToString();
-                                    subDataPayload.location_text = item["location_text"].ToString();
-                                    subDataPayload.datetime = item["in_datetime"].ToString();
-                                    dataPayload.list.Add(subDataPayload);
+                                    foreach (JObject item in list)
+                                    {
+                                        SubLocationListData subDataPayload = new SubLocationListData();
+                                        subDataPayload.car_number = item["car_number"].ToString();
+                                        subDataPayload.alias = item["alias"].ToString();
+                                        subDataPayload.location_text = item["location_text"].ToString();
+                                        subDataPayload.datetime = item["in_datetime"].ToString();
+                                        dataPayload.list.Add(subDataPayload);
+                                    }
                                 }
                             }
 
                             dataPayload.location_type = data.Value<string>("location_type");
                             responsePayload.data = dataPayload;
+
                             //Response 완료~!
-                            bResponseSuccess = true;
+                            resonseWait.bResponseSuccess = true;
                         }
                         break;
                     #endregion
 
                     case CmdType.find_car:
-                        if (runStatus == Status.TcpOnly || bResponseSuccess) return;
+                        if (runStatus == Status.TcpOnly || resonseWait.bResponseSuccess) return;
 
                         {
                             ResponseCmdFindCarListData dataPayload = new ResponseCmdFindCarListData();
@@ -776,11 +766,11 @@ namespace NpmAdapter.Adapter
                             }
 
                             //Response 완료~!
-                            bResponseSuccess = true;
+                            resonseWait.bResponseSuccess = true;
                         }
                         break;
                     case CmdType.modify_alias:
-                        bResponseSuccess = true;
+                        resonseWait.bResponseSuccess = true;
                         break;
                 }
             }

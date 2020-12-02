@@ -12,18 +12,21 @@ using System.Text;
 // 2020-10-15   Cn0201015.1   [SysConfig] -> Options -> CmxAliveCheckTime|00:00:05 추가
 // 2020-10-20   Cn0201020.1   [HomeNet_Config] -> MyPort 추가
 // 2020-11-19   Cn0201119.1   [HomeNet_Config] -> Web_Domain, HId, HPw 추가
-
+// 2020-11-24   Cn0201124.1   [Etc_Config] 추가, AptId 추가
+//              Cn0201124.2   [Etc_Config] -> ParkId 추가
+//              Cn0201124.3   [Etc_Config] -> AuthToken 추가
 namespace NexpaAdapterStandardLib
 {
     public class SysConfig : Singleton<SysConfig>
     {
-        public readonly string ConfigVersion = "Cn0201119.1";
+        public readonly string ConfigVersion = "Cn0201124.3";
 
         #region Sections
         
         private string SysSection { get => "SysConfig"; }
         private string NexpaSection { get => "Nexpa_Config"; }
         private string HomeNetSection { get => "HomeNet_Config"; }
+        private string EtcSection { get => "Etc_Config"; }
 
         #endregion
 
@@ -145,6 +148,14 @@ namespace NexpaAdapterStandardLib
 
         #endregion
 
+        #region Etc
+
+        public readonly string AptId;
+        public readonly string ParkId;
+        public readonly string AuthToken;
+
+        #endregion
+
         #endregion
 
         #region Constructor
@@ -174,6 +185,10 @@ namespace NexpaAdapterStandardLib
             HC_Id = ConfigManager.ReadConfig("config", HomeNetSection, "HId");
             HC_Pw = ConfigManager.ReadConfig("config", HomeNetSection, "HPw");
             HomeNet_Encoding = GetEncoding(ConfigManager.ReadConfig("config", HomeNetSection, "Encoding"));
+
+            AptId = ConfigManager.ReadConfig("config", EtcSection, "AptId");
+            ParkId = ConfigManager.ReadConfig("config", EtcSection, "ParkId");
+            AuthToken = ConfigManager.ReadConfig("config", EtcSection, "AuthToken");
         }
 
         #endregion

@@ -31,6 +31,7 @@ namespace NexpaConnectWinApp
         {
             Initialize();
             isShutdown = false;
+            timerDeath.Start();
         }
 
         delegate void AppendLogText(Control ctl, string log);
@@ -500,6 +501,21 @@ namespace NexpaConnectWinApp
             this.ShowInTaskbar = true;
             this.Visible = true;
             this.WindowState = FormWindowState.Normal;
+        }
+
+        private void timerDeath_Tick(object sender, EventArgs e)
+        {
+            //새벽 4시가 되면...스스로 죽는다...
+            DateTime deathTime = new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, 4, 0, 0);
+
+            int result = DateTime.Compare(DateTime.Now, deathTime);
+            if(result == 0)
+            {
+                //죽자
+                isShutdown = true;
+                this.Close();
+                this.Dispose();
+            }
         }
     }
 }

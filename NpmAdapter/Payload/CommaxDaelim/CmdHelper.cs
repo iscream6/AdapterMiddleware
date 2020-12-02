@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json.Linq;
+﻿using HttpServer.Transports;
+using Newtonsoft.Json.Linq;
 using NexpaAdapterStandardLib;
 using System;
 using System.ComponentModel;
@@ -69,6 +70,10 @@ namespace NpmAdapter.Payload
             /// </summary>
             visitor_car_book_add,
             /// <summary>
+            /// 방문 차량 수정
+            /// </summary>
+            visitor_car_book_update,
+            /// <summary>
             /// 방문 차량 삭제
             /// </summary>
             visitor_car_book_delete,
@@ -99,7 +104,23 @@ namespace NpmAdapter.Payload
             /// <summary>
             /// 주차위치 세대등록 차량 조회
             /// </summary>
-            location_car_list
+            location_car_list,
+            /// <summary>
+            /// 블랙리스트 리스트
+            /// </summary>
+            blacklist_book_list,
+            /// <summary>
+            /// 블랙리스트 등록
+            /// </summary>
+            blacklist_book_add,
+            /// <summary>
+            /// 블랙리스트 삭제
+            /// </summary>
+            blacklist_book_delete,
+            /// <summary>
+            /// 블랙리스트 단일 차량 조회
+            /// </summary>
+            blacklist_book_car
         }
 
         public enum CarType
@@ -194,7 +215,28 @@ namespace NpmAdapter.Payload
                         result.type = payload.command;
                         return result;
                     }
-                    
+                case Type.visitor_car_book_update:
+                    {
+                        RequestPayload<RequestVisitModifyPayload> payload = new RequestPayload<RequestVisitModifyPayload>();
+                        payload.command = CmdType.visit_modify;
+
+                        RequestVisitModifyPayload data = new RequestVisitModifyPayload();
+                        dh = json["data"]["dongho"]?.ToString();//앞 4자리 동, 뒤 4자리 호
+                        if (dh != null && dh.Trim() != string.Empty)
+                        {
+                            data.dong = dh.Substring(0, 4).TrimStart(new Char[] { '0' });
+                            data.ho = dh.Substring(4).TrimStart(new Char[] { '0' });
+                        }
+                        data.car_number = json["data"]["car_num"]?.ToString();
+                        data.date = json["data"]["reg_date"]?.ToString().Replace("-", string.Empty);
+                        data.term = json["data"]["term"]?.ToString();
+                        data.reg_no = json["data"]["reg_num"]?.ToString();
+                        payload.data = data;
+
+                        result.payload = payload;
+                        result.type = payload.command;
+                        return result;
+                    }
                 case Type.visitor_car_book_delete: //방문차량 삭제 요청
                     {
                         RequestPayload<RequestVisitDelPayload> payload = new RequestPayload<RequestVisitDelPayload>();
@@ -347,6 +389,60 @@ namespace NpmAdapter.Payload
                             data.dong = dh.Substring(0, 4).TrimStart(new Char[] { '0' });
                             data.ho = dh.Substring(4).TrimStart(new Char[] { '0' });
                         }
+                        payload.data = data;
+
+                        result.payload = payload;
+                        result.type = payload.command;
+                        return result;
+                    }
+                case Type.blacklist_book_list:
+                    {
+                        RequestPayload<RequestBlackListPayload> payload = new RequestPayload<RequestBlackListPayload>();
+                        payload.command = CmdType.blacklist_list;
+
+                        RequestBlackListPayload data = new RequestBlackListPayload();
+                        data.page = json["data"]["page"]?.ToString();
+                        data.count = json["data"]["count"]?.ToString();
+                        payload.data = data;
+
+                        result.payload = payload;
+                        result.type = payload.command;
+                        return result;
+                    }
+                case Type.blacklist_book_add:
+                    {
+                        RequestPayload<RequestBlackListRegPayload> payload = new RequestPayload<RequestBlackListRegPayload>();
+                        payload.command = CmdType.blacklist_list;
+
+                        RequestBlackListRegPayload data = new RequestBlackListRegPayload();
+                        data.car_number = json["data"]["car_num"]?.ToString();
+                        data.reason = json["data"]["reason"]?.ToString();
+                        payload.data = data;
+
+                        result.payload = payload;
+                        result.type = payload.command;
+                        return result;
+                    }
+                case Type.blacklist_book_delete:
+                    {
+                        RequestPayload<RequestBlackListDelPayload> payload = new RequestPayload<RequestBlackListDelPayload>();
+                        payload.command = CmdType.blacklist_list;
+
+                        RequestBlackListDelPayload data = new RequestBlackListDelPayload();
+                        data.car_number = json["data"]["car_num"]?.ToString();
+                        data.reg_no = json["data"]["reg_num"]?.ToString();
+                        payload.data = data;
+
+                        result.payload = payload;
+                        result.type = payload.command;
+                        return result;
+                    }
+                case Type.blacklist_book_car:
+                    {
+                        RequestPayload<RequestBlackListCarPayload> payload = new RequestPayload<RequestBlackListCarPayload>();
+                        payload.command = CmdType.blacklist_car;
+                        RequestBlackListCarPayload data = new RequestBlackListCarPayload();
+                        data.car_number = Helper.NVL(json["data"]["car_num"]);
                         payload.data = data;
 
                         result.payload = payload;
