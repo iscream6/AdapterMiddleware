@@ -9,7 +9,53 @@ using System.Xml;
 
 namespace NexpaAdapterStandardLib
 {
-    public static class Helper
+    public enum EncoderType
+    {
+        [Description("D")]
+        Default,
+        [Description("8")]
+        UTF8,
+        [Description("kr")]
+        EUC_KR
+    }
+
+    public enum NexpaAdapterType
+    {
+        [Description("3")]
+        All,
+        [Description("1")]
+        Tcp_Only,
+        [Description("2")]
+        Web_Only,
+        [Description("4")]
+        AutoBooth
+    }
+
+    public enum HomeNetAdapterType
+    {
+        [Description("0")]
+        None,
+        [Description("1")]
+        SHT5800,
+        [Description("2")]
+        Commax_All,
+        [Description("2-1")]
+        Commax_Tcp,
+        [Description("2-2")]
+        Commax_Web,
+        [Description("3")]
+        Commax_Only,
+        [Description("CCM")]
+        Cocom,
+        [Description("APS")]
+        ApartStory,
+        [Description("SMTV")]
+        SmartVillage,
+        [Description("SML")]
+        Samul
+    }
+
+    public static class StdHelper
     {
         private static readonly DateTime unixEpoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
@@ -45,6 +91,47 @@ namespace NexpaAdapterStandardLib
             for (int i = 0; i < value.Length; i++)
                 sb.AppendFormat("{0,3:x2}", value[reverse ? value.Length - i - 1 : i]);
             return sb.ToString().ToUpper();
+        }
+
+        public static string GetDescription<T>(this T t) where T : struct, IConvertible
+        {
+            if (!typeof(T).IsEnum)
+            {
+                throw new ArgumentException("T must be an enumerated type");
+            }
+
+            DescriptionAttribute[] attributes = (DescriptionAttribute[])t
+           .GetType()
+           .GetField(t.ToString())
+           .GetCustomAttributes(typeof(DescriptionAttribute), false);
+
+            string message = attributes.Length > 0 ? attributes[0].Description : string.Empty;
+
+            return message;
+        }
+
+        public static T GetValueFromDescription<T>(string description) where T : Enum
+        {
+            if (!typeof(T).IsEnum)
+            {
+                throw new ArgumentException("T must be an enumerated type");
+            }
+            
+            foreach (var field in typeof(T).GetFields())
+            {
+                if (Attribute.GetCustomAttribute(field, typeof(DescriptionAttribute)) is DescriptionAttribute attribute)
+                {
+                    if (attribute.Description == description)
+                        return (T)field.GetValue(null);
+                }
+                else
+                {
+                    if (field.Name == description)
+                        return (T)field.GetValue(null);
+                }
+            }
+
+            return default(T);
         }
     }
 }

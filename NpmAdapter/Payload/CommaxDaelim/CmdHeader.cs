@@ -21,7 +21,7 @@ namespace NpmAdapter.Payload
 
         public void Deserialize(JObject json)
         {
-            category = json["category"].ToString();
+            category = Helper.NVL(json["category"]);
             type = (CmdHelper.Type)Enum.Parse(typeof(CmdHelper.Type), json["type"].ToString()); 
             //command = (CmdHelper.Command)Enum.Parse(typeof(CmdHelper.Command), json["command"].ToString());
             if((CmdHelper.Command)Enum.Parse(typeof(CmdHelper.Command), json["command"].ToString()) == CmdHelper.Command.query_request)

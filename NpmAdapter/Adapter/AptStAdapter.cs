@@ -33,8 +33,9 @@ namespace NpmAdapter.Adapter
         private string aptId = "";
         private object lockObj = new object();
         private ResponseCmdPayload responsePayload = null;
-        private SyncResonseWait ResonseWait = null;
+        private bool bResponseSuccess = false;
         private StringBuilder receiveMessageBuffer = new StringBuilder();
+        private Dictionary<string, string> dicHeader = new Dictionary<string, string>();
 
         private INetwork MyHttpNetwork { get; set; }
 
@@ -54,13 +55,13 @@ namespace NpmAdapter.Adapter
                 Log.WriteLog(LogType.Error, "AptStAdapter | Initialize", $"Config Version이 다릅니다. 프로그램버전 : {SysConfig.Instance.ConfigVersion}", LogAdpType.HomeNet);
                 return false;
             }
-
-            aptId = SysConfig.Instance.AptId;
+            dicHeader = new Dictionary<string, string>();
+            dicHeader.Add("Authentication", SysConfig.Instance.AuthToken);
+            aptId = SysConfig.Instance.HC_Id;
             hostDomain = SysConfig.Instance.HW_Domain;
             webport = SysConfig.Instance.HW_Port;
             MyHttpNetwork = NetworkFactory.GetInstance().MakeNetworkControl(NetworkFactory.Adapters.HttpServer, webport);
 
-            ResonseWait = new SyncResonseWait();
             responsePayload = new ResponseCmdPayload();
 
             return true;
@@ -70,14 +71,15 @@ namespace NpmAdapter.Adapter
         {
             try
             {
-                if (ResonseWait.bResponseSuccess) return;
+                if (bResponseSuccess) return;
 
+                NetworkWebClient.RequestType requestType;
                 receiveMessageBuffer.Append(buffer.ToString(SysConfig.Instance.Nexpa_Encoding, size));
                 var jobj = JObject.Parse(receiveMessageBuffer.ToString());
                 Thread.Sleep(10);
                 receiveMessageBuffer.Clear();
 
-                Log.WriteLog(LogType.Info, $"CmxDLAdapter | SendMessage", $"넥스파에서 받은 메시지 : {jobj}", LogAdpType.HomeNet);
+                Log.WriteLog(LogType.Info, $"AptStAdapter | SendMessage", $"넥스파에서 받은 메시지 : {jobj}", LogAdpType.HomeNet);
                 JObject data = jobj["data"] as JObject;
                 string cmd = jobj["command"].ToString();
                 switch ((CmdType)Enum.Parse(typeof(CmdType), cmd))
@@ -90,63 +92,74 @@ namespace NpmAdapter.Adapter
                             payload.Deserialize(jobj);
                             
                             //동호가 없으면 PASS시킨다.
-                            if (payload.data.dong == null || payload.data.ho == null || payload.data.dong == "" || payload.data.ho == "")
-                            {
-                                ResponseResultPayload resultPayload = new ResponseResultPayload();
-                                resultPayload.command = payload.command;
-                                resultPayload.Result = ResponseResultPayload.Status.FailFormatError;
-                                byte[] result = resultPayload.Serialize();
-                                TargetAdapter.SendMessage(result, 0, result.Length);
-                                Log.WriteLog(LogType.Info, $"AptStAdapter | SendMessage", $"전송메시지 : {resultPayload.ToJson().ToString()}", LogAdpType.Nexpa);
-                            }
-                            else
+                            //if (payload.data.dong == null || payload.data.ho == null || payload.data.dong == "" || payload.data.ho == "")
+                            //{
+                            //    ResponsePayload resultPayload = new ResponsePayload();
+                            //    resultPayload.command = payload.command;
+                            //    resultPayload.result = ResultType.FailFormatError;
+                            //    byte[] result = resultPayload.Serialize();
+                            //    TargetAdapter.SendMessage(result, 0, result.Length);
+                            //    Log.WriteLog(LogType.Info, $"AptStAdapter | SendMessage", $"전송메시지 : {resultPayload.ToJson().ToString()}", LogAdpType.Nexpa);
+                            //}
+                            //else
                             {
                                 Uri uri = null;
                                 byte[] requestData;
 
                                 if (payload.command == CmdType.alert_incar)
                                 {
-                                    uri = new Uri(hostDomain + APT_INCAR_POST);
+                                    uri = new Uri(string.Concat(hostDomain, APT_INCAR_POST));
 
-                                    RequestApsInCarPayload inCarPayload = new RequestApsInCarPayload();
-                                    inCarPayload.apt_id = aptId;
-                                    inCarPayload.car_number = payload.data.car_number;
-                                    inCarPayload.dong = payload.data.dong;
-                                    inCarPayload.ho = payload.data.ho;
-                                    inCarPayload.parking_in_datetime = payload.data.date_time.ConvertDateTimeFormat("yyyyMMddHHmmss", "yyyy-MM-dd HH:mm:ss");
+                                    RequestApsInCarPayload inCarPayload = new RequestApsInCarPayload()
+                                    {
+                                        apt_id = aptId,
+                                        car_number = payload.data.car_number,
+                                        dong = payload.data.dong,
+                                        ho = payload.data.ho,
+                                        parking_in_datetime = payload.data.date_time.ConvertDateTimeFormat("yyyyMMddHHmmss", "yyyy-MM-dd HH:mm:ss"),
+                                        partner_visit_id = payload.data.kind.ToLower() == "v" ? payload.data.car_id : ""
+                                    };
+
                                     requestData = inCarPayload.Serialize();
+                                    requestType = NetworkWebClient.RequestType.POST;
                                 }
                                 else
                                 {
-                                    uri = new Uri(hostDomain + APT_OUTCAR_POST);
+                                    uri = new Uri(string.Concat(hostDomain, APT_OUTCAR_POST));
 
-                                    RequestApsOutCarPayload outCarPayload = new RequestApsOutCarPayload();
-                                    outCarPayload.apt_id = aptId;
-                                    outCarPayload.car_number = payload.data.car_number;
-                                    outCarPayload.parking_in_datetime = payload.data.date_time.ConvertDateTimeFormat("yyyyMMddHHmmss", "yyyy-MM-dd HH:mm:ss");
+                                    RequestApsOutCarPayload outCarPayload = new RequestApsOutCarPayload()
+                                    {
+                                        apt_id = aptId,
+                                        car_number = payload.data.car_number,
+                                        parking_out_datetime = payload.data.date_time.ConvertDateTimeFormat("yyyyMMddHHmmss", "yyyy-MM-dd HH:mm:ss")
+                                    };
+
+                                    Log.WriteLog(LogType.Info, $"AptStAdapter | SendMessage", $"날짜 시간 : {outCarPayload.parking_out_datetime}", LogAdpType.HomeNet);
                                     requestData = outCarPayload.Serialize();
+                                    requestType = NetworkWebClient.RequestType.PUT;
                                 }
 
                                 string responseData = string.Empty;
-                                if (NetworkWebClient.Instance.SendData(uri, NetworkWebClient.RequestType.POST, ContentType.Json, requestData, ref responseData))
+                                
+                                if (NetworkWebClient.Instance.SendData(uri, requestType, ContentType.Json, requestData, ref responseData, header: dicHeader))
                                 {
                                     try
                                     {
                                         Log.WriteLog(LogType.Info, "AptStAdapter | SendMessage | WebClientResponse", $"==응답== {responseData}", LogAdpType.Nexpa);
-                                        ResponseResultPayload responsePayload = new ResponseResultPayload();
+                                        ResponsePayload responsePayload = new ResponsePayload();
                                         byte[] responseBuffer;
 
                                         var responseJobj = JObject.Parse(responseData);
                                         if (Helper.NVL(responseJobj["code"]) == "0")
                                         {
                                             responsePayload.command = payload.command;
-                                            responsePayload.Result = ResponseResultPayload.Status.OK;
+                                            responsePayload.result = ResultType.OK;
                                             responseBuffer = responsePayload.Serialize();
                                         }
                                         else
                                         {
                                             responsePayload.command = payload.command;
-                                            responsePayload.Result = ResponseResultPayload.Status.ExceptionERROR;
+                                            responsePayload.result = ResultType.ExceptionERROR;
                                             responseBuffer = responsePayload.Serialize();
                                         }
 
@@ -196,11 +209,11 @@ namespace NpmAdapter.Adapter
                                         dataPayload.list.Add(visitlst);
                                     }
                                 }
-                                responsePayload.DeserializeData(responsePayload.header.type, dataPayload.ToJson());
+                                responsePayload.data = dataPayload;
                             }
 
                             //Response 완료~!
-                            ResonseWait.bResponseSuccess = true;
+                            bResponseSuccess = true;
                         }
                         break;
                     case CmdType.visit_reg:
@@ -209,7 +222,7 @@ namespace NpmAdapter.Adapter
                             {
                                 ResponseCmdRegNumData dataPayload = new ResponseCmdRegNumData();
                                 dataPayload.reg_num = data["reg_no"].ToString();
-                                responsePayload.DeserializeData(responsePayload.header.type, dataPayload.ToJson());
+                                responsePayload.data = dataPayload;
                             }
                             else
                             {
@@ -217,17 +230,17 @@ namespace NpmAdapter.Adapter
                             }
 
                             //Response 완료~!
-                            ResonseWait.bResponseSuccess = true;
+                            bResponseSuccess = true;
                         }
                         break;
                     case CmdType.visit_modify:
                         {
-                            ResonseWait.bResponseSuccess = true;
+                            bResponseSuccess = true;
                         }
                         break;
                     case CmdType.visit_del:
                         {
-                            ResonseWait.bResponseSuccess = true;
+                            bResponseSuccess = true;
                         }
                         break;
                     #endregion
@@ -263,10 +276,10 @@ namespace NpmAdapter.Adapter
                                         dataPayload.list.Add(visitlst);
                                     }
                                 }
-                                responsePayload.DeserializeData(responsePayload.header.type, dataPayload.ToJson());
+                                responsePayload.data = dataPayload;
                             }
                             //Response 완료~!
-                            ResonseWait.bResponseSuccess = true;
+                            bResponseSuccess = true;
                         }
                         break;
                     case CmdType.blacklist_reg:
@@ -276,19 +289,21 @@ namespace NpmAdapter.Adapter
                                 ResponseCmdRegNumData dataPayload = new ResponseCmdRegNumData();
                                 dataPayload.reg_num = data["reg_no"].ToString();
                                 responsePayload.DeserializeData(responsePayload.header.type, dataPayload.ToJson());
+                                responsePayload.data = dataPayload;
                             }
                             else
                             {
                                 responsePayload.result = CmdHelper.MakeResponseResultPayload(CmdHelper.StatusCode.notinterface_kwanje);
                             }
+                            
                             //Response 완료~!
-                            ResonseWait.bResponseSuccess = true;
+                            bResponseSuccess = true;
                         }
                         break;
                     case CmdType.blacklist_del:
                         {
                             //Response 완료~!
-                            ResonseWait.bResponseSuccess = true;
+                            bResponseSuccess = true;
                         }
                         break;
                     case CmdType.blacklist_car:
@@ -300,16 +315,17 @@ namespace NpmAdapter.Adapter
                             dataPayload.reg_date = data.NPGetValue(NPElements.Date).ConvertDateTimeFormat("yyyyMMdd", "yyyy-MM-dd");
                             dataPayload.reason = data.NPGetValue(NPElements.Reason);
 
-                            responsePayload.DeserializeData(responsePayload.header.type, dataPayload.ToJson());
+                            responsePayload.data = dataPayload;
 
-                            ResonseWait.bResponseSuccess = true;
+                            bResponseSuccess = true;
+                            Log.WriteLog(LogType.Info, $"AptStAdapter | MyHttpNetwork_ReceiveFromPeer", $"{responsePayload.ToJson()}", LogAdpType.HomeNet);
                         }
                         break;
                 }
             }
             catch (Exception ex)
             {
-                Log.WriteLog(LogType.Error, $"CmxDLAdapter | SendMessage", $"Nexpa Adpater로부터 온 Message를 처리 중 오류 : {ex.Message}", LogAdpType.HomeNet);
+                Log.WriteLog(LogType.Error, $"AptStAdapter | SendMessage", $"Nexpa Adpater로부터 온 Message를 처리 중 오류 : {ex.Message}", LogAdpType.HomeNet);
                 throw;
             }
         }
@@ -348,7 +364,7 @@ namespace NpmAdapter.Adapter
                 //DefaultURL을 만들어야 함.....
                 //http://localhost:42142/nxmdl/cmx/... 까지..
                 string urlData = e.Request.Uri.PathAndQuery;
-                Log.WriteLog(LogType.Info, $"CmxDLAdapter | MyHttpNetwork_ReceiveFromPeer", $"URL : {urlData}", LogAdpType.HomeNet);
+                Log.WriteLog(LogType.Info, $"AptStAdapter | MyHttpNetwork_ReceiveFromPeer", $"URL : {urlData}", LogAdpType.HomeNet);
                 if (urlData != REQ_POST_STATUS)
                 {
                     e.Response.Connection.Type = ConnectionType.Close;
@@ -392,7 +408,7 @@ namespace NpmAdapter.Adapter
             responseHeader.Deserialize(json["header"] as JObject);
             responsePayload.header = responseHeader;
 
-            ResonseWait.bResponseSuccess = false;
+            bResponseSuccess = false;
             //넥스파 Payload를 가져온다.
             CmdHelper.ResultReqInfo result = CmdHelper.ConvertNexpaRequestPayload(json);
 
@@ -400,12 +416,23 @@ namespace NpmAdapter.Adapter
             {
                 //넥스파로 payload를 보낸다.
                 byte[] sendMsg = result.payload.Serialize();
-               
-                TargetAdapter.SendMessage(sendMsg, 0, sendMsg.Length);
+
+                //TargetAdapter.SendMessage(sendMsg, 0, sendMsg.Length);
+                using (BackgroundWorker worker = new BackgroundWorker())
+                {
+                    worker.WorkerReportsProgress = false;
+                    worker.WorkerSupportsCancellation = true;
+                    worker.DoWork += ((object sender, DoWorkEventArgs e) =>
+                    {
+                        TargetAdapter.SendMessage(sendMsg, 0, sendMsg.Length);
+                    });
+
+                    worker.RunWorkerAsync();
+                }
 
                 //3초 대기 Task
-                int iSec = 3 * 100; //3초
-                while (iSec > 0 && !ResonseWait.bResponseSuccess)
+                int iSec = 5 * 100; //3초
+                while (iSec > 0 && !bResponseSuccess)
                 {
                     Thread.Sleep(10); //0.01초씩..쉰다...
                     iSec -= 1;
@@ -413,7 +440,7 @@ namespace NpmAdapter.Adapter
 
                 receiveMessageBuffer.Clear();
 
-                if (ResonseWait.bResponseSuccess) //응답성공
+                if (bResponseSuccess) //응답성공
                 {
                     //응답이 왔으므로.... Data는 채워져 있을거임...
                     if (responsePayload.result == null)

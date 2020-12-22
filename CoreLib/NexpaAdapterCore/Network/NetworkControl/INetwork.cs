@@ -95,7 +95,15 @@ namespace NexpaAdapterStandardLib
         /// <summary>
         /// 블랙리스트 단일차량 조회
         /// </summary>
-        blacklist_car
+        blacklist_car,
+        /// <summary>
+        /// 핸드쉐이크겸...
+        /// </summary>
+        alive_check,
+        /// <summary>
+        /// 차단기열기
+        /// </summary>
+        bar_open
     }
 
     public delegate void SendToPeer(byte[] buffer, long offset, long size, RequestEventArgs pEvent = null);

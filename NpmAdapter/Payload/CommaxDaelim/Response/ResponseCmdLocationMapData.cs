@@ -65,13 +65,13 @@ namespace NpmAdapter.Payload
         public JObject ToJson()
         {
             JObject json = new JObject();
-            json["tag_num"] = car_number;
-            json["alias"] = alias;
-            json["location_text"] = location_text;
-            json["pixel_x"] = pixel_x;
-            json["pixel_y"] = pixel_y;
-            json["datetime"] = datetime;
-            json["image"] = image;
+            json["tag_num"] = Helper.NVL(car_number);
+            json["alias"] = Helper.NVL(alias);
+            json["location_text"] = Helper.NVL(location_text);
+            json["pixel_x"] = Helper.NVL(pixel_x);
+            json["pixel_y"] = Helper.NVL(pixel_y);
+            json["datetime"] = Helper.NVL(datetime);
+            json["image"] = Helper.NVL(image);
             json["bettery"] = "00";
             json["in_complex"] = "y";
             return json;

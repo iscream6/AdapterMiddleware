@@ -37,6 +37,8 @@ namespace NpmAdapter.Payload
             already_reg_favorit_carnumber = 319,
             [Description("BAD REQUEST")]
             bad_request = 400,
+            [Description("Internal Server Error")]
+            server_error = 500,
             [Description("현재 주차관제 서버와 연동중이지 않습니다")]
             notinterface_kwanje = 503,
             [Description("현재 주차위치 서버와 연동중이지 않습니다")]
@@ -412,7 +414,7 @@ namespace NpmAdapter.Payload
                 case Type.blacklist_book_add:
                     {
                         RequestPayload<RequestBlackListRegPayload> payload = new RequestPayload<RequestBlackListRegPayload>();
-                        payload.command = CmdType.blacklist_list;
+                        payload.command = CmdType.blacklist_reg;
 
                         RequestBlackListRegPayload data = new RequestBlackListRegPayload();
                         data.car_number = json["data"]["car_num"]?.ToString();
@@ -426,7 +428,7 @@ namespace NpmAdapter.Payload
                 case Type.blacklist_book_delete:
                     {
                         RequestPayload<RequestBlackListDelPayload> payload = new RequestPayload<RequestBlackListDelPayload>();
-                        payload.command = CmdType.blacklist_list;
+                        payload.command = CmdType.blacklist_del;
 
                         RequestBlackListDelPayload data = new RequestBlackListDelPayload();
                         data.car_number = json["data"]["car_num"]?.ToString();
@@ -454,9 +456,9 @@ namespace NpmAdapter.Payload
             }
         }
 
-        public static StatusPayload MakeResponseResultPayload(StatusCode status)
+        public static ResultPayload MakeResponseResultPayload(StatusCode status)
         {
-            StatusPayload payload = new StatusPayload();
+            ResultPayload payload = new ResultPayload();
             payload.code = (int)status == 0 ? "000" : ((int)status).ToString();
             payload.message = status.GetDescription();
 

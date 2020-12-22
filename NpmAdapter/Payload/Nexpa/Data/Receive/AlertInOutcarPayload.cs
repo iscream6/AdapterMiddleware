@@ -1,5 +1,6 @@
 ﻿using Newtonsoft.Json.Linq;
 using NexpaAdapterStandardLib;
+using System.Dynamic;
 
 namespace NpmAdapter.Payload
 {
@@ -33,6 +34,10 @@ namespace NpmAdapter.Payload
         /// 차량 이미지 정보
         /// </summary>
         public string car_image { get; set; }
+        /// <summary>
+        /// 차량 ID
+        /// </summary>
+        public string car_id { get; set; }
 
         public void Deserialize(JObject json)
         {
@@ -45,6 +50,7 @@ namespace NpmAdapter.Payload
             kind = json.NPGetValue(NPElements.Kind);
             lprID = json.NPGetValue(NPElements.LprID);
             car_image = json.NPGetValue(NPElements.Car_Image);
+            car_id = json.NPGetValue(NPElements.CarID);
         }
 
         public byte[] Serialize()
@@ -62,6 +68,7 @@ namespace NpmAdapter.Payload
             json["kind"] = kind;
             json["lprid"] = lprID;
             json["car_image"] = car_image;
+            json["car_id"] = car_id;
             return json;
         }
     }

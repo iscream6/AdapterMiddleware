@@ -33,7 +33,7 @@ namespace NpmAdapter.Payload
 
         public IPayload data { get; set; }
 
-        public StatusPayload result { get; set; }
+        public ResultPayload result { get; set; }
 
         public void Initialize()
         {

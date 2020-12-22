@@ -73,20 +73,34 @@
             this.grbTest = new System.Windows.Forms.GroupBox();
             this.notifyTray = new System.Windows.Forms.NotifyIcon(this.components);
             this.contextMenuTray = new System.Windows.Forms.ContextMenuStrip(this.components);
-            this.mnuShutdown = new System.Windows.Forms.ToolStripMenuItem();
             this.mnuActive = new System.Windows.Forms.ToolStripMenuItem();
+            this.mnuShutdown = new System.Windows.Forms.ToolStripMenuItem();
             this.timerDeath = new System.Windows.Forms.Timer(this.components);
+            this.picBtnHide = new System.Windows.Forms.PictureBox();
+            this.picBtnClose = new System.Windows.Forms.PictureBox();
+            this.pnlTop = new System.Windows.Forms.Panel();
+            this.contextMenu = new System.Windows.Forms.ContextMenuStrip(this.components);
+            this.설정ToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.프로그램종료XToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.pictureBox2 = new System.Windows.Forms.PictureBox();
+            this.imgLstButton = new System.Windows.Forms.ImageList(this.components);
             this.grbSystem.SuspendLayout();
             this.pnlCmdTest.SuspendLayout();
             this.pnlSendMessageTest.SuspendLayout();
             this.grbTest.SuspendLayout();
             this.contextMenuTray.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.picBtnHide)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.picBtnClose)).BeginInit();
+            this.pnlTop.SuspendLayout();
+            this.contextMenu.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.pictureBox2)).BeginInit();
             this.SuspendLayout();
             // 
             // btnInit
             // 
             this.btnInit.BackColor = System.Drawing.Color.White;
-            this.btnInit.Font = new System.Drawing.Font("굴림", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.btnInit.Font = new System.Drawing.Font("굴림", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.btnInit.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(56)))), ((int)(((byte)(56)))), ((int)(((byte)(56)))));
             this.btnInit.Location = new System.Drawing.Point(6, 20);
             this.btnInit.Name = "btnInit";
             this.btnInit.Size = new System.Drawing.Size(85, 23);
@@ -97,6 +111,7 @@
             // 
             // btnSendTest
             // 
+            this.btnSendTest.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(56)))), ((int)(((byte)(56)))), ((int)(((byte)(56)))));
             this.btnSendTest.Location = new System.Drawing.Point(214, 3);
             this.btnSendTest.Name = "btnSendTest";
             this.btnSendTest.Size = new System.Drawing.Size(168, 23);
@@ -107,6 +122,7 @@
             // 
             // btnReceiveTest
             // 
+            this.btnReceiveTest.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(56)))), ((int)(((byte)(56)))), ((int)(((byte)(56)))));
             this.btnReceiveTest.Location = new System.Drawing.Point(3, 119);
             this.btnReceiveTest.Name = "btnReceiveTest";
             this.btnReceiveTest.Size = new System.Drawing.Size(168, 23);
@@ -119,7 +135,8 @@
             // 
             this.btnStartNexpa.BackColor = System.Drawing.Color.White;
             this.btnStartNexpa.Enabled = false;
-            this.btnStartNexpa.Font = new System.Drawing.Font("굴림", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.btnStartNexpa.Font = new System.Drawing.Font("굴림", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.btnStartNexpa.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(56)))), ((int)(((byte)(56)))), ((int)(((byte)(56)))));
             this.btnStartNexpa.Location = new System.Drawing.Point(125, 20);
             this.btnStartNexpa.Name = "btnStartNexpa";
             this.btnStartNexpa.Size = new System.Drawing.Size(85, 23);
@@ -132,7 +149,8 @@
             // 
             this.btnStartHomeNet.BackColor = System.Drawing.Color.White;
             this.btnStartHomeNet.Enabled = false;
-            this.btnStartHomeNet.Font = new System.Drawing.Font("굴림", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.btnStartHomeNet.Font = new System.Drawing.Font("굴림", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.btnStartHomeNet.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(56)))), ((int)(((byte)(56)))), ((int)(((byte)(56)))));
             this.btnStartHomeNet.Location = new System.Drawing.Point(244, 20);
             this.btnStartHomeNet.Name = "btnStartHomeNet";
             this.btnStartHomeNet.Size = new System.Drawing.Size(85, 23);
@@ -159,7 +177,8 @@
             this.grbSystem.Controls.Add(this.btnStartHomeNet);
             this.grbSystem.Controls.Add(this.btnStartNexpa);
             this.grbSystem.Font = new System.Drawing.Font("굴림", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
-            this.grbSystem.Location = new System.Drawing.Point(12, 12);
+            this.grbSystem.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(210)))), ((int)(((byte)(248)))), ((int)(((byte)(248)))));
+            this.grbSystem.Location = new System.Drawing.Point(12, 40);
             this.grbSystem.Name = "grbSystem";
             this.grbSystem.Size = new System.Drawing.Size(824, 426);
             this.grbSystem.TabIndex = 6;
@@ -195,7 +214,8 @@
             // 
             this.btnLogClear.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.btnLogClear.BackColor = System.Drawing.Color.White;
-            this.btnLogClear.Font = new System.Drawing.Font("굴림", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.btnLogClear.Font = new System.Drawing.Font("굴림", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.btnLogClear.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(56)))), ((int)(((byte)(56)))), ((int)(((byte)(56)))));
             this.btnLogClear.Location = new System.Drawing.Point(646, 159);
             this.btnLogClear.Name = "btnLogClear";
             this.btnLogClear.Size = new System.Drawing.Size(174, 23);
@@ -208,7 +228,8 @@
             // 
             this.btnLogAutoClear.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.btnLogAutoClear.BackColor = System.Drawing.Color.White;
-            this.btnLogAutoClear.Font = new System.Drawing.Font("굴림", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.btnLogAutoClear.Font = new System.Drawing.Font("굴림", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.btnLogAutoClear.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(56)))), ((int)(((byte)(56)))), ((int)(((byte)(56)))));
             this.btnLogAutoClear.Location = new System.Drawing.Point(646, 130);
             this.btnLogAutoClear.Name = "btnLogAutoClear";
             this.btnLogAutoClear.Size = new System.Drawing.Size(174, 23);
@@ -230,7 +251,9 @@
             // 
             this.txtSysLog.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
+            this.txtSysLog.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(30)))), ((int)(((byte)(30)))), ((int)(((byte)(30)))));
             this.txtSysLog.Font = new System.Drawing.Font("굴림", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
+            this.txtSysLog.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(224)))), ((int)(((byte)(224)))), ((int)(((byte)(224)))));
             this.txtSysLog.Location = new System.Drawing.Point(6, 103);
             this.txtSysLog.Name = "txtSysLog";
             this.txtSysLog.ReadOnly = true;
@@ -309,6 +332,7 @@
             // 
             // btnCommaxTest
             // 
+            this.btnCommaxTest.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(56)))), ((int)(((byte)(56)))), ((int)(((byte)(56)))));
             this.btnCommaxTest.Location = new System.Drawing.Point(3, 3);
             this.btnCommaxTest.Name = "btnCommaxTest";
             this.btnCommaxTest.Size = new System.Drawing.Size(122, 23);
@@ -403,6 +427,7 @@
             // 
             // button1
             // 
+            this.button1.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(56)))), ((int)(((byte)(56)))), ((int)(((byte)(56)))));
             this.button1.Location = new System.Drawing.Point(227, 3);
             this.button1.Name = "button1";
             this.button1.Size = new System.Drawing.Size(168, 23);
@@ -413,6 +438,7 @@
             // 
             // btnSttAlive
             // 
+            this.btnSttAlive.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(56)))), ((int)(((byte)(56)))), ((int)(((byte)(56)))));
             this.btnSttAlive.Location = new System.Drawing.Point(284, 39);
             this.btnSttAlive.Name = "btnSttAlive";
             this.btnSttAlive.Size = new System.Drawing.Size(89, 23);
@@ -423,6 +449,7 @@
             // 
             // btnInCarSend
             // 
+            this.btnInCarSend.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(56)))), ((int)(((byte)(56)))), ((int)(((byte)(56)))));
             this.btnInCarSend.Location = new System.Drawing.Point(284, 68);
             this.btnInCarSend.Name = "btnInCarSend";
             this.btnInCarSend.Size = new System.Drawing.Size(89, 23);
@@ -433,6 +460,7 @@
             // 
             // btnInCarAck
             // 
+            this.btnInCarAck.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(56)))), ((int)(((byte)(56)))), ((int)(((byte)(56)))));
             this.btnInCarAck.Location = new System.Drawing.Point(284, 97);
             this.btnInCarAck.Name = "btnInCarAck";
             this.btnInCarAck.Size = new System.Drawing.Size(89, 23);
@@ -510,7 +538,8 @@
             this.grbTest.Controls.Add(this.pnlCmdTest);
             this.grbTest.Controls.Add(this.pnlSendMessageTest);
             this.grbTest.Font = new System.Drawing.Font("굴림", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(129)));
-            this.grbTest.Location = new System.Drawing.Point(12, 444);
+            this.grbTest.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(210)))), ((int)(((byte)(248)))), ((int)(((byte)(248)))));
+            this.grbTest.Location = new System.Drawing.Point(12, 468);
             this.grbTest.Name = "grbTest";
             this.grbTest.Size = new System.Drawing.Size(824, 177);
             this.grbTest.TabIndex = 36;
@@ -532,13 +561,6 @@
             this.contextMenuTray.Name = "contextMenuTray";
             this.contextMenuTray.Size = new System.Drawing.Size(151, 48);
             // 
-            // mnuShutdown
-            // 
-            this.mnuShutdown.Name = "mnuShutdown";
-            this.mnuShutdown.Size = new System.Drawing.Size(150, 22);
-            this.mnuShutdown.Text = "프로그램 종료";
-            this.mnuShutdown.Click += new System.EventHandler(this.mnuShutdown_Click);
-            // 
             // mnuActive
             // 
             this.mnuActive.Name = "mnuActive";
@@ -546,19 +568,111 @@
             this.mnuActive.Text = "창 활성화";
             this.mnuActive.Click += new System.EventHandler(this.mnuActive_Click);
             // 
+            // mnuShutdown
+            // 
+            this.mnuShutdown.Name = "mnuShutdown";
+            this.mnuShutdown.Size = new System.Drawing.Size(150, 22);
+            this.mnuShutdown.Text = "프로그램 종료";
+            this.mnuShutdown.Click += new System.EventHandler(this.mnuShutdown_Click);
+            // 
             // timerDeath
             // 
             this.timerDeath.Interval = 20;
             this.timerDeath.Tick += new System.EventHandler(this.timerDeath_Tick);
             // 
+            // picBtnHide
+            // 
+            this.picBtnHide.Image = ((System.Drawing.Image)(resources.GetObject("picBtnHide.Image")));
+            this.picBtnHide.Location = new System.Drawing.Point(777, 7);
+            this.picBtnHide.Name = "picBtnHide";
+            this.picBtnHide.Size = new System.Drawing.Size(26, 26);
+            this.picBtnHide.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
+            this.picBtnHide.TabIndex = 37;
+            this.picBtnHide.TabStop = false;
+            this.picBtnHide.Click += new System.EventHandler(this.picBtnHide_Click);
+            this.picBtnHide.MouseEnter += new System.EventHandler(this.picBtnHide_MouseEnter);
+            this.picBtnHide.MouseLeave += new System.EventHandler(this.picBtnHide_MouseLeave);
+            // 
+            // picBtnClose
+            // 
+            this.picBtnClose.Image = ((System.Drawing.Image)(resources.GetObject("picBtnClose.Image")));
+            this.picBtnClose.Location = new System.Drawing.Point(807, 7);
+            this.picBtnClose.Name = "picBtnClose";
+            this.picBtnClose.Size = new System.Drawing.Size(26, 26);
+            this.picBtnClose.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
+            this.picBtnClose.TabIndex = 38;
+            this.picBtnClose.TabStop = false;
+            this.picBtnClose.Click += new System.EventHandler(this.picBtnClose_Click);
+            this.picBtnClose.MouseEnter += new System.EventHandler(this.picBtnClose_MouseEnter);
+            this.picBtnClose.MouseLeave += new System.EventHandler(this.picBtnClose_MouseLeave);
+            // 
+            // pnlTop
+            // 
+            this.pnlTop.BackColor = System.Drawing.Color.Black;
+            this.pnlTop.ContextMenuStrip = this.contextMenu;
+            this.pnlTop.Controls.Add(this.pictureBox2);
+            this.pnlTop.Controls.Add(this.picBtnHide);
+            this.pnlTop.Controls.Add(this.picBtnClose);
+            this.pnlTop.Dock = System.Windows.Forms.DockStyle.Top;
+            this.pnlTop.Location = new System.Drawing.Point(0, 0);
+            this.pnlTop.Name = "pnlTop";
+            this.pnlTop.Size = new System.Drawing.Size(842, 40);
+            this.pnlTop.TabIndex = 39;
+            this.pnlTop.MouseDown += new System.Windows.Forms.MouseEventHandler(this.pnlTop_MouseDown);
+            this.pnlTop.MouseMove += new System.Windows.Forms.MouseEventHandler(this.pnlTop_MouseMove);
+            this.pnlTop.MouseUp += new System.Windows.Forms.MouseEventHandler(this.pnlTop_MouseUp);
+            // 
+            // contextMenu
+            // 
+            this.contextMenu.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.설정ToolStripMenuItem,
+            this.프로그램종료XToolStripMenuItem});
+            this.contextMenu.Name = "contextMenu";
+            this.contextMenu.Size = new System.Drawing.Size(162, 48);
+            // 
+            // 설정ToolStripMenuItem
+            // 
+            this.설정ToolStripMenuItem.Name = "설정ToolStripMenuItem";
+            this.설정ToolStripMenuItem.Size = new System.Drawing.Size(161, 22);
+            this.설정ToolStripMenuItem.Text = "설정(&O)";
+            this.설정ToolStripMenuItem.Click += new System.EventHandler(this.설정ToolStripMenuItem_Click);
+            // 
+            // 프로그램종료XToolStripMenuItem
+            // 
+            this.프로그램종료XToolStripMenuItem.Name = "프로그램종료XToolStripMenuItem";
+            this.프로그램종료XToolStripMenuItem.Size = new System.Drawing.Size(161, 22);
+            this.프로그램종료XToolStripMenuItem.Text = "프로그램종료(&X)";
+            this.프로그램종료XToolStripMenuItem.Click += new System.EventHandler(this.프로그램종료XToolStripMenuItem_Click);
+            // 
+            // pictureBox2
+            // 
+            this.pictureBox2.Image = ((System.Drawing.Image)(resources.GetObject("pictureBox2.Image")));
+            this.pictureBox2.Location = new System.Drawing.Point(12, 9);
+            this.pictureBox2.Name = "pictureBox2";
+            this.pictureBox2.Size = new System.Drawing.Size(29, 25);
+            this.pictureBox2.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
+            this.pictureBox2.TabIndex = 39;
+            this.pictureBox2.TabStop = false;
+            // 
+            // imgLstButton
+            // 
+            this.imgLstButton.ImageStream = ((System.Windows.Forms.ImageListStreamer)(resources.GetObject("imgLstButton.ImageStream")));
+            this.imgLstButton.TransparentColor = System.Drawing.Color.Transparent;
+            this.imgLstButton.Images.SetKeyName(0, "UnderLine");
+            this.imgLstButton.Images.SetKeyName(1, "UnderLine_Over");
+            this.imgLstButton.Images.SetKeyName(2, "X");
+            this.imgLstButton.Images.SetKeyName(3, "X_Over");
+            // 
             // frmMain
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 12F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(842, 626);
+            this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(56)))), ((int)(((byte)(56)))), ((int)(((byte)(56)))));
+            this.ClientSize = new System.Drawing.Size(842, 650);
+            this.Controls.Add(this.pnlTop);
             this.Controls.Add(this.grbTest);
             this.Controls.Add(this.grbSystem);
-            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
+            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None;
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "frmMain";
             this.Text = "NexPipe";
@@ -573,6 +687,11 @@
             this.pnlSendMessageTest.PerformLayout();
             this.grbTest.ResumeLayout(false);
             this.contextMenuTray.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.picBtnHide)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.picBtnClose)).EndInit();
+            this.pnlTop.ResumeLayout(false);
+            this.contextMenu.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.pictureBox2)).EndInit();
             this.ResumeLayout(false);
 
         }
@@ -625,6 +744,14 @@
         private System.Windows.Forms.ToolStripMenuItem mnuShutdown;
         private System.Windows.Forms.ToolStripMenuItem mnuActive;
         private System.Windows.Forms.Timer timerDeath;
+        private System.Windows.Forms.PictureBox picBtnHide;
+        private System.Windows.Forms.PictureBox picBtnClose;
+        private System.Windows.Forms.Panel pnlTop;
+        private System.Windows.Forms.ImageList imgLstButton;
+        private System.Windows.Forms.ContextMenuStrip contextMenu;
+        private System.Windows.Forms.ToolStripMenuItem 설정ToolStripMenuItem;
+        private System.Windows.Forms.PictureBox pictureBox2;
+        private System.Windows.Forms.ToolStripMenuItem 프로그램종료XToolStripMenuItem;
     }
 }
 

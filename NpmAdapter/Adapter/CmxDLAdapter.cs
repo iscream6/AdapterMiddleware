@@ -410,9 +410,9 @@ namespace NpmAdapter.Adapter
                             //동호가 없으면 PASS시킨다.
                             if(payload.data == null || payload.data.dong == null || payload.data.ho == null || payload.data.dong == "" || payload.data.ho == "")
                             {
-                                ResponseResultPayload resultPayload = new ResponseResultPayload();
+                                ResponsePayload resultPayload = new ResponsePayload();
                                 resultPayload.command = payload.command;
-                                resultPayload.Result = ResponseResultPayload.Status.FailFormatError;
+                                resultPayload.result = ResultType.FailFormatError;
                                 byte[] result = resultPayload.Serialize();
                                 TargetAdapter.SendMessage(result, 0, result.Length);
                                 Log.WriteLog(LogType.Info, $"CmxDLAdapter | SendMessage", $"전송메시지 : {resultPayload.ToJson().ToString()}", LogAdpType.Nexpa);
@@ -488,9 +488,9 @@ namespace NpmAdapter.Adapter
                                 MyTcpNetwork.SendToPeer(dataBytes, 0, dataBytes.Length);
                                 Log.WriteLog(LogType.Info, $"CmxDLAdapter | SendMessage", $"전송완료", LogAdpType.HomeNet);
                                 //넥스파로 잘 받았다고 응답처리하자.
-                                ResponseResultPayload resultPayload = new ResponseResultPayload();
+                                ResponsePayload resultPayload = new ResponsePayload();
                                 resultPayload.command = payload.command;
-                                resultPayload.Result = ResponseResultPayload.Status.OK;
+                                resultPayload.result = ResultType.OK;
                                 byte[] result = resultPayload.Serialize();
                                 
                                 TargetAdapter.SendMessage(result, 0, result.Length);
@@ -667,7 +667,7 @@ namespace NpmAdapter.Adapter
 
                         {
                             var result = jobj["result"];
-                            if(result != null && result.HasValues && result.Value<string>("status") == "319")
+                            if (result != null && result.HasValues && result.Value<string>("status") == "319")
                             {
                                 //방문차량 번호 중복 등록 시도 시...
                                 responsePayload.result = CmdHelper.MakeResponseResultPayload(CmdHelper.StatusCode.already_reg_favorit_carnumber);
@@ -706,8 +706,13 @@ namespace NpmAdapter.Adapter
                                 dataPayload.datetime = data["in_datetime"].ToString();
                                 responsePayload.data = dataPayload;
                             }
-                            
-                            StatusPayload status = new StatusPayload();
+
+                            if (Helper.NVL(jobj["result"]["status"]) == "200")
+                            {
+                                jobj["result"]["status"] = "000";
+                            }
+
+                            ResultPayload status = new ResultPayload();
                             status.Deserialize(jobj["result"] as JObject);
                             responsePayload.result = status;
 

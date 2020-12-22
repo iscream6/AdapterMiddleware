@@ -114,9 +114,9 @@ namespace NpmAdapter.Adapter
                             //동호가 없으면 PASS시킨다.
                             if (payload.data.dong == null || payload.data.ho == null || payload.data.dong == "" || payload.data.ho == "")
                             {
-                                ResponseResultPayload resultPayload = new ResponseResultPayload();
+                                ResponsePayload resultPayload = new ResponsePayload();
                                 resultPayload.command = payload.command;
-                                resultPayload.Result = ResponseResultPayload.Status.FailFormatError;
+                                resultPayload.result = ResultType.FailFormatError;
                                 byte[] result = resultPayload.Serialize();
                                 TargetAdapter.SendMessage(result, 0, result.Length);
                                 Log.WriteLog(LogType.Info, $"CmxDLAdapter | SendMessage", $"전송메시지 : {resultPayload.ToJson().ToString()}", LogAdpType.Nexpa);
@@ -191,9 +191,9 @@ namespace NpmAdapter.Adapter
                                 MyTcpClientNetwork.SendToPeer(dataBytes, 0, dataBytes.Length);
 
                                 //넥스파로 잘 받았다고 응답처리하자.
-                                ResponseResultPayload resultPayload = new ResponseResultPayload();
+                                ResponsePayload resultPayload = new ResponsePayload();
                                 resultPayload.command = payload.command;
-                                resultPayload.Result = ResponseResultPayload.Status.OK;
+                                resultPayload.result = ResultType.OK;
                                 byte[] result = resultPayload.Serialize();
                                 TargetAdapter.SendMessage(result, 0, result.Length);
                             }

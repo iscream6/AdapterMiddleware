@@ -7,6 +7,7 @@ namespace NexpaAdapterStandardLib
     public enum LogAdpType
     {
         none,
+        Biz,
         Nexpa,
         HomeNet
     }

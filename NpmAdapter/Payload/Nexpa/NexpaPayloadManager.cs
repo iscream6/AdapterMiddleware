@@ -1,6 +1,7 @@
 ﻿//using NexpaAdapterStandardLib.IO.Json;
 using Newtonsoft.Json.Linq;
 using NexpaAdapterStandardLib;
+using NpmAdapter.Payload.Nexpa.Data.Response;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -32,6 +33,10 @@ namespace NpmAdapter.Payload
                     break;
                 case CmdType.visit_favo_list:
                     payload = new ResponseVisitFavoListPayload();
+                    payload.Deserialize(json);
+                    break;
+                case CmdType.alive_check:
+                    payload = new ResponseAutoBoothPayload();
                     payload.Deserialize(json);
                     break;
             }

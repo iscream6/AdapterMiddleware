@@ -18,6 +18,8 @@ namespace NpmAdapter.Payload
         public string visit_out_date { get; set; }
         public string visit_type { get; set; }
         public string parking_in_datetime { get; set; }
+        public string partner_visit_id { get; set; }
+
 
         public void Deserialize(JObject json)
         {
@@ -31,6 +33,7 @@ namespace NpmAdapter.Payload
             visit_out_date = Helper.NVL(json["visit_out_date"]);
             visit_type = Helper.NVL(json["visit_type"]);
             parking_in_datetime = Helper.NVL(json["parking_in_datetime"]);
+            partner_visit_id = Helper.NVL(json["partner_visit_id"]);
         }
 
         public byte[] Serialize()
@@ -41,16 +44,17 @@ namespace NpmAdapter.Payload
         public JObject ToJson()
         {
             JObject json = new JObject();
-            json["apt_id"] = apt_id;
-            json["car_number"] = car_number;
-            json["dong"] = dong;
-            json["ho"] = ho;
-            json["phone_number"] = phone_number;
-            json["gate"] = gate;
-            json["visit_in_date"] = visit_in_date;
-            json["visit_out_date"] = visit_out_date;
-            json["visit_type"] = visit_type;
-            json["parking_in_datetime"] = parking_in_datetime;
+            json["apt_id"] = Helper.NVL(apt_id);
+            json["car_number"] = Helper.NVL(car_number);
+            json["dong"] = Helper.NVL(dong);
+            json["ho"] = Helper.NVL(ho);
+            json["phone_number"] = Helper.NVL(phone_number);
+            json["gate"] = Helper.NVL(gate);
+            json["visit_in_date"] = Helper.NVL(visit_in_date);
+            json["visit_out_date"] = Helper.NVL(visit_out_date);
+            json["visit_type"] = Helper.NVL(visit_type);
+            json["parking_in_datetime"] = Helper.NVL(parking_in_datetime);
+            json["partner_visit_id"] = Helper.NVL(partner_visit_id);
             return json;
         }
     }

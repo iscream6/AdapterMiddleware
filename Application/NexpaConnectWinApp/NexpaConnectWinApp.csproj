@@ -40,6 +40,9 @@
     <ApplicationIcon>CARS.ICO</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="FadeFox.UI">
+      <HintPath>..\..\..\..\..\..\프로젝트\NPAutoBooth - 로컬무인\010. 개발소스\02. 특이버전\2020\내부테스트\output\FadeFox.UI.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
@@ -58,10 +61,19 @@
     <Compile Include="frmMain.Designer.cs">
       <DependentUpon>frmMain.cs</DependentUpon>
     </Compile>
+    <Compile Include="frmOption.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="frmOption.Designer.cs">
+      <DependentUpon>frmOption.cs</DependentUpon>
+    </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <EmbeddedResource Include="frmMain.resx">
       <DependentUpon>frmMain.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="frmOption.resx">
+      <DependentUpon>frmOption.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>

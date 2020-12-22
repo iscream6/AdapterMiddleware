@@ -24,7 +24,7 @@ namespace NpmAdapter.Payload
         public JObject ToJson()
         {
             JObject json = new JObject();
-            json["reg_num"] = reg_num;
+            json["reg_num"] = Helper.NVL(reg_num);
             return json;
         }
     }

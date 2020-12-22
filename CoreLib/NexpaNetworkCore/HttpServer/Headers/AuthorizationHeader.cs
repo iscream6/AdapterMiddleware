@@ -83,7 +83,7 @@ namespace HttpServer.Headers
 
         public string HeaderValue
         {
-            get { throw new NotImplementedException(); }
+            get { return Scheme; }
         }
 
         #endregion

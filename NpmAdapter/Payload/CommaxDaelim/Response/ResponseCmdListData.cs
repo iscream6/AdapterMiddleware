@@ -172,11 +172,11 @@ namespace NpmAdapter.Payload
         public JObject ToJson()
         {
             JObject json = new JObject();
-            json["code"] = code;
-            json["reg_num"] = reg_num;
-            json["car_num"] = car_num;
-            json["reg_date"] = reg_date;
-            json["reason"] = reason;
+            json["code"] = Helper.NVL(code);
+            json["reg_num"] = Helper.NVL(reg_num);
+            json["car_num"] = Helper.NVL(car_num);
+            json["reg_date"] = Helper.NVL(reg_date);
+            json["reason"] = Helper.NVL(reason);
             return json;
         }
     }

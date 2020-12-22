@@ -34,7 +34,8 @@ namespace NpmAdapter
         Car_Image,
         Remain_Page,
         Reason,
-        LprID
+        LprID,
+        CarID
     }
 
     public static class Helper
@@ -234,23 +235,6 @@ namespace NpmAdapter
             }
         }
 
-        public static string GetDescription<T>(this T t) where T : struct, IConvertible
-        {
-            if (!typeof(T).IsEnum)
-            {
-                throw new ArgumentException("T must be an enumerated type");
-            }
-
-            DescriptionAttribute[] attributes = (DescriptionAttribute[])t
-           .GetType()
-           .GetField(t.ToString())
-           .GetCustomAttributes(typeof(DescriptionAttribute), false);
-
-            string message = attributes.Length > 0 ? attributes[0].Description : string.Empty;
-
-            return message;
-        }
-
         public static string ConvertDateTimeFormat(this string dateTime, string from, string to)
         {
             if(dateTime == null || dateTime == "")
@@ -323,6 +307,12 @@ namespace NpmAdapter
             {
                 return jToken.ToString();
             }
+        }
+
+        public static string NVL(string str, string defaultValue = "")
+        {
+            if (str == null) return defaultValue;
+            else return str;
         }
 
         public static string NPGetValue(this JObject jObject, NPElements elements, string defaultValue = "")

@@ -29,7 +29,7 @@ namespace NpmAdapter.Adapter
         private Status runStatus = Status.Full;
         private bool isRun = false;
         private byte[] arrSelfResponseData = null;
-        private SyncResonseWait resonseWait;
+        private bool bResponseSuccess = true;
 
         public static string REQ_POST_STATUS = "/nexpa/mdl/";
 
@@ -48,8 +48,6 @@ namespace NpmAdapter.Adapter
 
             try
             {
-                resonseWait = new SyncResonseWait();
-
                 //Config Version Check~!
                 if (!SysConfig.Instance.ValidateConfig)
                 {
@@ -145,10 +143,10 @@ namespace NpmAdapter.Adapter
         private void MyTcpNetwork_ReceiveFromPeer(byte[] buffer, long offset, long size, RequestEventArgs pEvent = null)
         {
             Log.WriteLog(LogType.Info, "NexpaTcpAdapter | MyTcpNetwork_ReceiveFromPeer", "주차관제로부터 데이터 수신 ==========", LogAdpType.Nexpa);
-            if (!resonseWait.bResponseSuccess)
+            if (!bResponseSuccess)
             {
                 arrSelfResponseData = buffer[..(int)size];
-                resonseWait.bResponseSuccess = true;
+                bResponseSuccess = true;
             }
             else
             {
@@ -184,9 +182,9 @@ namespace NpmAdapter.Adapter
                 e.Response.Status = System.Net.HttpStatusCode.BadRequest;
                 e.Response.Reason = "Bad Request";
                 //에러를 보내자...
-                ResponseResultPayload resultPayload = new ResponseResultPayload();
+                ResponsePayload resultPayload = new ResponsePayload();
                 resultPayload.command = cmdType;
-                resultPayload.Result = ResponseResultPayload.Status.InvalidURL;
+                resultPayload.result = ResultType.InvalidURL;
                 byte[] result = resultPayload.Serialize();
 
                 e.Response.Body.Write(result, 0, result.Length);
@@ -212,9 +210,9 @@ namespace NpmAdapter.Adapter
                     worker.RunWorkerCompleted += Worker_RunWorkerCompleted;
                 }
 
-                ResponseResultPayload resultPayload = new ResponseResultPayload();
+                ResponsePayload resultPayload = new ResponsePayload();
                 resultPayload.command = cmdType;
-                resultPayload.Result = ResponseResultPayload.Status.OK;
+                resultPayload.result = ResultType.OK;
                 byte[]  result = resultPayload.Serialize();
 
                 //int iSec = 500; //5초
@@ -275,27 +273,9 @@ namespace NpmAdapter.Adapter
                     {
 
                         case Status.TcpOnly:
-
                             {
                                 MyTcpNetwork.SendToPeer(buffer, offset, size);
                             }
-
-                            ////===================== Nexpa 응답 대기 =====================
-                            //int iSec = 100; //1초
-                            //while (iSec > 0 && !bResponseSuccess)
-                            //{
-                            //    Thread.Sleep(10); //0.01초씩..쉰다...
-                            //    iSec -= 1;
-                            //}
-                            ////===================== Nexpa 응답 대기 =====================
-
-                            ////1초 내 응답이 안오면 죽은것으로 간주한다.
-                            //if (bResponseSuccess == false)
-                            //{
-                            //    bResponseSuccess = true;
-                            //    //응답 지연 에러....
-                            //}
-                            //bResponseSuccess = false;
 
                             break;
                         case Status.WebOnly:
@@ -318,7 +298,7 @@ namespace NpmAdapter.Adapter
             }
         }
 
-        private async void RequestUDO_LocationMap(CmdType cmd, byte[] buffer)
+        private void RequestUDO_LocationMap(CmdType cmd, byte[] buffer)
         {
             //코맥스에서 요구하는 차량 위치찾기 기능을 구현해야 함.
             //1. 동호만 보내는경우, 차량번호를 포함해 보내는경우가 있음...
@@ -378,64 +358,20 @@ namespace NpmAdapter.Adapter
                             }
                         }
 
-                        //if (dataPayload != null)
-                        //{
-                        //    Log.WriteLog(LogType.Info, "NexpaTcpAdapter | RequestUDO_LocationMap", $"==dataPayload is not null==", LogAdpType.Nexpa);
-                        //    //Alias를 요청하여 가져온다.
-                        //    JObject reqAliasJson = new JObject();
-                        //    reqAliasJson["command"] = "car_alias";
-
-                        //    JArray array = new JArray();
-                        //    JObject carNum = new JObject();
-                        //    carNum["car_number"] = dataPayload.car_number;
-                        //    array.Add(carNum);
-
-                        //    reqAliasJson["data"]["list"] = array;
-
-                        //    resonseWait.bResponseSuccess = false;
-                        //    byte[] bytes = SysConfig.Instance.Nexpa_Encoding.GetBytes(reqAliasJson.ToString());
-                        //    MyTcpNetwork.SendToPeer(bytes, 0, bytes.Length);
-
-                        //    //===================== Nexpa 응답 대기 =====================
-
-                        //    int iSec = 100; //1초
-                        //    while (iSec > 0 && !resonseWait.bResponseSuccess)
-                        //    {
-                        //        Thread.Sleep(10); //0.01초씩..쉰다...
-                        //        iSec -= 1;
-                        //    }
-                        //    //===================== Nexpa 응답 대기 =====================
-
-                        //    if (resonseWait.bResponseSuccess && arrSelfResponseData != null)
-                        //    {
-                        //        string strAliasJson = arrSelfResponseData.ToString(SysConfig.Instance.Nexpa_Encoding);
-                        //        JObject aliasJson = JObject.Parse(strAliasJson);
-                        //        var aliasData = aliasJson["data"];
-                        //        JArray aliasArray = aliasData.Value<JArray>("list");
-                        //        if (aliasArray != null)
-                        //        {
-                        //            foreach (var item in aliasArray)
-                        //            {
-                        //                //Alias 처리
-                        //                dataPayload.alias = item.Value<string>("alias");
-                        //            }
-                        //        }
-                        //    }
-                        //}
-
                         //홈넷 어댑터가 코맥스 대림일 경우.....
                         if (SysConfig.Instance.Sys_HomeNetAdapter.StartsWith("2"))
                         {
                             if (jobj["totalCount"] == null)
                             {
                                 Log.WriteLog(LogType.Info, "NexpaTcpAdapter | RequestUDO_LocationMap", $"==totalCount is null==", LogAdpType.Nexpa);
-                                response.result = CmdHelper.MakeResponseResultPayload(CmdHelper.StatusCode.notinterface_udo);
+                                response.result = ResultType.notinterface_udo;
+                                    
                             }
                             else
                             {
                                 Log.WriteLog(LogType.Info, "NexpaTcpAdapter | RequestUDO_LocationMap", $"==totalCount is not null==", LogAdpType.Nexpa);
                                 response.data = dataPayload;
-                                response.result = CmdHelper.MakeResponseResultPayload(CmdHelper.StatusCode.ok);
+                                response.result = ResultType.OK;
                             }
 
                             byte[] responseBuffer = response.Serialize();
@@ -448,14 +384,14 @@ namespace NpmAdapter.Adapter
                     }
 
                     
-                    resonseWait.bResponseSuccess = true;
+                    bResponseSuccess = true;
                     arrSelfResponseData = null;
                 }
                 else
                 {
                     if (SysConfig.Instance.Sys_HomeNetAdapter.StartsWith("2"))
                     {
-                        response.result = CmdHelper.MakeResponseResultPayload(CmdHelper.StatusCode.ok);
+                        response.result = ResultType.OK;
 
                         byte[] responseBuffer = response.Serialize();
                         TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);
@@ -483,17 +419,14 @@ namespace NpmAdapter.Adapter
                 findCarData["ho"] = ho;
                 findCarObj["data"] = findCarData;
 
-                resonseWait.bResponseSuccess = false;
+                bResponseSuccess = false;
                 byte[] bytes = SysConfig.Instance.Nexpa_Encoding.GetBytes(findCarObj.ToString());
                 MyTcpNetwork.SendToPeer(bytes, 0, bytes.Length);
 
                 //===================== Nexpa 응답 대기 =====================
 
-                Task wait = resonseWait.WaitTask(1);
-                await wait;
-
                 int iSec = 100; //1초
-                while (iSec > 0 && !resonseWait.bResponseSuccess)
+                while (iSec > 0 && !bResponseSuccess)
                 {
                     Thread.Sleep(10); //0.01초씩..쉰다...
                     iSec -= 1;
@@ -501,7 +434,7 @@ namespace NpmAdapter.Adapter
                 //===================== Nexpa 응답 대기 =====================
 
                 //2. 읽어온 차량번호로 일련의 Data를 만들어보자..
-                if (resonseWait.bResponseSuccess && arrSelfResponseData != null)
+                if (bResponseSuccess && arrSelfResponseData != null)
                 {
                     string strFindCarJson = arrSelfResponseData.ToString(SysConfig.Instance.Nexpa_Encoding);
                     Log.WriteLog(LogType.Info, "NexpaTcpAdapter | RequestUDO_LocationMap", $"{strFindCarJson}", LogAdpType.Nexpa);
@@ -568,13 +501,13 @@ namespace NpmAdapter.Adapter
                                     if (jobj["totalCount"] == null)
                                     {
                                         Log.WriteLog(LogType.Info, "NexpaTcpAdapter | RequestUDO_LocationMap", $"{6}", LogAdpType.Nexpa);
-                                        response.result = CmdHelper.MakeResponseResultPayload(CmdHelper.StatusCode.ok);
+                                        response.result = ResultType.OK;
                                     }
                                     else
                                     {
                                         Log.WriteLog(LogType.Info, "NexpaTcpAdapter | RequestUDO_LocationMap", $"{7}", LogAdpType.Nexpa);
                                         response.data = dataPayload;
-                                        response.result = CmdHelper.MakeResponseResultPayload(CmdHelper.StatusCode.ok);
+                                        response.result = ResultType.OK;
                                     }
 
                                     byte[] responseBuffer = response.Serialize();
@@ -584,7 +517,7 @@ namespace NpmAdapter.Adapter
                                 {
                                     Log.WriteLog(LogType.Info, "NexpaTcpAdapter | RequestUDO_LocationMap", $"{8}", LogAdpType.Nexpa);
                                     response.data = dataPayload;
-                                    response.result = CmdHelper.MakeResponseResultPayload(CmdHelper.StatusCode.ok);
+                                    response.result = ResultType.OK;
                                     byte[] responseBuffer = response.Serialize();
                                     TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);
                                 }
@@ -592,7 +525,7 @@ namespace NpmAdapter.Adapter
                             else
                             {
                                 response.data = dataPayload;
-                                response.result = CmdHelper.MakeResponseResultPayload(CmdHelper.StatusCode.ok);
+                                response.result = ResultType.OK;
                                 byte[] responseBuffer = response.Serialize();
                                 TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);
                             }
@@ -602,7 +535,7 @@ namespace NpmAdapter.Adapter
                     {
                         Log.WriteLog(LogType.Info, "NexpaTcpAdapter | RequestUDO_LocationMap", $"{99}", LogAdpType.Nexpa);
                         //Null이 떨어졌다? 그건바로.... 검색이 안되서 그런것...
-                        response.result = CmdHelper.MakeResponseResultPayload(CmdHelper.StatusCode.ok);
+                        response.result = ResultType.OK;
                         response.data = dataPayload;
                         byte[] responseBuffer = response.Serialize();
                         TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);
@@ -612,13 +545,13 @@ namespace NpmAdapter.Adapter
                 else
                 {
                     Log.WriteLog(LogType.Info, "NexpaTcpAdapter | RequestUDO_LocationMap", $"{2.3}", LogAdpType.Nexpa);
-                    response.result = CmdHelper.MakeResponseResultPayload(CmdHelper.StatusCode.ok);
+                    response.result = ResultType.OK;
                     response.data = dataPayload;
                     byte[] responseBuffer = response.Serialize();
                     TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);
                 }
 
-                resonseWait.bResponseSuccess = true;
+                bResponseSuccess = true;
                 arrSelfResponseData = null;
             }
         }

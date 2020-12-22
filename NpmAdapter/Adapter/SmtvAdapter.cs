@@ -42,7 +42,7 @@ namespace NpmAdapter.Adapter
         {
             if (!SysConfig.Instance.ValidateConfig)
             {
-                Log.WriteLog(LogType.Error, "AptStAdapter | Initialize", $"Config Version이 다릅니다. 프로그램버전 : {SysConfig.Instance.ConfigVersion}", LogAdpType.HomeNet);
+                Log.WriteLog(LogType.Error, "SmtvAdapter | Initialize", $"Config Version이 다릅니다. 프로그램버전 : {SysConfig.Instance.ConfigVersion}", LogAdpType.HomeNet);
                 return false;
             }
             dicHeader = new Dictionary<string, string>();
@@ -51,13 +51,13 @@ namespace NpmAdapter.Adapter
 
             uri = new Uri(domain + REQ_POST_STATUS);
             dicHeader.Add("Authorization", $"Basic {strAuth.Base64Encode()}");
-
+            Log.WriteLog(LogType.Info, "SmtvAdapter | Initialize", $"인증토큰 : Basic {strAuth.Base64Encode()}", LogAdpType.HomeNet);
             return true;
         }
 
         public void SendMessage(byte[] buffer, long offset, long size)
         {
-            var jobj = JObject.Parse(buffer.ToString(SysConfig.Instance.Nexpa_Encoding, size));
+            var jobj = JObject.Parse(buffer.ToString(SysConfig.Instance.HomeNet_Encoding, size));
             JObject data = jobj["data"] as JObject;
             string cmd = jobj["command"].ToString();
 
@@ -84,16 +84,19 @@ namespace NpmAdapter.Adapter
                     result["carNo"] = payload.data.car_number;
                     result["eventDt"] = payload.data.date_time.ConvertDateTimeFormat("yyyyMMddHHmmss", "yyyy-MM-dd HH:mm:ss");
 
+                    Log.WriteLog(LogType.Info, "SmtvAdapter | SendMessage | WebClientResponse", $"전송메시지 {result}", LogAdpType.HomeNet);
+
                     byte[] requestData = result.ToByteArray(SysConfig.Instance.HomeNet_Encoding);
                     string responseData = string.Empty;
-                    if (NetworkWebClient.Instance.SendData(uri, NetworkWebClient.RequestType.POST, ContentType.Json, requestData, ref responseData, dicHeader))
+                    if (NetworkWebClient.Instance.SendData(uri, NetworkWebClient.RequestType.PUT, ContentType.Json, requestData, ref responseData, dicHeader))
                     {
-                        Log.WriteLog(LogType.Info, "SmtvAdapter | SendMessage | WebClientResponse", $"==응답== {responseData}", LogAdpType.Nexpa);
-                        ResponseResultPayload responsePayload = new ResponseResultPayload();
+                        Log.WriteLog(LogType.Info, "SmtvAdapter | SendMessage | WebClientResponse", $"==응답== {responseData}", LogAdpType.HomeNet);
+                        
+                        ResponsePayload responsePayload = new ResponsePayload();
                         byte[] responseBuffer;
 
                         responsePayload.command = payload.command;
-                        responsePayload.Result = ResponseResultPayload.Status.OK;
+                        responsePayload.result = ResultType.OK;
                         responseBuffer = responsePayload.Serialize();
 
                         TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);

@@ -29,82 +29,99 @@ namespace NpmAdapter
             try
             {
                 bool isSuccess = true;
-
-                //Config를 Load 한다.
-                string npFlag = SysConfig.Instance.Sys_NexpaAdapter;
-                string hnFlag = SysConfig.Instance.Sys_HomeNetAdapter;
-
+                NexpaAdapterType nxpAdapter = StdHelper.GetValueFromDescription<NexpaAdapterType>(SysConfig.Instance.Sys_NexpaAdapter);
+                HomeNetAdapterType homAdapter = StdHelper.GetValueFromDescription<HomeNetAdapterType>(SysConfig.Instance.Sys_HomeNetAdapter);
                 //NexpaAdapter 생성
-                switch (npFlag)
+                switch (nxpAdapter)
                 {
-                    case "1": //TcpServer
-                        nexpa = new NexpaAdapter(NexpaAdapter.Status.TcpOnly);
-                        Log.WriteLog(LogType.Info, $"AdapterPipe | GeneratePipe", $"Flag={npFlag} :  Nexpa TcpAdapter 생성", LogAdpType.Nexpa);
-                        break;
-                    case "2": //WebServer
-                        nexpa = new NexpaAdapter(NexpaAdapter.Status.WebOnly);
-                        Log.WriteLog(LogType.Info, $"AdapterPipe | GeneratePipe", $"Flag={npFlag} :  Nexpa WebAdapter 생성", LogAdpType.Nexpa);
-                        break;
-                    case "3":
+                    case NexpaAdapterType.All:
                         nexpa = new NexpaAdapter(NexpaAdapter.Status.Full);
-                        Log.WriteLog(LogType.Info, $"AdapterPipe | GeneratePipe", $"Flag={npFlag} :  Nexpa Full Adapter 생성", LogAdpType.Nexpa);
+                        Log.WriteLog(LogType.Info, $"AdapterPipe | GeneratePipe", $"Nexpa Full Adapter 생성", LogAdpType.Nexpa);
+                        break;
+                    case NexpaAdapterType.Tcp_Only:
+                        nexpa = new NexpaAdapter(NexpaAdapter.Status.TcpOnly);
+                        Log.WriteLog(LogType.Info, $"AdapterPipe | GeneratePipe", $"Nexpa TcpAdapter 생성", LogAdpType.Nexpa);
+                        break;
+                    case NexpaAdapterType.Web_Only:
+                        nexpa = new NexpaAdapter(NexpaAdapter.Status.WebOnly);
+                        Log.WriteLog(LogType.Info, $"AdapterPipe | GeneratePipe", $"Nexpa WebAdapter 생성", LogAdpType.Nexpa);
+                        break;
+                    case NexpaAdapterType.AutoBooth:
+                        nexpa = new NPAutoBoothAdapter();
+                        Log.WriteLog(LogType.Info, $"AdapterPipe | GeneratePipe", $"Nexpa WebAdapter 생성", LogAdpType.Nexpa);
                         break;
                     default:
                         nexpa = null;
                         break;
                 }
-                if(nexpa == null) Log.WriteLog(LogType.Error, $"AdapterPipe | GeneratePipe", $"Nexpa Adapter 생성 실패");
-                else
+
+                if(nexpa != null)
                 {
                     isSuccess &= nexpa.Initialize();
+                    Log.WriteLog(LogType.Info, $"AdapterPipe | GeneratePipe", $"Nexpa Adapter({nxpAdapter}) 생성", LogAdpType.Nexpa);
+                }
+                else
+                {
+                    isSuccess = false;
+                    Log.WriteLog(LogType.Error, $"AdapterPipe | GeneratePipe", $"Nexpa Adapter 생성 실패");
                 }
 
                 //HomeNetAdapter  생성
-                switch (hnFlag)
+                switch (homAdapter)
                 {
-                    case "1":
+                    case HomeNetAdapterType.None:
+                        homenet = null;
+                        Log.WriteLog(LogType.Info, $"AdapterPipe | GeneratePipe", $"HomeNet 생성안함", LogAdpType.HomeNet);
+                        return true;
+                    case HomeNetAdapterType.SHT5800:
                         if(homenet == null)
                         {
                             homenet = new SHT5800Adapter();
-                            Log.WriteLog(LogType.Info, $"AdapterPipe | GeneratePipe", $"Flag={hnFlag} : SHT5800Adapter 생성", LogAdpType.HomeNet);
+                            Log.WriteLog(LogType.Info, $"AdapterPipe | GeneratePipe", $"SHT5800Adapter 생성", LogAdpType.HomeNet);
                         }
                         else
                         {
-                            Log.WriteLog(LogType.Info, $"AdapterPipe | GeneratePipe", $"Flag={hnFlag} : Already created SHT5800Adapter instance...", LogAdpType.HomeNet);
+                            Log.WriteLog(LogType.Info, $"AdapterPipe | GeneratePipe", $"Already created SHT5800Adapter instance...", LogAdpType.HomeNet);
                         }
                         break;
-                    case "2": //대림코맥스(TCP, Web 가동)
+                    case HomeNetAdapterType.Commax_All: //대림코맥스(TCP, Web 가동)
                         homenet = new CmxDLAdapter(CmxDLAdapter.Status.Full);
                         break;
-                    case "2-1": //대림코맥스(TCP만 가동)
+                    case HomeNetAdapterType.Commax_Tcp: //대림코맥스(TCP만 가동)
                         homenet = new CmxDLAdapter(CmxDLAdapter.Status.TcpOnly);
                         break;
-                    case "2-2": //대림코맥스(Web만 가동)
+                    case HomeNetAdapterType.Commax_Web: //대림코맥스(Web만 가동)
                         homenet = new CmxDLAdapter(CmxDLAdapter.Status.WebOnly);
                         break;
-                    case "3": //코맥스 전용
+                    case HomeNetAdapterType.Commax_Only: //코맥스 전용
                         homenet = new CmxAdapter();
                         break;
-                    case "CCM": //코콤
+                    case HomeNetAdapterType.Cocom: //코콤
                         homenet = new CcmAdapter();
                         break;
-                    case "APS": //아파트스토리
+                    case HomeNetAdapterType.ApartStory: //아파트스토리
                         homenet = new AptStAdapter();
                         break;
-                    case "SMTV": //스마트빌리지
+                    case HomeNetAdapterType.SmartVillage: //스마트빌리지
                         homenet = new SmtvAdapter();
                         break;
-                    case "SML": //샘물
+                    case HomeNetAdapterType.Samul: //샘물
                         homenet = new SamulAdapter();
                         break;
                     default:
                         homenet = null;
                         break;
                 }
-                if (homenet == null) Log.WriteLog(LogType.Error, $"AdapterPipe | GeneratePipe", $"Homenet Adapter 생성 실패");
-                else
+
+                if (homenet != null)
                 {
                     isSuccess &= homenet.Initialize();
+                    Log.WriteLog(LogType.Info, $"AdapterPipe | GeneratePipe", $"HomeNet Adapter({homAdapter}) 생성", LogAdpType.HomeNet);
+                }
+                else
+                {
+                    isSuccess = false;
+                    Log.WriteLog(LogType.Error, $"AdapterPipe | GeneratePipe", $"Homenet Adapter 생성 실패");
                 }
 
                 //두 Adpater를 연결
@@ -118,7 +135,6 @@ namespace NpmAdapter
                 Log.WriteLog(LogType.Error, "AdapterPipe | GeneratePipe", $"{ex.Message}");
                 return false;
             }
-
         }
 
         public override bool StartAdapter(AdapterType type)

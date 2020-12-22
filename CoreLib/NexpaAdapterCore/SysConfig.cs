@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Text;
 
 // [ 작성일  ]  [ Version ]   [             변경 내용             ]
@@ -21,14 +22,19 @@ namespace NexpaAdapterStandardLib
     {
         public readonly string ConfigVersion = "Cn0201124.3";
 
-        #region Sections
-        
-        private string SysSection { get => "SysConfig"; }
-        private string NexpaSection { get => "Nexpa_Config"; }
-        private string HomeNetSection { get => "HomeNet_Config"; }
-        private string EtcSection { get => "Etc_Config"; }
+        private const string config = "config";
 
-        #endregion
+        public enum Sections
+        {
+            [Description("SysConfig")]
+            SysConfig,
+            [Description("Nexpa_Config")]
+            NexpaConfig,
+            [Description("HomeNet_Config")]
+            HomeNetConfig,
+            [Description("Etc_Config")]
+            EtcConfig
+        }
 
         #region Config Values
 
@@ -37,48 +43,52 @@ namespace NexpaAdapterStandardLib
         /// <summary>
         /// 넥스파 Adapter 설정 1=Tcp, 2=Web, 3=Full
         /// </summary>
-        public readonly string Sys_NexpaAdapter;
+        public string Sys_NexpaAdapter { get; private set; }
         /// <summary>
         /// 홈넷 Adapter 설정 1=SHT5800, 2=CommaxDaelim(Tcp, Web), 2-1=CommaxDaelim(Tcp), 2-2=CommaxDaelim(Web), 3=Commax 전용, CCM=코콤
         /// </summary>
-        public readonly string Sys_HomeNetAdapter;
+        public string Sys_HomeNetAdapter { get; private set; }
         /// <summary>
         /// 옵션
         /// </summary>
-        public readonly Dictionary<string, string> Sys_Option;
+        public Dictionary<string, string> Sys_Option { get; private set; }
         /// <summary>
         /// Config 버전 일치 여부
         /// </summary>
-        public readonly bool ValidateConfig;
+        public bool ValidateConfig { get; private set; }
         /// <summary>
         /// Program Version
         /// </summary>
-        public readonly string Version;
+        public string Version { get; private set; }
 
         #endregion
 
         #region Nexpa_Config
 
+        
         /// <summary>
         /// 넥스파 Tcp 포트
         /// </summary>
-        public readonly string Nexpa_TcpPort;
+        public string Nexpa_TcpPort { get; private set; }
         /// <summary>
         /// 넥스파 Web 포트
         /// </summary>
-        public readonly string Nexpa_WebPort;
+        public string Nexpa_WebPort { get; private set; }
         /// <summary>
         /// 넥스파 유도 WebSocket IP or URL...
         /// </summary>
-        public readonly string Nexpa_UWebIP;
+        public string Nexpa_UWebIP { get; private set; }
         /// <summary>
         /// 넥스파 유도 WebSocket Port
         /// </summary>
-        public readonly string Nexpa_UWebPort;
+        public string Nexpa_UWebPort { get; private set; }
         /// <summary>
         /// 넥스파 통신 Encoding Type
         /// </summary>
-        public readonly Encoding Nexpa_Encoding;
+        public Encoding Nexpa_Encoding { get; private set; }
+        public string Nexpa_EncodCd { get; private set; }
+        public string Target_TcpIP { get; private set; }
+        public string Target_TcpPort { get; private set; }
 
         #endregion
 
@@ -87,11 +97,11 @@ namespace NexpaAdapterStandardLib
         /// <summary>
         /// HomeNet ID
         /// </summary>
-        public readonly string HC_Id;
+        public string HC_Id { get; private set; }
         /// <summary>
         /// HomeNet Password
         /// </summary>
-        public readonly string HC_Pw;
+        public string HC_Pw { get; private set; }
 
         #endregion
 
@@ -100,15 +110,15 @@ namespace NexpaAdapterStandardLib
         /// <summary>
         /// HomeNet Serial BaudRate
         /// </summary>
-        public readonly string HS_BaudRate;
+        public string HS_BaudRate { get; private set; }
         /// <summary>
         /// HomeNet Serial PortName
         /// </summary>
-        public readonly string HS_PortName;
+        public string HS_PortName { get; private set; }
         /// <summary>
         /// HomeNet Serial Parity
         /// </summary>
-        public readonly string HS_Parity;
+        public string HS_Parity { get; private set; }
 
         #endregion
 
@@ -117,11 +127,11 @@ namespace NexpaAdapterStandardLib
         /// <summary>
         /// HomeNet Web Port
         /// </summary>
-        public readonly string HW_Port;
+        public string HW_Port { get; private set; }
         /// <summary>
         /// HomeNet Web Domain
         /// </summary>
-        public readonly string HW_Domain;
+        public string HW_Domain { get; private set; }
         
         #endregion
 
@@ -130,29 +140,38 @@ namespace NexpaAdapterStandardLib
         /// <summary>
         /// HomeNet Tcp iP
         /// </summary>
-        public readonly string HT_IP;
+        public string HT_IP { get; private set; }
         /// <summary>
         /// HomeNet Tcp Port
         /// </summary>
-        public readonly string HT_Port;
+        public string HT_Port { get; private set; }
         /// <summary>
         /// Homenet Tcp My Port
         /// </summary>
-        public readonly string HT_MyPort;
+        public string HT_MyPort { get; private set; }
 
         #endregion
 
         #region HomeNet_CommonConfig
 
-        public readonly Encoding HomeNet_Encoding;
+        public Encoding HomeNet_Encoding { get; private set; }
+        public string HomeNet_EncodCd { get; private set; }
 
         #endregion
 
         #region Etc
 
-        public readonly string AptId;
-        public readonly string ParkId;
-        public readonly string AuthToken;
+        public string ParkId { get; private set; }
+        public string AuthToken { get; private set; }
+
+        #endregion
+
+        #region MSSQL DataBase
+
+        public string DataSource { get; private set; }
+        public string InitialCatalog { get; private set; }
+        public string UserID { get; private set; }
+        public string Password { get; private set; }
 
         #endregion
 
@@ -162,48 +181,61 @@ namespace NexpaAdapterStandardLib
 
         public SysConfig()
         {
-            Sys_NexpaAdapter = ConfigManager.ReadConfig("config", SysSection, "NexpaAdapter");
-            Sys_HomeNetAdapter = ConfigManager.ReadConfig("config", SysSection, "HomeNetAdapter");
-            ReadOption(ConfigManager.ReadConfig("config", SysSection, "Options"), ref Sys_Option);
-            ValidateConfig = ConfigVersion.Equals(ConfigManager.ReadConfig("config", SysSection, "Config_Version"));
-            Version = ConfigManager.ReadConfig("config", SysSection, "PVersion");
+            Sys_NexpaAdapter = ConfigManager.ReadConfig(config, Sections.SysConfig.GetDescription(), "NexpaAdapter");
+            Sys_HomeNetAdapter = ConfigManager.ReadConfig(config, Sections.SysConfig.GetDescription(), "HomeNetAdapter");
+            Sys_Option = ReadOption(ConfigManager.ReadConfig(config, Sections.SysConfig.GetDescription(), "Options"));
+            ValidateConfig = ConfigVersion.Equals(ConfigManager.ReadConfig(config, Sections.SysConfig.GetDescription(), "Config_Version"));
+            Version = ConfigManager.ReadConfig(config, Sections.SysConfig.GetDescription(), "PVersion");
 
-            Nexpa_TcpPort = ConfigManager.ReadConfig("config", NexpaSection, "TcpPort");
-            Nexpa_WebPort = ConfigManager.ReadConfig("config", NexpaSection, "WebPort");
-            Nexpa_UWebIP = ConfigManager.ReadConfig("config", NexpaSection, "UWebIP");
-            Nexpa_UWebPort = ConfigManager.ReadConfig("config", NexpaSection, "UWebPort");
-            Nexpa_Encoding = GetEncoding(ConfigManager.ReadConfig("config", NexpaSection, "Encoding"));
+            Nexpa_TcpPort = ConfigManager.ReadConfig(config, Sections.NexpaConfig.GetDescription(), "TcpPort");
+            Nexpa_WebPort = ConfigManager.ReadConfig(config, Sections.NexpaConfig.GetDescription(), "WebPort");
+            Nexpa_UWebIP = ConfigManager.ReadConfig(config, Sections.NexpaConfig.GetDescription(), "UWebIP");
+            Nexpa_UWebPort = ConfigManager.ReadConfig(config, Sections.NexpaConfig.GetDescription(), "UWebPort");
+            Nexpa_EncodCd = ConfigManager.ReadConfig(config, Sections.NexpaConfig.GetDescription(), "Encoding");
+            Nexpa_Encoding = GetEncoding(Nexpa_EncodCd);
+            DataSource = $"{ConfigManager.ReadConfig(config, Sections.NexpaConfig.GetDescription(), "DBIP")},{ConfigManager.ReadConfig(config, Sections.NexpaConfig.GetDescription(), "DBPort")}";
+            InitialCatalog = ConfigManager.ReadConfig(config, Sections.NexpaConfig.GetDescription(), "DBName");
+            UserID = ConfigManager.ReadConfig(config, Sections.NexpaConfig.GetDescription(), "DBID");
+            Password = ConfigManager.ReadConfig(config, Sections.NexpaConfig.GetDescription(), "DBPW");
 
-            HS_BaudRate = ConfigManager.ReadConfig("config", HomeNetSection, "Serial_BaudRate");
-            HS_PortName = ConfigManager.ReadConfig("config", HomeNetSection, "Serial_PortName");
-            HS_Parity = ConfigManager.ReadConfig("config", HomeNetSection, "Serial_Parity");
-            HW_Port = ConfigManager.ReadConfig("config", HomeNetSection, "Web_Port");
-            HW_Domain = ConfigManager.ReadConfig("config", HomeNetSection, "Web_Domain");
-            HT_IP = ConfigManager.ReadConfig("config", HomeNetSection, "Tcp_IP");
-            HT_Port = ConfigManager.ReadConfig("config", HomeNetSection, "Tcp_Port");
-            HT_MyPort = ConfigManager.ReadConfig("config", HomeNetSection, "My_Port");
-            HC_Id = ConfigManager.ReadConfig("config", HomeNetSection, "HId");
-            HC_Pw = ConfigManager.ReadConfig("config", HomeNetSection, "HPw");
-            HomeNet_Encoding = GetEncoding(ConfigManager.ReadConfig("config", HomeNetSection, "Encoding"));
+            HS_BaudRate = ConfigManager.ReadConfig(config, Sections.HomeNetConfig.GetDescription(), "Serial_BaudRate");
+            HS_PortName = ConfigManager.ReadConfig(config, Sections.HomeNetConfig.GetDescription(), "Serial_PortName");
+            HS_Parity = ConfigManager.ReadConfig(config, Sections.HomeNetConfig.GetDescription(), "Serial_Parity");
+            HW_Port = ConfigManager.ReadConfig(config, Sections.HomeNetConfig.GetDescription(), "Web_Port");
+            HW_Domain = ConfigManager.ReadConfig(config, Sections.HomeNetConfig.GetDescription(), "Web_Domain");
+            HT_IP = ConfigManager.ReadConfig(config, Sections.HomeNetConfig.GetDescription(), "Tcp_IP");
+            HT_Port = ConfigManager.ReadConfig(config, Sections.HomeNetConfig.GetDescription(), "Tcp_Port");
+            HT_MyPort = ConfigManager.ReadConfig(config, Sections.HomeNetConfig.GetDescription(), "My_Port");
+            HC_Id = ConfigManager.ReadConfig(config, Sections.HomeNetConfig.GetDescription(), "HId");
+            HC_Pw = ConfigManager.ReadConfig(config, Sections.HomeNetConfig.GetDescription(), "HPw");
+            HomeNet_EncodCd = ConfigManager.ReadConfig(config, Sections.HomeNetConfig.GetDescription(), "Encoding");
+            HomeNet_Encoding = GetEncoding(HomeNet_EncodCd);
 
-            AptId = ConfigManager.ReadConfig("config", EtcSection, "AptId");
-            ParkId = ConfigManager.ReadConfig("config", EtcSection, "ParkId");
-            AuthToken = ConfigManager.ReadConfig("config", EtcSection, "AuthToken");
+            ParkId = ConfigManager.ReadConfig(config, Sections.EtcConfig.GetDescription(), "ParkId");
+            AuthToken = ConfigManager.ReadConfig(config, Sections.EtcConfig.GetDescription(), "AuthToken");
+
+            
         }
 
         #endregion
 
         #region Methods
 
+        public void WriteConfig(Sections section, string key, string value)
+        {
+            ConfigManager.WriteConfig(config, section.GetDescription(), key, value);
+        }
+
         /// <summary>
         /// 옵션을가져온다.
         /// </summary>
         /// <param name="option">Format = [key]|[value] ^[key]|[value] ^ ...</param>
-        private void ReadOption(string pOption, ref Dictionary<string, string> pDicOptions)
+        private Dictionary<string, string> ReadOption(string pOption)
         {
             try
             {
-                if (pDicOptions == null) pDicOptions = new Dictionary<string, string>();
+                Dictionary<string, string> dicOption;
+                dicOption = new Dictionary<string, string>();
 
                 string[] optionArr = pOption.Split('^');
                 if (optionArr != null && optionArr.Length > 0)
@@ -213,14 +245,17 @@ namespace NexpaAdapterStandardLib
                         string[] tempOptionArr = option.Split('|');
                         if (tempOptionArr != null && tempOptionArr.Length > 1)
                         {
-                            pDicOptions.Add(tempOptionArr[0], tempOptionArr[1]);
+                            dicOption.Add(tempOptionArr[0], tempOptionArr[1]);
                         }
                     }
                 }
+
+                return dicOption;
             }
             catch (Exception ex)
             {
                 Log.WriteLog(LogType.Error, "SysConfig | ReadOption", $"옵션을 가져오는데 실패하였습니다. : {ex.Message}", LogAdpType.Nexpa);
+                return null;
             }
         }
 

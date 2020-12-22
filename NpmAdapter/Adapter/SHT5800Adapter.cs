@@ -425,11 +425,11 @@ namespace NpmAdapter.Adapter
                 errorMesgae = "세대 번호 없음";
             }
 
-            Payload<StatusPayload> payload = new Payload<StatusPayload>();
+            Payload<ResultPayload> payload = new Payload<ResultPayload>();
             payload.command = CmdType.trans_error.ToString();
-            payload.data = new List<StatusPayload>
+            payload.data = new List<ResultPayload>
             {
-                new StatusPayload
+                new ResultPayload
                 {
                     code = errorCode,
                     message = errorMesgae
@@ -441,10 +441,10 @@ namespace NpmAdapter.Adapter
         
         private byte[] MakeStatusRequest()
         {
-            Payload<StatusPayload> payload = new Payload<StatusPayload>();
+            Payload<ResultPayload> payload = new Payload<ResultPayload>();
             payload.command = CmdType.status_check.ToString();
-            payload.data = new List<StatusPayload>();
-            StatusPayload subPayload = new StatusPayload();
+            payload.data = new List<ResultPayload>();
+            ResultPayload subPayload = new ResultPayload();
             subPayload.code = "";
             subPayload.message = "";
             payload.data.Add(subPayload);

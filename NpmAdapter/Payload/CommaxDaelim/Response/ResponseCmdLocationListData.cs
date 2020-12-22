@@ -77,12 +77,12 @@ namespace NpmAdapter.Payload.CommaxDaelim.Response
         public JObject ToJson()
         {
             JObject json = new JObject();
-            json["tag_num"] = car_number;
-            json["alias"] = alias;
+            json["tag_num"] = Helper.NVL(car_number);
+            json["alias"] = Helper.NVL(alias);
             json["bettery"] = "00";
             json["im_complex"] = "y";
-            json["location_text"] = location_text;
-            json["datetime"] = datetime;
+            json["location_text"] = Helper.NVL(location_text);
+            json["datetime"] = Helper.NVL(datetime);
             return json;
         }
     }

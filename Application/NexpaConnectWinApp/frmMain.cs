@@ -3,6 +3,7 @@ using NpmAdapter;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Runtime.InteropServices.WindowsRuntime;
 using System.Text;
 using System.Threading;
 using System.Windows.Forms;
@@ -31,7 +32,6 @@ namespace NexpaConnectWinApp
         {
             Initialize();
             isShutdown = false;
-            timerDeath.Start();
         }
 
         delegate void AppendLogText(Control ctl, string log);
@@ -84,6 +84,8 @@ namespace NexpaConnectWinApp
 
         private void Initialize()
         {
+            HomeNetAdapterType homAdapter = StdHelper.GetValueFromDescription<HomeNetAdapterType>(SysConfig.Instance.Sys_HomeNetAdapter);
+
             btnInit.Enabled = true;
             btnStartHomeNet.Enabled = false;
             btnStartNexpa.Enabled = false;
@@ -97,14 +99,23 @@ namespace NexpaConnectWinApp
             lblSttNexpa.ForeColor = Color.FromArgb(64, 64, 64);
             lblSttNexpa.Text = "";
 
+            if (homAdapter == HomeNetAdapterType.None)
+            {
+                lblSttHomeNet.Visible = false;
+                btnStartHomeNet.Visible = false;
+                label2.Visible = false; // ▶ 표시도 제거
+            }
+
             //테스트 모드 여부
             if (SysConfig.Instance.Sys_Option.GetValueToUpper("TestMode") == "Y")
             {
                 grbTest.Visible = true;
+                this.Height = 650;
             }
             else
             {
                 grbTest.Visible = false;
+                this.Height = 650 - 177;
             }
 
             //자동시작 여부
@@ -114,9 +125,19 @@ namespace NexpaConnectWinApp
                 Thread.Sleep(1000);
                 btnStartNexpa.PerformClick();
                 Thread.Sleep(1000);
-                btnStartHomeNet.PerformClick();
+
+                if(homAdapter != HomeNetAdapterType.None)
+                {
+                    btnStartHomeNet.PerformClick();
+                }
+                
                 txtClearSec.Text = "90";
                 btnLogAutoClear.PerformClick();
+            }
+
+            if (SysConfig.Instance.Sys_Option.GetValueToUpper("AutoDaeth") == "Y")
+            {
+                timerDeath.Start();
             }
         }
 
@@ -273,19 +294,22 @@ namespace NexpaConnectWinApp
             //string dd = "{\"command\":\"alert_incar\",\"data\":[{\"dong\":\"108\",\"ho\":\"1203\",\"car_number\":\"09서4666\",\"date_time\":\"20200907150105\"}]}";
             string dd = "{\"command\":\"location_map\",\"data\":{\"dong\":\"108\",\"ho\":\"1203\",\"car_number\":\"97소1607\",\"date_time\":\"20200914095540\"}}";
             AdapterType type = AdapterType.none;
+            Encoding encoding = null;
             if (rdoNexpa.Checked)
             {
                 type = AdapterType.nexpa;
+                encoding = SysConfig.Instance.Nexpa_Encoding;
             }
             else if (rdoHomeNet.Checked)
             {
                 type = AdapterType.homenet;
+                encoding = SysConfig.Instance.HomeNet_Encoding;
             }
             else
             {
                 type = AdapterType.none;
             }
-            pipe.TestSendMessage(type, Encoding.UTF8.GetBytes(txtMessage.Text));
+            pipe.TestSendMessage(type, encoding.GetBytes(txtMessage.Text));
         }
 
         private void btnReceiveTest_Click(object sender, EventArgs e)
@@ -516,6 +540,100 @@ namespace NexpaConnectWinApp
                 this.Close();
                 this.Dispose();
             }
+        }
+
+        //===================== Form 마우스로 이동 =====================
+
+        private bool tagMove;
+        private int valX, valY;
+
+        private void pnlTop_MouseDown(object sender, MouseEventArgs e)
+        {
+            tagMove = true;
+            valX = e.X;
+            valY = e.Y;
+        }
+
+        private void pnlTop_MouseMove(object sender, MouseEventArgs e)
+        {
+            if (tagMove)
+            {
+                this.SetDesktopLocation(MousePosition.X - valX, MousePosition.Y - valY);
+            }
+        }
+
+        private void pnlTop_MouseUp(object sender, MouseEventArgs e)
+        {
+            tagMove = false;
+        }
+
+        //===================== Form 마우스로 이동 완료 =====================
+
+        //===================== Form 작업표시줄 이동, 닫기 =====================
+        private enum ImageList
+        {
+            UnderLine,
+            UnderLine_Over,
+            X,
+            X_Over
+        }
+
+        private void picBtnHide_Click(object sender, EventArgs e)
+        {
+            this.WindowState = FormWindowState.Minimized;
+        }
+
+        private void picBtnHide_MouseEnter(object sender, EventArgs e)
+        {
+            picBtnHide.Image = imgLstButton.Images[(int)ImageList.UnderLine_Over];
+        }
+
+        private void picBtnHide_MouseLeave(object sender, EventArgs e)
+        {
+            picBtnHide.Image = imgLstButton.Images[(int)ImageList.UnderLine];
+        }
+
+        private void picBtnClose_Click(object sender, EventArgs e)
+        {
+            this.Close();
+        }
+
+        private void picBtnClose_MouseEnter(object sender, EventArgs e)
+        {
+            picBtnClose.Image = imgLstButton.Images[(int)ImageList.X_Over];
+        }
+
+        private void picBtnClose_MouseLeave(object sender, EventArgs e)
+        {
+            picBtnClose.Image = imgLstButton.Images[(int)ImageList.X];
+        }
+
+        //===================== Form 작업표시줄 이동, 닫기 완료 =====================
+
+        private void 설정ToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            using (frmOption option = new frmOption())
+            {
+                if(option.ShowDialog() == DialogResult.OK)
+                {
+                    if (MessageBox.Show("You need to restart the program to apply the settings. " +
+                        "Do you want to restart?", "You neet restart!",  MessageBoxButtons.YesNo) == DialogResult.Yes)
+                    {
+                        System.Diagnostics.Process.Start(Application.ExecutablePath); // to start new instance of application
+                        isShutdown = true;
+                        this.Close();
+                        this.Dispose();
+                    }
+                }
+            }
+            
+        }
+
+        private void 프로그램종료XToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            isShutdown = true;
+            this.Close();
+            this.Dispose();
         }
     }
 }

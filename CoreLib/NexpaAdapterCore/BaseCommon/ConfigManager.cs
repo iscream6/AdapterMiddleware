@@ -41,6 +41,7 @@ namespace NexpaAdapterStandardLib
         /// <param name="val"></param>
         public static void WriteConfig(string file, string section, string key, string val)
         {
+            
             WritePrivateProfileString(section, key, val, GetFile(file));
         }
 
@@ -55,7 +56,7 @@ namespace NexpaAdapterStandardLib
         {
             //C#에서는 포인터를 명시적으로 표현할 수 없기 때문 StringBuilder로 가져옵니다
             StringBuilder temp = new StringBuilder(255);
-            int ret = GetPrivateProfileString(section, key, null, temp, 255, GetFile(file));
+            int ret = GetPrivateProfileString(section, key, "", temp, 255, GetFile(file));
             //주석처리 된 부분은 빼고 가져오자.
             string[] resultValues = temp.ToString().Split(';');
             if(resultValues.Length == 0)

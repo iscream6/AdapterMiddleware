@@ -4,12 +4,13 @@ Body
   "command": "alert_incar",
   "data": {
       "dong" : "123",
-      "ho" : "456"
+      "ho" : "456",
       "car_number" : "차량번호",
       "date_time" : "yyyyMMddHHmmss",
       "kind" : "a/v", //a:세대원, v:방문객
       "lprid" : "Lpr 식별 번호",
-      "car_image" : "차량 이미지 경로" //미들웨어에서도 이미지를 Loading 할 수 있는 경로
+      "car_image" : "차량 이미지 경로" //미들웨어에서도 이미지를 Loading 할 수 있는 경로,
+      "car_id" : "차량 ID"
   }
 }
 
@@ -532,6 +533,225 @@ Body
       "status": "응답상태코드", 
       "message": "메시지"
   }
+}
+
+1.1.7	정기차량  요청(미들웨어 -> 넥스파)
+Body
+{
+  "command": "reg_history",
+  "data": {
+      "dong": "123",
+      "ho" : "456"
+      "page": "1", //0 : 전체, 0보다 클 경우 : count수만큼 가져올 첫 row index 
+      "count": "10" //0 : 전체, 0보다 클 경우 : 가져올 row count 
+      "sub_option" : {
+          "car_number" : "차량번호"
+      }
+  }
+}
+
+1.1.8	방문차량 리스트 응답(1.1.5에 대한 응답)
+Body
+{
+"command": "reg_history",
+  "data": {
+      "page" : "1" //조회한 page 번호, 요청이 0이면 0
+      "list_count" : "10", //조회된 List의 자료 수, 요청한 count 보다 클수 없다.
+      "remain_page": "1", //조회된 page 이후 남아 있는 page 수, page가 0이면 0
+      "list" : [
+          {
+              "park_no" : "주차장번호"
+              "reg_no" : "방문차량식별키",
+              "car_number" : "차량번호",
+              "date": "yyyyMMdd", //등록(방문) 일 
+              "term" : "1", //방문일수
+              "visit_flag" : "y/n" //y:방문, n:미방문
+          }
+      ]
+  }
+  "result": {
+      "status": "응답상태코드",
+      "message": "메시지"
+  }
+}
+
+=====================================
+
+1.1.9	방문차량 등록 요청(미들웨어 -> 넥스파)
+Body
+{
+  "command": "visit_reg",
+  "data": {
+      "dong": "123",
+      "ho" : "456"
+      "car_number": "차량번호", 
+      "date": "yyyyMMdd", //등록(방문) 일 
+      "term": "1" //방문일수
+  }
+}
+
+1.1.10	방문차량 등록 응답(1.1.7에 대한 응답)
+Body
+{
+  "command": "visit_reg",
+  "data" : {
+      "reg_no" : "방문차량식별키"
+  }
+  "result": {
+      "status": "응답상태코드",
+      "message": "메시지"
+  }
+}
+
+=====================================
+
+1.2.10  방문차량 수정 요청
+Body
+{
+  "command": "visit_modify",
+  "data": {
+      "dong": "123",
+      "ho" : "456",
+      "reg_no" : "방문차량식별키",
+      "car_number": "차량번호",
+      "date" : "yyyyMMdd", //등록(방문) 일 
+      "term": "1" //방문일수
+  }
+}
+
+1.2.11  방문차량 수정 응답
+Body
+{
+  "command": "visit_modify",
+  "data" : {
+      "reg_no" : "방문차량식별키"
+  }
+  "result": {
+      "status": "응답상태코드",
+      "message": "메시지"
+  }
+}
+
+=====================================
+
+1.1.11	방문차량 삭제 요청(미들웨어 -> 넥스파)
+Body
+{
+  "command": "visit_del",
+  "data": {
+      "dong": "123",
+      "ho" : "456",
+      "reg_no" : "방문차량식별키",
+      "car_number": "차량번호"
+  }
+}
+
+1.1.12	방문차량 삭제 응답(1.1.9에 대한 응답)
+Body
+{
+  "command": "visit_del",
+  "result": {
+      "status": "응답상태코드",
+      "message": "메시지"
+  }
+}
+
+=====================================
+
+2.1.1 AutoBooth AliveCheck 요청
+Body
+{
+    "command" : "alive_check",
+}
+
+2.1.2 AutoBooth AliveCheck 응답
+Body
+{
+    "command" : "alive_check",
+    "data" : 
+    {
+        "booth_list" :
+        [
+            {
+                "park_no" : "주차장번호1",
+                "unit_no" : "차단기번호1",
+                "unit_name" : "차단기명1"
+            },
+            {
+                "park_no" : "주차장번호2",
+                "unit_no" : "차단기번호2",
+                "unit_name" : "차단기명2"
+            }
+        ]
+        "lpr_list" : 
+        [
+            {
+                "park_no" : "주차장번호1",
+                "unit_no" : "차단기번호1",
+                "unit_name" : "차단기명1"
+            },
+            {
+                "park_no" : "주차장번호2",
+                "unit_no" : "차단기번호2",
+                "unit_name" : "차단기명2"
+            }
+        ],
+        "dcinfo_list" : 
+        [
+            {
+                "park_no" : "주차장번호1",
+                "dc_no" : "할인번호1",
+                "dc_name" : "할인명1"
+            },
+            {
+                "park_no" : "주차장번호2",
+                "dc_no" : "할인번호2",
+                "dc_name" : "할인명2"
+            }
+        ]
+    }
+    "result" : 
+    {
+        "status": "응답상태코드", 
+        "message": "메시지"
+    }
+}
+
+=====================================
+
+2.1.3 AutoBooth 차단바 오픈 요청
+Body
+{
+    "command" : "bar_open",
+    "data" :
+    {
+        "park_no" : "주차장 번호",
+        "booth_unit_no" : "정산기 번호"
+        "lpr_unit_no" : "차단기 번호"
+    }
+}
+
+2.1.4 AutoBooth 차단바 오픈 응답
+Body
+{
+    "command" : "bar_open",
+    "result" :
+    {
+        "status" : "응답상태 코드",
+        "message" : "메시지"
+    }
+}
+
+2.1.4 AutoBooth 할인 요청
+Body
+{
+    "command" : "discount",
+    "data" :
+    {
+        "park_no" : "주차장 번호",
+        "unit_no" : "정산기 번호",
+        "dc_no" : "할인번호"
+    }
 }
 
 =====================================
