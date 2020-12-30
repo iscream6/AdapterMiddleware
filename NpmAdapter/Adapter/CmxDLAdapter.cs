@@ -369,7 +369,10 @@ namespace NpmAdapter.Adapter
             }
         }
 
-        
+        public void SendMessage(IPayload payload)
+        {
+
+        }
 
         /// <summary>
         /// Nexpa Adpater로부터 온 Message를 처리한다. JSon임...

@@ -1,6 +1,7 @@
 ﻿using Newtonsoft.Json.Linq;
 using NexpaAdapterStandardLib;
 using NexpaAdapterStandardLib.Network;
+using NpmAdapter.Payload;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -110,7 +111,12 @@ namespace NpmAdapter.Adapter
         {
             
         }
-        
+
+        public void SendMessage(IPayload payload)
+        {
+
+        }
+
         public void SendMessage(byte[] buffer, long offset, long size)
         {
             var jobj = JObject.Parse(buffer.ToString(SysConfig.Instance.Nexpa_Encoding, size));

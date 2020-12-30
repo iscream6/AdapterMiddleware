@@ -128,7 +128,10 @@ namespace NpmAdapter.Adapter
             }
         }
 
-        
+        public void SendMessage(IPayload payload)
+        {
+
+        }
 
         /// <summary>
         /// Nexpa에서 받은 데이터를 처리하여 5800으로 전송한다.

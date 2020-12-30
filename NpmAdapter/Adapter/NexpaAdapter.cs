@@ -249,6 +249,38 @@ namespace NpmAdapter.Adapter
 
         private object lockObj = new object();
 
+        public void SendMessage(IPayload payload)
+        {
+            lock (lockObj)
+            {
+                byte[] msgBuffer = payload.Serialize();
+
+                switch (runStatus)
+                {
+
+                    case Status.TcpOnly:
+                        {
+                            MyTcpNetwork.SendToPeer(msgBuffer, 0, msgBuffer.Length);
+                        }
+
+                        break;
+                    case Status.WebOnly:
+
+                        {
+                            MyHttpNetwork.SendToPeer(msgBuffer, 0, msgBuffer.Length);
+                        }
+                        break;
+                    case Status.Full:
+
+                        {
+                            MyTcpNetwork.SendToPeer(msgBuffer, 0, msgBuffer.Length);
+                            MyHttpNetwork.SendToPeer(msgBuffer, 0, msgBuffer.Length);
+                        }
+                        break;
+                }
+            }
+        }
+
         /// <summary>
         /// Target Adapter에게 받은 Message 를 Peer에 전달한다.
         /// </summary>

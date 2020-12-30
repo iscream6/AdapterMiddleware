@@ -131,6 +131,11 @@ namespace NpmAdapter.Adapter
 
         }
 
+        public void SendMessage(IPayload payload)
+        {
+
+        }
+
         public void SendMessage(byte[] buffer, long offset, long size)
         {
             bResponseSuccess = false;

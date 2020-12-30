@@ -1,4 +1,5 @@
-﻿using System;
+﻿using NpmAdapter.Payload;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -34,6 +35,8 @@ namespace NpmAdapter
         /// <param name="offset"></param>
         /// <param name="size"></param>
         void SendMessage(byte[] buffer, long offset, long size);
+
+        void SendMessage(IPayload payload);
 
         /// <summary>
         /// Receive Test 용...
