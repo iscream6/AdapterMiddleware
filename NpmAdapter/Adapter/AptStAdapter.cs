@@ -67,6 +67,11 @@ namespace NpmAdapter.Adapter
             return true;
         }
 
+        public void SendMessage(IPayload payload)
+        {
+            
+        }
+
         public void SendMessage(byte[] buffer, long offset, long size)
         {
             try
@@ -117,11 +122,17 @@ namespace NpmAdapter.Adapter
                                         dong = payload.data.dong,
                                         ho = payload.data.ho,
                                         parking_in_datetime = payload.data.date_time.ConvertDateTimeFormat("yyyyMMddHHmmss", "yyyy-MM-dd HH:mm:ss"),
-                                        partner_visit_id = payload.data.kind.ToLower() == "v" ? payload.data.car_id : ""
+                                        partner_visit_id = payload.data.kind.ToLower() == "v" ? payload.data.reg_no : ""
                                     };
+
+                                    Log.WriteLog(LogType.Info, $"AptStAdapter | SendMessage", $"{inCarPayload.ToJson()}", LogAdpType.HomeNet);
 
                                     requestData = inCarPayload.Serialize();
                                     requestType = NetworkWebClient.RequestType.POST;
+
+                                    {//Test
+                                        string test = requestData.ToString(SysConfig.Instance.HomeNet_Encoding);
+                                    }
                                 }
                                 else
                                 {
@@ -134,7 +145,8 @@ namespace NpmAdapter.Adapter
                                         parking_out_datetime = payload.data.date_time.ConvertDateTimeFormat("yyyyMMddHHmmss", "yyyy-MM-dd HH:mm:ss")
                                     };
 
-                                    Log.WriteLog(LogType.Info, $"AptStAdapter | SendMessage", $"날짜 시간 : {outCarPayload.parking_out_datetime}", LogAdpType.HomeNet);
+                                    Log.WriteLog(LogType.Info, $"AptStAdapter | SendMessage", $"{outCarPayload.ToJson()}", LogAdpType.HomeNet);
+
                                     requestData = outCarPayload.Serialize();
                                     requestType = NetworkWebClient.RequestType.PUT;
                                 }
@@ -149,8 +161,9 @@ namespace NpmAdapter.Adapter
                                         ResponsePayload responsePayload = new ResponsePayload();
                                         byte[] responseBuffer;
 
-                                        var responseJobj = JObject.Parse(responseData);
-                                        if (Helper.NVL(responseJobj["code"]) == "0")
+                                        var responseJobj = JObject.Parse(responseData)["error"];
+
+                                        if (responseJobj != null && Helper.NVL(responseJobj["code"]) == "0")
                                         {
                                             responsePayload.command = payload.command;
                                             responsePayload.result = ResultType.OK;
