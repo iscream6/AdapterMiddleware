@@ -298,12 +298,12 @@ namespace NexpaConnectWinApp
             if (rdoNexpa.Checked)
             {
                 type = AdapterType.nexpa;
-                encoding = SysConfig.Instance.Nexpa_Encoding;
+                encoding = SysConfig.Instance.HomeNet_Encoding;
             }
             else if (rdoHomeNet.Checked)
             {
                 type = AdapterType.homenet;
-                encoding = SysConfig.Instance.HomeNet_Encoding;
+                encoding = SysConfig.Instance.Nexpa_Encoding;
             }
             else
             {
