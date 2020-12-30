@@ -31,7 +31,7 @@ namespace NpmAdapter.Payload
             JObject json = new JObject();
             json["apt_id"] = Helper.NVL(apt_id);
             json["car_number"] = Helper.NVL(car_number);
-            json["gate"] = Helper.NVL(gate);
+            //json["gate"] = Helper.NVL(gate);
             json["parking_out_datetime"] = Helper.NVL(parking_out_datetime);
             return json;
         }

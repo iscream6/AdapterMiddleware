@@ -49,10 +49,12 @@ namespace NpmAdapter.Payload
             json["dong"] = Helper.NVL(dong);
             json["ho"] = Helper.NVL(ho);
             json["phone_number"] = Helper.NVL(phone_number);
-            json["gate"] = Helper.NVL(gate);
+            //아파트 스토리측에서 주석처리요청
+            //json["gate"] = Helper.NVL(gate); 
             json["visit_in_date"] = Helper.NVL(visit_in_date);
             json["visit_out_date"] = Helper.NVL(visit_out_date);
-            json["visit_type"] = Helper.NVL(visit_type);
+            //아파트 스토리측에서 주석처리요청
+            //json["visit_type"] = Helper.NVL(visit_type);
             json["parking_in_datetime"] = Helper.NVL(parking_in_datetime);
             json["partner_visit_id"] = Helper.NVL(partner_visit_id);
             return json;
