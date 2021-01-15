@@ -1,5 +1,6 @@
 ﻿using Newtonsoft.Json.Linq;
 using NexpaAdapterStandardLib;
+using NpmAdapter.Payload;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -35,7 +36,8 @@ namespace NpmAdapter
         Remain_Page,
         Reason,
         LprID,
-        CarID
+        Visit_In_Date_Time,
+        Visit_Out_Date_Time
     }
 
     public static class Helper

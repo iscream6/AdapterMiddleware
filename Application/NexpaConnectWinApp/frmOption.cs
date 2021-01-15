@@ -231,10 +231,16 @@ namespace NexpaConnectWinApp
                 }
 
                 StringBuilder strOption = new StringBuilder();
+                int iOptionCnt = lsvNxpOption.Items.Count;
                 foreach (ListViewItem item in lsvNxpOption.Items)
                 {
-                    
+                    iOptionCnt -= 1;
+                    strOption.Append($"{item.Text}|{item.SubItems[1].Text}");
+                    if(iOptionCnt != 0) strOption.Append("^");
                 }
+
+                SysConfig.Instance.WriteConfig(SysConfig.Sections.SysConfig, (string)lsvNxpOption.Tag, strOption.ToString());
+
                 //=================Nexpa Config 완료=================
 
                 //=================HomeNet Config=================

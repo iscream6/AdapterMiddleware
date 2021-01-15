@@ -76,7 +76,7 @@ namespace NpmAdapter.Adapter
         {
             try
             {
-                if (bResponseSuccess) return;
+                //if (bResponseSuccess) return;
 
                 NetworkWebClient.RequestType requestType;
                 receiveMessageBuffer.Append(buffer.ToString(SysConfig.Instance.Nexpa_Encoding, size));
@@ -85,7 +85,25 @@ namespace NpmAdapter.Adapter
                 receiveMessageBuffer.Clear();
 
                 Log.WriteLog(LogType.Info, $"AptStAdapter | SendMessage", $"넥스파에서 받은 메시지 : {jobj}", LogAdpType.HomeNet);
-                JObject data = jobj["data"] as JObject;
+                JObject data = jobj["data"] as JObject; //응답 데이터
+
+                //결과 Payload 생성 =======
+                ResultPayload resultPayload = null;
+                JObject result = jobj["result"] as JObject; //응답 결과
+                
+                if (result != null && Helper.NVL(result["status"]) != "200")
+                {
+                    resultPayload = new ResultPayload();
+                    string sCode = "";
+
+                    if (Helper.NVL(result["status"]) == "204") sCode = "404";
+                    else sCode = Helper.NVL(result["status"]);
+
+                    resultPayload.code = sCode;
+                    resultPayload.message = Helper.NVL(result["message"]);
+                }
+                //결과 Payload 생성완료 =======
+
                 string cmd = jobj["command"].ToString();
                 switch ((CmdType)Enum.Parse(typeof(CmdType), cmd))
                 {
@@ -95,18 +113,6 @@ namespace NpmAdapter.Adapter
                         {
                             RequestPayload<AlertInOutCarPayload> payload = new RequestPayload<AlertInOutCarPayload>();
                             payload.Deserialize(jobj);
-                            
-                            //동호가 없으면 PASS시킨다.
-                            //if (payload.data.dong == null || payload.data.ho == null || payload.data.dong == "" || payload.data.ho == "")
-                            //{
-                            //    ResponsePayload resultPayload = new ResponsePayload();
-                            //    resultPayload.command = payload.command;
-                            //    resultPayload.result = ResultType.FailFormatError;
-                            //    byte[] result = resultPayload.Serialize();
-                            //    TargetAdapter.SendMessage(result, 0, result.Length);
-                            //    Log.WriteLog(LogType.Info, $"AptStAdapter | SendMessage", $"전송메시지 : {resultPayload.ToJson().ToString()}", LogAdpType.Nexpa);
-                            //}
-                            //else
                             {
                                 Uri uri = null;
                                 byte[] requestData;
@@ -223,6 +229,11 @@ namespace NpmAdapter.Adapter
                                     }
                                 }
                                 responsePayload.data = dataPayload;
+                                
+                                if(resultPayload != null)
+                                {
+                                    responsePayload.result = resultPayload;
+                                }
                             }
 
                             //Response 완료~!
@@ -236,6 +247,11 @@ namespace NpmAdapter.Adapter
                                 ResponseCmdRegNumData dataPayload = new ResponseCmdRegNumData();
                                 dataPayload.reg_num = data["reg_no"].ToString();
                                 responsePayload.data = dataPayload;
+
+                                if (resultPayload != null)
+                                {
+                                    responsePayload.result = resultPayload;
+                                }
                             }
                             else
                             {
@@ -248,11 +264,21 @@ namespace NpmAdapter.Adapter
                         break;
                     case CmdType.visit_modify:
                         {
+                            if (resultPayload != null)
+                            {
+                                responsePayload.result = resultPayload;
+                            }
+
                             bResponseSuccess = true;
                         }
                         break;
                     case CmdType.visit_del:
                         {
+                            if (resultPayload != null)
+                            {
+                                responsePayload.result = resultPayload;
+                            }
+
                             bResponseSuccess = true;
                         }
                         break;
@@ -291,6 +317,12 @@ namespace NpmAdapter.Adapter
                                 }
                                 responsePayload.data = dataPayload;
                             }
+
+                            if (resultPayload != null)
+                            {
+                                responsePayload.result = resultPayload;
+                            }
+
                             //Response 완료~!
                             bResponseSuccess = true;
                         }
@@ -303,6 +335,11 @@ namespace NpmAdapter.Adapter
                                 dataPayload.reg_num = data["reg_no"].ToString();
                                 responsePayload.DeserializeData(responsePayload.header.type, dataPayload.ToJson());
                                 responsePayload.data = dataPayload;
+
+                                if (resultPayload != null)
+                                {
+                                    responsePayload.result = resultPayload;
+                                }
                             }
                             else
                             {
@@ -315,6 +352,11 @@ namespace NpmAdapter.Adapter
                         break;
                     case CmdType.blacklist_del:
                         {
+                            if (resultPayload != null)
+                            {
+                                responsePayload.result = resultPayload;
+                            }
+
                             //Response 완료~!
                             bResponseSuccess = true;
                         }
@@ -330,6 +372,11 @@ namespace NpmAdapter.Adapter
 
                             responsePayload.data = dataPayload;
 
+                            if (resultPayload != null)
+                            {
+                                responsePayload.result = resultPayload;
+                            }
+
                             bResponseSuccess = true;
                             Log.WriteLog(LogType.Info, $"AptStAdapter | MyHttpNetwork_ReceiveFromPeer", $"{responsePayload.ToJson()}", LogAdpType.HomeNet);
                         }
@@ -339,6 +386,7 @@ namespace NpmAdapter.Adapter
             catch (Exception ex)
             {
                 Log.WriteLog(LogType.Error, $"AptStAdapter | SendMessage", $"Nexpa Adpater로부터 온 Message를 처리 중 오류 : {ex.Message}", LogAdpType.HomeNet);
+                receiveMessageBuffer.Clear();
                 throw;
             }
         }
@@ -346,7 +394,7 @@ namespace NpmAdapter.Adapter
         public bool StartAdapter()
         {
             try
-            {
+            { 
                 MyHttpNetwork.ReceiveFromPeer += MyHttpNetwork_ReceiveFromPeer;
                 isRun = MyHttpNetwork.Run();
             }
@@ -402,6 +450,7 @@ namespace NpmAdapter.Adapter
                     e.Response.Reason = "OK";
 
                     //IPayload response = RequestToNexpa(json);
+                    Log.WriteLog(LogType.Info, $"AptStAdapter | MyHttpNetwork_ReceiveFromPeer", $"JSON : {json}", LogAdpType.HomeNet);
                     RequestToNexpa(json);
                     byte[] result = responsePayload.Serialize();
                     //응답을 보낸다.

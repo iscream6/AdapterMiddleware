@@ -33,10 +33,16 @@ namespace NpmAdapter.Payload
             disconnect = 101,
             [Description("3rd Party 서버에서 응답이 없습니다")]
             notresponse = 102,
+            [Description("이미 등록된 블랙리스트 차량번호 입니다")]
+            already_reg_blacklist_carnumber = 318,
             [Description("이미 즐겨찾기에 등록된 방문차량 번호 입니다")]
             already_reg_favorit_carnumber = 319,
             [Description("BAD REQUEST")]
             bad_request = 400,
+            [Description("등록된 방문차량이 없습니다")]
+            no_date_visit_car = 404,
+            [Description("응용 프로그램이 현재 작업에 대해 잘못된 형식을 가진 값을 사용하고 있습니다")]
+            Invaild_Type_Error =405,
             [Description("Internal Server Error")]
             server_error = 500,
             [Description("현재 주차관제 서버와 연동중이지 않습니다")]

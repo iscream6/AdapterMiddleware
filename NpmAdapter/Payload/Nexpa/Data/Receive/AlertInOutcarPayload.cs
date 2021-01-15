@@ -19,11 +19,11 @@ namespace NpmAdapter.Payload
         /// </summary>
         public string car_number { get; set; }
         /// <summary>
-        /// yyyyMMddHHmmss
+        /// 입차/출차 일시(yyyyMMddHHmmss)
         /// </summary>
         public string date_time { get; set; }
         /// <summary>
-        /// 차량 구분 a : 세대원, v 방문객
+        /// 차량 구분 a : 세대원, v 방문객, n : 일반
         /// </summary>
         public string kind { get; set; }
         /// <summary>
@@ -37,7 +37,15 @@ namespace NpmAdapter.Payload
         /// <summary>
         /// 차량 ID
         /// </summary>
-        public string car_id { get; set; }
+        public string reg_no { get; set; }
+        /// <summary>
+        /// 방문시작일시 (kind가 v일 경우 외 빈값)
+        /// </summary>
+        public string visit_in_date_time { get; set; }
+        /// <summary>
+        /// 방문종료일시 (kind가 v일 경우 외 빈값)
+        /// </summary>
+        public string visit_out_date_time { get; set; }
 
         public void Deserialize(JObject json)
         {
@@ -50,7 +58,9 @@ namespace NpmAdapter.Payload
             kind = json.NPGetValue(NPElements.Kind);
             lprID = json.NPGetValue(NPElements.LprID);
             car_image = json.NPGetValue(NPElements.Car_Image);
-            car_id = json.NPGetValue(NPElements.CarID);
+            reg_no = json.NPGetValue(NPElements.Reg_No);
+            visit_in_date_time = json.NPGetValue(NPElements.Visit_In_Date_Time);
+            visit_out_date_time = json.NPGetValue(NPElements.Visit_Out_Date_Time);
         }
 
         public byte[] Serialize()
@@ -68,7 +78,9 @@ namespace NpmAdapter.Payload
             json["kind"] = kind;
             json["lprid"] = lprID;
             json["car_image"] = car_image;
-            json["car_id"] = car_id;
+            json["reg_no"] = reg_no;
+            json["visit_in_date_time"] = visit_in_date_time;
+            json["visit_out_date_time"] = visit_out_date_time;
             return json;
         }
     }

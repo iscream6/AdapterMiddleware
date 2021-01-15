@@ -10,7 +10,9 @@ Body
       "kind" : "a/v", //a:세대원, v:방문객
       "lprid" : "Lpr 식별 번호",
       "car_image" : "차량 이미지 경로" //미들웨어에서도 이미지를 Loading 할 수 있는 경로,
-      "car_id" : "차량 ID"
+      "reg_no" : "차량 식별키", //TkNo
+      "visit_in_date_time" : "yyyyMMddHHmmss", //방문시작일시, kind가 v 일 경우 외 빈값
+      "visit_out_date_time" : "yyyyMMddHHmmss" //방문종료일시, kind가 v 일 경우 외 빈값
   }
 }
 
@@ -535,37 +537,95 @@ Body
   }
 }
 
-1.1.7	정기차량  요청(미들웨어 -> 넥스파)
+=====================================
+
+1.3.1	정기차량 등록 요청
 Body
 {
-  "command": "reg_history",
+  "command": "cust_reg",
   "data": {
-      "dong": "123",
-      "ho" : "456"
-      "page": "1", //0 : 전체, 0보다 클 경우 : count수만큼 가져올 첫 row index 
-      "count": "10" //0 : 전체, 0보다 클 경우 : 가져올 row count 
-      "sub_option" : {
-          "car_number" : "차량번호"
+      "dong" : "동",
+      "ho" : "호 ",
+      "car_number" : "차량번호",
+      "name" : "성명",
+      "tel_number" : "전화번호",
+      "remark" : "비고",
+      "start_date" : "yyyyMMdd",
+      "end_date" : "yyyyMMdd",
       }
   }
 }
 
-1.1.8	방문차량 리스트 응답(1.1.5에 대한 응답)
+1.3.2	정기차량 등록 응답
 Body
 {
-"command": "reg_history",
+"command": "cust_reg",
   "data": {
-      "page" : "1" //조회한 page 번호, 요청이 0이면 0
-      "list_count" : "10", //조회된 List의 자료 수, 요청한 count 보다 클수 없다.
-      "remain_page": "1", //조회된 page 이후 남아 있는 page 수, page가 0이면 0
+      "park_no" : "주차장번호"
+      "reg_no" : "등록번호", //등록된 TkNo
+      "car_number" : "차량번호",
+      "type" : "등록타입" //1:신규, 2:수정
+  }
+  "result": {
+      "status": "응답상태코드",
+      "message": "메시지"
+  }
+}
+
+=====================================
+
+1.3.3	정기차량 삭제 요청
+Body
+{
+  "command": "cust_del",
+  "data": {
+      "dong": "123",
+      "ho" : "456"
+      "car_number": "차량번호", 
+      "reg_no" : "등록번호"
+  }
+}
+
+1.3.4	정기차량 삭제 응답
+Body
+{
+  "command": "cust_del",
+  "result": {
+      "status": "응답상태코드",
+      "message": "메시지"
+  }
+}
+
+=====================================
+
+1.3.5  정기차량 조회 요청
+Body
+{
+  "command": "cust_list",
+  "data": {
+      "dong": "123", //빈 값 : 전체 동 조회
+      "ho" : "456", //빈 호 : 전체 호 조회
+      "car_number": "차량번호" //빈 차량번호 : 전체 정기차량 조회
+  }
+}
+
+1.3.6  정기차량 조회 응답
+Body
+{
+  "command": "cust_list",
+  "data" : {
       "list" : [
           {
-              "park_no" : "주차장번호"
-              "reg_no" : "방문차량식별키",
+              "park_no" : "주차장번호",
+              "reg_no" : "정기차량식별키",
               "car_number" : "차량번호",
-              "date": "yyyyMMdd", //등록(방문) 일 
-              "term" : "1", //방문일수
-              "visit_flag" : "y/n" //y:방문, n:미방문
+              "dong" : "123",
+              "ho" : "456",
+              "name" : "차주명",
+              "tel_number" : "전화번호",
+              "remark" : "비고",
+              "start_date" : "yyyyMMdd", //정기권 시작일
+              "end_date" : "yyyyMMdd" //정기권 종료일
           }
       ]
   }
@@ -577,54 +637,33 @@ Body
 
 =====================================
 
-1.1.9	방문차량 등록 요청(미들웨어 -> 넥스파)
+1.3.7	정기차량 출입 조회 요청
 Body
 {
-  "command": "visit_reg",
+  "command": "cust_io_list",
   "data": {
-      "dong": "123",
-      "ho" : "456"
-      "car_number": "차량번호", 
-      "date": "yyyyMMdd", //등록(방문) 일 
-      "term": "1" //방문일수
-  }
-}
-
-1.1.10	방문차량 등록 응답(1.1.7에 대한 응답)
-Body
-{
-  "command": "visit_reg",
-  "data" : {
-      "reg_no" : "방문차량식별키"
-  }
-  "result": {
-      "status": "응답상태코드",
-      "message": "메시지"
-  }
-}
-
-=====================================
-
-1.2.10  방문차량 수정 요청
-Body
-{
-  "command": "visit_modify",
-  "data": {
-      "dong": "123",
-      "ho" : "456",
-      "reg_no" : "방문차량식별키",
       "car_number": "차량번호",
-      "date" : "yyyyMMdd", //등록(방문) 일 
-      "term": "1" //방문일수
+      "start_date_time" : "yyyyMMddHHmmss", //조회시작일시
+      "end_date_time" : "yyyyMMddHHmmss" //조회종료일시
   }
 }
 
-1.2.11  방문차량 수정 응답
+1.3.8	정기차량 출입 조회 응답
 Body
 {
-  "command": "visit_modify",
+  "command": "cust_io_list",
   "data" : {
-      "reg_no" : "방문차량식별키"
+      "list" : [
+          {
+              "park_no" : "주차장번호",
+              "reg_no" : "정기차량식별키",
+              "car_number" : "차량번호",
+              "dong" : "123",
+              "ho" : "456",
+              "in_date" : "yyyyMMdd", //입차일
+              "out_date" : "yyyyMMdd", //출차일
+          }
+      ]
   }
   "result": {
       "status": "응답상태코드",
@@ -634,22 +673,32 @@ Body
 
 =====================================
 
-1.1.11	방문차량 삭제 요청(미들웨어 -> 넥스파)
+1.3.7	일반차량 조회 요청
 Body
 {
-  "command": "visit_del",
+  "command": "ion_list",
   "data": {
-      "dong": "123",
-      "ho" : "456",
-      "reg_no" : "방문차량식별키",
-      "car_number": "차량번호"
+      "car_number": "차량번호",
+      "start_date_time" : "yyyyMMddHHmmss", //조회시작일시
+      "end_date_time" : "yyyyMMddHHmmss" //조회종료일시
   }
 }
 
-1.1.12	방문차량 삭제 응답(1.1.9에 대한 응답)
+1.3.8	일반차량 조회 응답
 Body
 {
-  "command": "visit_del",
+  "command": "cust_io_list",
+  "data" : {
+      "list" : [
+          {
+              "park_no" : "주차장번호",
+              "reg_no" : "일반차량식별키",
+              "car_number" : "차량번호",
+              "in_date_time" : "yyyyMMddHHmmss", //입차일시
+              "out_date_time" : "yyyyMMddHHmmss", //출차일시
+          }
+      ]
+  }
   "result": {
       "status": "응답상태코드",
       "message": "메시지"
