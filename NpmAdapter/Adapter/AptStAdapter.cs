@@ -158,8 +158,9 @@ namespace NpmAdapter.Adapter
                                 }
 
                                 string responseData = string.Empty;
-                                
-                                if (NetworkWebClient.Instance.SendData(uri, requestType, ContentType.Json, requestData, ref responseData, header: dicHeader))
+                                string responseHeader = string.Empty;
+
+                                if (NetworkWebClient.Instance.SendData(uri, requestType, ContentType.Json, requestData, ref responseData, ref responseHeader, header: dicHeader))
                                 {
                                     try
                                     {
@@ -450,9 +451,10 @@ namespace NpmAdapter.Adapter
                     e.Response.Reason = "OK";
 
                     //IPayload response = RequestToNexpa(json);
-                    Log.WriteLog(LogType.Info, $"AptStAdapter | MyHttpNetwork_ReceiveFromPeer", $"JSON : {json}", LogAdpType.HomeNet);
+                    Log.WriteLog(LogType.Info, $"AptStAdapter | MyHttpNetwork_ReceiveFromPeer", $"#=#=#=#=#=#=# \r\n Receive JSON : {json} \r\n #=#=#=#=#=#=#", LogAdpType.HomeNet);
                     RequestToNexpa(json);
                     byte[] result = responsePayload.Serialize();
+                    Log.WriteLog(LogType.Info, $"AptStAdapter | MyHttpNetwork_ReceiveFromPeer", $"#=#=#=#=#=#=# \r\n Send JSON : {responsePayload.ToJson()} \r\n #=#=#=#=#=#=#", LogAdpType.HomeNet);
                     //응답을 보낸다.
                     e.Response.Body.Write(result, 0, result.Length);
 
