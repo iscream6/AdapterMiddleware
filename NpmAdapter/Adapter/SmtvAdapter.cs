@@ -1,20 +1,10 @@
-﻿using HttpServer;
-using HttpServer.Headers;
-using Newtonsoft.Json.Linq;
+﻿using Newtonsoft.Json.Linq;
 using NexpaAdapterStandardLib;
 using NexpaAdapterStandardLib.Network;
-using NLog.Targets;
 using NpmAdapter.Payload;
-using NpmAdapter.Payload.CommaxDaelim.Response;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.IO;
-using System.Net.NetworkInformation;
-using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
-using System.Threading;
-using System.Xml;
 
 namespace NpmAdapter.Adapter
 {
@@ -93,10 +83,20 @@ namespace NpmAdapter.Adapter
 
                     byte[] requestData = result.ToByteArray(SysConfig.Instance.HomeNet_Encoding);
                     string responseData = string.Empty;
-                    if (NetworkWebClient.Instance.SendData(uri, NetworkWebClient.RequestType.PUT, ContentType.Json, requestData, ref responseData, dicHeader))
+                    string responseHeader = string.Empty;
+                    if (NetworkWebClient.Instance.SendData(uri, NetworkWebClient.RequestType.PUT, ContentType.Json, requestData, ref responseData, ref responseHeader, dicHeader))
                     {
-                        Log.WriteLog(LogType.Info, "SmtvAdapter | SendMessage | WebClientResponse", $"==응답== {responseData}", LogAdpType.HomeNet);
                         
+                        JObject jHeader = JObject.Parse(responseHeader);
+                        string resultMesssage = string.Empty;
+                        string resultCode = Helper.NVL(jHeader["result-code"]);
+                        string hexMessage = Helper.NVL(jHeader["result-message"]).Replace("%", ""); //%로 Hex 값을 구분하고 있다.
+                        byte[] resultBytes = hexMessage.ConvertHexStringToByte();
+                        resultMesssage = Encoding.UTF8.GetString(resultBytes);
+                        
+                        Log.WriteLog(LogType.Info, "SmtvAdapter | SendMessage | WebClientResponse", 
+                            $"==응답==\r\n[Result-Code] {resultCode}\r\n[Result-Message] {resultMesssage}\r\n{responseData}", LogAdpType.HomeNet);
+
                         ResponsePayload responsePayload = new ResponsePayload();
                         byte[] responseBuffer;
 
