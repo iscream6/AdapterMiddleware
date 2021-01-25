@@ -52,12 +52,12 @@ namespace NpmAdapter.Payload
 
     class MvlSingleReserveCarPayload : MvlResponsePayload
     {
-        public int belong;
+        public string belong { get; set; }
 
         public override void Deserialize(JObject json)
         {
             base.Deserialize(json);
-            int.TryParse(Helper.NVL(json["enrollType"]), out belong);
+            belong = Helper.NVL(json["belong"]);
         }
 
         public override byte[] Serialize()
@@ -68,7 +68,7 @@ namespace NpmAdapter.Payload
         public override JObject ToJson()
         {
             JObject json = base.ToJson();
-            json["enrollType"] = belong;
+            json["belong"] = belong;
             return json;
         }
     }

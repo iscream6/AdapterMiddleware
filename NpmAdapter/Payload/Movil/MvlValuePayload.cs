@@ -192,6 +192,7 @@ namespace NpmAdapter.Payload
 
     class MvlReserveCarPayload : IPayload
     {
+        public string Belong { get; set; }
         public string dong { get; set; }
         public string ho { get; set; }
         public string carNo { get; set; }
@@ -201,6 +202,7 @@ namespace NpmAdapter.Payload
 
         public void Deserialize(JObject json)
         {
+            Belong = Helper.NVL(json["Belong"]);
             carNo = Helper.NVL(json["carNo"]);
             dong = Helper.NVL(json["dong"]);
             ho = Helper.NVL(json["ho"]);
@@ -217,6 +219,7 @@ namespace NpmAdapter.Payload
         public JObject ToJson()
         {
             JObject json = new JObject();
+            json["Belong"] = Belong;
             json["carNo"] = carNo;
             json["dong"] = dong;
             json["ho"] = ho;
