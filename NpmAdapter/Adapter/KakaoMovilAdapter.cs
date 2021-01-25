@@ -4,6 +4,8 @@ using NexpaAdapterStandardLib;
 using NexpaAdapterStandardLib.Network;
 using NpmAdapter.Payload;
 using System;
+using System.Text;
+using System.Threading;
 
 namespace NpmAdapter.Adapter
 {
@@ -22,7 +24,12 @@ namespace NpmAdapter.Adapter
 
         private object lockObj = new object();
         private string webport = "42141";
+
         private bool isRun = false;
+        private bool bResponseSuccess = false;
+        private IPayload responsePayload;
+        private StringBuilder receiveMessageBuffer = new StringBuilder();
+
         public IAdapter TargetAdapter { get; set; }
         private INetwork HttpNet { get; set; }
         public bool IsRuning => isRun;
@@ -46,6 +53,8 @@ namespace NpmAdapter.Adapter
             {
                 try
                 {
+                    bResponseSuccess = false;
+
                     JObject json = JObject.Parse(SysConfig.Instance.HomeNet_Encoding.GetString(buffer[..(int)size]));
                     string urlData = e.Request.Uri.PathAndQuery;
 
@@ -152,32 +161,80 @@ namespace NpmAdapter.Adapter
                             break;
                         case GET_RESERVECAR: //방문신청차량 목록
                             {
+                                RequestVisitSingleListPayload dataPayload = new RequestVisitSingleListPayload();
+                                dataPayload.car_number = Helper.NVL(json["Carno"]);
+                                dataPayload.dong = Helper.NVL(json["Dong"]);
+                                dataPayload.ho = Helper.NVL(json["Ho"]);
 
+                                RequestPayload<RequestVisitSingleListPayload> payload = new RequestPayload<RequestVisitSingleListPayload>();
+                                payload.command = CmdType.visit_single_list;
+                                payload.data = dataPayload;
+                                TargetAdapter.SendMessage(payload);
                             }
                             break;
                         case DEL_RESERVECAR: //방문신청차량 삭제
                             {
+                                RequestVisitDelPayload dataPayload = new RequestVisitDelPayload();
+                                dataPayload.dong = Helper.NVL(json["Dong"]);
+                                dataPayload.ho = Helper.NVL(json["Ho"]);
+                                dataPayload.reg_no = Helper.NVL(json["Belong"]);
+                                dataPayload.car_number = Helper.NVL(json["Carno"]);
 
+                                RequestPayload<RequestVisitDelPayload> payload = new RequestPayload<RequestVisitDelPayload>();
+                                payload.command = CmdType.visit_del;
+                                payload.data = dataPayload;
+                                TargetAdapter.SendMessage(payload);
                             }
                             break;
                         case GET_IORESERVE: //방문신청차량 출입 조회
                             {
+                                RequestVisitSingleIOPayload dataPayload = new RequestVisitSingleIOPayload();
+                                dataPayload.dong = Helper.NVL(json["Dong"]);
+                                dataPayload.ho = Helper.NVL(json["Ho"]);
+                                dataPayload.car_number = Helper.NVL(json["Carno"]);
 
+                                RequestPayload<RequestVisitSingleIOPayload> payload = new RequestPayload<RequestVisitSingleIOPayload>();
+                                payload.command = CmdType.visit_single_io;
+                                payload.data = dataPayload;
+                                TargetAdapter.SendMessage(payload);
                             }
                             break;
                         default:
-                            //e.Response.Connection.Type = ConnectionType.Close;
-                            //e.Response.ContentType = new ContentTypeHeader("application/json;charset=UTF-8");
-                            //e.Response.Status = System.Net.HttpStatusCode.BadRequest;
-                            //e.Response.Reason = "Bad Request";
+                            e.Response.Connection.Type = ConnectionType.Close;
+                            e.Response.ContentType = new ContentTypeHeader("application/json;charset=UTF-8");
+                            e.Response.Status = System.Net.HttpStatusCode.MethodNotAllowed;
+                            e.Response.Reason = "Bad Request";
 
-                            //ResponsePayload resultPayload = new ResponsePayload();
-                            //resultPayload.command = cmdType;
-                            //resultPayload.result = ResultType.InvalidURL;
-                            //byte[] result = resultPayload.Serialize();
+                            {
+                                MvlResponsePayload payload = new MvlResponsePayload();
+                                payload.resultCode = MvlResponsePayload.SttCode.NotSupportedMethod;
+                                payload.resultMessage = "지원하지 않는 http 메소드 입니다";
+                                byte[] result = payload.Serialize();
+                                e.Response.Body.Write(result, 0, result.Length);
+                                return;
+                            }
+                    }
 
-                            //e.Response.Body.Write(result, 0, result.Length);
-                            break;
+                    //3초 대기 Task
+                    int iSec = 5 * 100; //3초
+                    while (iSec > 0 && !bResponseSuccess)
+                    {
+                        Thread.Sleep(10); //0.01초씩..쉰다...
+                        iSec -= 1;
+                    }
+
+                    if (bResponseSuccess) //응답성공
+                    {
+                        byte[] result = responsePayload.Serialize();
+                        e.Response.Body.Write(result, 0, result.Length);
+                    }
+                    else
+                    {
+                        MvlResponsePayload payload = new MvlResponsePayload();
+                        payload.resultCode = MvlResponsePayload.SttCode.NotSupportedMethod;
+                        payload.resultMessage = "지원하지 않는 http 메소드 입니다";
+                        byte[] result = payload.Serialize();
+                        e.Response.Body.Write(result, 0, result.Length);
                     }
                 }
                 catch (Exception)
@@ -189,12 +246,250 @@ namespace NpmAdapter.Adapter
 
         public void SendMessage(IPayload payload)
         {
-
+            //Do Nothing
         }
 
         public void SendMessage(byte[] buffer, long offset, long size)
         {
+            receiveMessageBuffer.Append(buffer.ToString(SysConfig.Instance.Nexpa_Encoding, size));
+            var jobj = JObject.Parse(receiveMessageBuffer.ToString());
+            Thread.Sleep(10);
+            receiveMessageBuffer.Clear();
 
+            Log.WriteLog(LogType.Info, $"AptStAdapter | SendMessage", $"넥스파에서 받은 메시지 : {jobj}", LogAdpType.HomeNet);
+            JObject data = jobj["data"] as JObject; //응답 데이터
+
+            //결과 Payload 생성 =======
+            JObject result = jobj["result"] as JObject; //응답 결과
+            ResultPayload resultPayload = result.GetResultPayload();
+
+            if(resultPayload.code == "200")
+            {
+                string cmd = jobj["command"].ToString();
+                switch ((CmdType)Enum.Parse(typeof(CmdType), cmd))
+                {
+                    case CmdType.ion_list:
+                        {
+                            MvlValuePayload<MvlIONDataPayload> payload = new MvlValuePayload<MvlIONDataPayload>();
+
+                            if (data != null && data.HasValues)
+                            {
+                                JArray list = data["list"] as JArray;
+                                if (list != null)
+                                {
+                                    foreach (JObject item in list)
+                                    {
+                                        MvlIONDataPayload dataPayload = new MvlIONDataPayload();
+                                        dataPayload.carNo = Helper.NVL(item["car_number"]);
+                                        dataPayload.parkNo = Helper.NVL(item["park_no"]);
+                                        dataPayload.tkNo = Helper.NVL(item["reg_no"]);
+                                        dataPayload.indatetime = Helper.NVL(item["in_date_time"]).ConvertDateTimeFormat("yyyyMMddHHmmss", "yyyy-MM-dd HH:mm:ss");
+                                        dataPayload.outdatetime = Helper.NVL(item["out_date_time"]).ConvertDateTimeFormat("yyyyMMddHHmmss", "yyyy-MM-dd HH:mm:ss");
+                                        payload.list.Add(dataPayload);
+                                    }
+                                }
+                            }
+
+                            payload.resultCode = MvlResponsePayload.SttCode.OK;
+                            payload.resultMessage = MvlResponsePayload.SttCode.OK.GetDescription();
+                            payload.responseTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+                            responsePayload = payload;
+                            bResponseSuccess = true;
+                        }
+                        break;
+                    case CmdType.cust_reg:
+                        {
+                            MvlSingleCustInfoPayload payload = new MvlSingleCustInfoPayload();
+
+                            if (data != null && data.HasValues)
+                            {
+                                payload.carNo = Helper.NVL(data["car_number"]);
+                                payload.enrollType = MvlSingleCustInfoPayload.EnrollType.New;
+                                payload.tkNo = Helper.NVL(data["reg_no"]);
+                            }
+
+                            payload.resultCode = MvlResponsePayload.SttCode.OK;
+                            payload.resultMessage = MvlResponsePayload.SttCode.OK.GetDescription();
+                            payload.responseTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+                            responsePayload = payload;
+                            bResponseSuccess = true;
+                        }
+                        break;
+                    case CmdType.cust_del:
+                        {
+                            MvlResponsePayload payload = new MvlResponsePayload();
+
+                            payload.resultCode = MvlResponsePayload.SttCode.OK;
+                            payload.resultMessage = MvlResponsePayload.SttCode.OK.GetDescription();
+                            payload.responseTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+                            responsePayload = payload;
+                            bResponseSuccess = true;
+                        }
+                        break;
+                    case CmdType.cust_list:
+                        {
+                            MvlValuePayload<MvlCustInfoPayload> payload = new MvlValuePayload<MvlCustInfoPayload>();
+
+                            if (data != null && data.HasValues)
+                            {
+                                JArray list = data["list"] as JArray;
+                                if (list != null)
+                                {
+                                    foreach (JObject item in list)
+                                    {
+                                        MvlCustInfoPayload dataPayload = new MvlCustInfoPayload();
+                                        dataPayload.carNo = Helper.NVL(item["car_number"]);
+                                        dataPayload.dong = Helper.NVL(item["dong"]);
+                                        dataPayload.ho = Helper.NVL(item["ho"]);
+                                        dataPayload.name = Helper.NVL(item["name"]);
+                                        dataPayload.contact = Helper.NVL(item["tel_number"]);
+                                        dataPayload.remark = Helper.NVL(item["remark"]);
+                                        dataPayload.effStart = Helper.NVL(item["start_date"]).ConvertDateTimeFormat("yyyyMMdd", "yyyy-MM-dd");
+                                        dataPayload.effEnd = Helper.NVL(item["end_date"]).ConvertDateTimeFormat("yyyyMMdd", "yyyy-MM-dd");
+                                        dataPayload.chkUse = 0;
+                                        payload.list.Add(dataPayload);
+                                    }
+                                }
+                            }
+
+                            payload.resultCode = MvlResponsePayload.SttCode.OK;
+                            payload.resultMessage = MvlResponsePayload.SttCode.OK.GetDescription();
+                            payload.responseTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+                            responsePayload = payload;
+                            bResponseSuccess = true;
+                        }
+                        break;
+                    case CmdType.cust_io_list:
+                        {
+                            MvlValuePayload<MvlIOSDataPayload> payload = new MvlValuePayload<MvlIOSDataPayload>();
+
+                            if (data != null && data.HasValues)
+                            {
+                                JArray list = data["list"] as JArray;
+                                if (list != null)
+                                {
+                                    foreach (JObject item in list)
+                                    {
+                                        MvlIOSDataPayload dataPayload = new MvlIOSDataPayload();
+                                        dataPayload.tkNo = Helper.NVL(item["reg_no"]);
+                                        dataPayload.parkNo = Helper.NVL(item["park_no"]);
+                                        dataPayload.carNo = Helper.NVL(item["car_number"]);
+                                        dataPayload.dong = Helper.NVL(item["dong"]);
+                                        dataPayload.ho = Helper.NVL(item["ho"]);
+                                        dataPayload.indatetime = Helper.NVL(item["in_date_time"]).ConvertDateTimeFormat("yyyyMMddHHmmss", "yyyy-MM-dd HH:mm:ss");
+                                        dataPayload.outdatetime = Helper.NVL(item["out_date_time"]).ConvertDateTimeFormat("yyyyMMddHHmmss", "yyyy-MM-dd HH:mm:ss");
+                                        payload.list.Add(dataPayload);
+                                    }
+                                }
+                            }
+
+                            payload.resultCode = MvlResponsePayload.SttCode.OK;
+                            payload.resultMessage = MvlResponsePayload.SttCode.OK.GetDescription();
+                            payload.responseTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+                            responsePayload = payload;
+                            bResponseSuccess = true;
+                        }
+                        break;
+                    case CmdType.visit_reg:
+                        {
+                            MvlSingleReserveCarPayload payload = new MvlSingleReserveCarPayload();
+
+                            if (data != null && data.HasValues)
+                            {
+                                payload.belong = Helper.NVL(data["reg_no"]);
+                            }
+
+                            payload.resultCode = MvlResponsePayload.SttCode.OK;
+                            payload.resultMessage = MvlResponsePayload.SttCode.OK.GetDescription();
+                            payload.responseTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+                            responsePayload = payload;
+                            bResponseSuccess = true;
+                        }
+                        break;
+                    case CmdType.visit_single_list:
+                        {
+                            MvlValuePayload<MvlReserveCarPayload> payload = new MvlValuePayload<MvlReserveCarPayload>();
+
+                            if (data != null && data.HasValues)
+                            {
+                                JArray list = data["list"] as JArray;
+                                if (list != null)
+                                {
+                                    foreach (JObject item in list)
+                                    {
+                                        MvlReserveCarPayload dataPayload = new MvlReserveCarPayload();
+                                        dataPayload.Belong = Helper.NVL(item["reg_no"]);
+                                        dataPayload.carNo = Helper.NVL(item["car_number"]);
+                                        dataPayload.dong = Helper.NVL(item["dong"]);
+                                        dataPayload.ho = Helper.NVL(item["ho"]);
+                                        dataPayload.reserveStart = Helper.NVL(item["start_date"]).ConvertDateTimeFormat("yyyyMMdd", "yyyy-MM-dd");
+                                        dataPayload.reserveEnd = Helper.NVL(item["end_date"]).ConvertDateTimeFormat("yyyyMMdd", "yyyy-MM-dd");
+                                        dataPayload.remark = Helper.NVL(item["remark"]);
+                                        payload.list.Add(dataPayload);
+                                    }
+                                }
+                            }
+
+                            payload.resultCode = MvlResponsePayload.SttCode.OK;
+                            payload.resultMessage = MvlResponsePayload.SttCode.OK.GetDescription();
+                            payload.responseTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+                            responsePayload = payload;
+                            bResponseSuccess = true;
+                        }
+                        break;
+                    case CmdType.visit_del:
+                        {
+                            MvlResponsePayload payload = new MvlResponsePayload();
+
+                            payload.resultCode = MvlResponsePayload.SttCode.OK;
+                            payload.resultMessage = MvlResponsePayload.SttCode.OK.GetDescription();
+                            payload.responseTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+                            responsePayload = payload;
+                            bResponseSuccess = true;
+                        }
+                        break;
+                    case CmdType.visit_single_io:
+                        {
+                            MvlValuePayload<MvlIOReservePayload> payload = new MvlValuePayload<MvlIOReservePayload>();
+
+                            if (data != null && data.HasValues)
+                            {
+                                JArray list = data["list"] as JArray;
+                                if (list != null)
+                                {
+                                    foreach (JObject item in list)
+                                    {
+                                        MvlIOReservePayload dataPayload = new MvlIOReservePayload();
+                                        dataPayload.parkNo = Helper.NVL(item["park_no"]);
+                                        dataPayload.carNo = Helper.NVL(item["car_number"]);
+                                        dataPayload.dong = Helper.NVL(item["dong"]);
+                                        dataPayload.ho = Helper.NVL(item["ho"]);
+                                        dataPayload.indatetime = Helper.NVL(item["in_date_time"]).ConvertDateTimeFormat("yyyyMMddHHmmss", "yyyy-MM-dd HH:mm:ss");
+                                        dataPayload.outdatetime = Helper.NVL(item["out_date_time"]).ConvertDateTimeFormat("yyyyMMddHHmmss", "yyyy-MM-dd HH:mm:ss");
+                                        payload.list.Add(dataPayload);
+                                    }
+                                }
+                            }
+
+                            payload.resultCode = MvlResponsePayload.SttCode.OK;
+                            payload.resultMessage = MvlResponsePayload.SttCode.OK.GetDescription();
+                            payload.responseTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+                            responsePayload = payload;
+                            bResponseSuccess = true;
+                        }
+                        break;
+                }
+            }
+            else
+            {
+                MvlResponsePayload payload = new MvlResponsePayload();
+
+                payload.resultCode = MvlResponsePayload.SttCode.InternalServerError;
+                payload.resultMessage = resultPayload.message;
+                payload.responseTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+                responsePayload = payload;
+                bResponseSuccess = true;
+            }
         }
 
         public bool StartAdapter()

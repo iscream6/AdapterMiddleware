@@ -1,9 +1,8 @@
-﻿using NexpaAdapterStandardLib.IO.Json;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
-using System.Net.Http;
+using Newtonsoft.Json.Linq;
 using System.Text;
 using System.Threading;
 
@@ -38,7 +37,7 @@ namespace NexpaAdapterStandardLib.Network
             DELETE
         }
 
-        public bool SendData(Uri uri, RequestType requestType, ContentType contentType, byte[] sendData, ref string strData, Dictionary<string, string> header = null, Dictionary<string, string> content = null)
+        public bool SendData(Uri uri, RequestType requestType, ContentType contentType, byte[] sendData, ref string strData, ref string strHeader, Dictionary<string, string> header = null, Dictionary<string, string> content = null)
         {
             bool bResult = true;
 
@@ -100,6 +99,18 @@ namespace NexpaAdapterStandardLib.Network
                 {
                     if (response != null)
                     {
+                        //Header를 Key, Value로 Json 형태로 만들어준다.
+                        JObject jHeader = new JObject();
+                        for (int i = 0; i < response.Headers.Count; i++)
+                        {
+                            jHeader[response.Headers.Keys[i].ToString()] = response.Headers[i].ToString();
+                        }
+
+                        if (jHeader.HasValues)
+                        {
+                            strHeader = jHeader.ToString();
+                        }
+
                         switch (response.StatusCode)
                         {
                             case HttpStatusCode.Created:
