@@ -6,7 +6,7 @@
 1.6.x : 블랙리스트
 1.7.x : 정기(세대)차량
 2.1.x : NPAutoBooth
-
+9.1.x : 기타
 
 1.1.1	입차 통보(넥스파 -> 미들웨어)
 Body
@@ -17,7 +17,7 @@ Body
       "ho" : "456",
       "car_number" : "차량번호",
       "date_time" : "yyyyMMddHHmmss",
-      "kind" : "a/v", //a:세대원, v:방문객
+      "kind" : "a/v", //a:세대원, v:방문객, n:일반차량
       "lprid" : "Lpr 식별 번호",
       "car_image" : "차량 이미지 경로" //미들웨어에서도 이미지를 Loading 할 수 있는 경로,
       "reg_no" : "차량 식별키", //TkNo
@@ -113,6 +113,17 @@ Body
   }
 }
 
+1.2.1.1 방문차량 리스트 요청 Type-2 (웹통합 전용)
+Body
+{
+  "command": "visit_list2",
+  "data": {
+      "car_number" : "차량번호", //빈값 허용, 빈값 일 시 검색 조건에서 제외함.
+      "dong": "123",
+      "ho" : "456"
+  }
+}
+
 1.2.2	방문차량 리스트 응답
 Body
 {
@@ -127,6 +138,27 @@ Body
               "car_number" : "차량번호",
               "date": "yyyyMMdd", //등록(방문) 일 
               "term" : "1", //방문일수
+              "visit_flag" : "y/n" //y:방문, n:미방문
+          }
+      ]
+  }
+  "result": {
+      "status": "응답상태코드",
+      "message": "메시지"
+  }
+}
+
+1.2.2.1 방문차량 리스트 응답 Type-2 (웹통합 전용)
+Body
+{
+"command": "visit_list2",
+  "data": {
+      "list" : [
+          {
+              "reg_no" : "방문차량식별키",
+              "car_number" : "차량번호",
+              "start_date_time": "yyyyMMddHHmmss", //등록(방문) 입차 예약 일시, 빈값 허용
+              "end_date_time" : "yyyyMMddHHmmss", //등록(방문) 입차 예약 종료, 빈값 허용
               "visit_flag" : "y/n" //y:방문, n:미방문
           }
       ]
@@ -174,7 +206,7 @@ Body
 
 =====================================
 
-1.2.5	방문차량 등록 요청(미들웨어 -> 넥스파)
+1.2.5	방문차량 등록 요청
 Body
 {
   "command": "visit_reg",
@@ -187,10 +219,23 @@ Body
   }
 }
 
+1.2.5.1	방문차량 등록 요청 Type-2 (웹통합 전용)
+Body
+{
+  "command": "visit_reg2",
+  "data": {
+      "dong": "123",
+      "ho" : "456"
+      "car_number": "차량번호", 
+      "start_date_time": "yyyyMMddHHmmss", //등록(방문) 입차 예약 일시, 빈값 허용
+      "end_date_time" : "yyyyMMddHHmmss", //등록(방문) 입차 예약 종료, 빈값 허용
+  }
+}
+
 1.2.6	방문차량 등록 응답
 Body
 {
-  "command": "visit_reg",
+  "command": "visit_reg", //visit_reg2로 요청시 응답 command는 visit_reg2
   "data" : {
       "reg_no" : "방문차량식별키"
   }
@@ -243,10 +288,21 @@ Body
   }
 }
 
+1.2.9.1 방문차량 삭제 요청 Type-2 (웹통합 전용)
+Body
+{
+  "command": "visit_del2",
+  "data": {
+      "dong" : "123",
+      "ho" : "456",
+      "car_number" : "차량번호" //복수의 차량번호가 입력될 시 '&'로 구분
+  }
+}
+
 1.2.10	방문차량 삭제 응답
 Body
 {
-  "command": "visit_del",
+  "command": "visit_del", //visit_del2로 요청시 응답 command는 visit_del2
   "result": {
       "status": "응답상태코드",
       "message": "메시지"
@@ -885,3 +941,28 @@ Body
 }
 
 =====================================
+
+9.1.1	우정항공 바코드 결과 요청(넥스파 -> 미들웨어)
+Body
+{
+    "command": "etc_uj_air",
+    "data": {
+        "mawb_no" : "바코드리딩번호"
+    }
+}
+
+9.1.1	우정항공 바코드 결과 응답(미들웨어 -> 넥스파)
+Body
+{
+    "command": "etc_uj_air",
+    "data": {
+        "result" : "Y/N",
+        "msg" : "API 문서에 정의된 Message",
+        "msgCode" : "API 문서에 정의된 Message Code"
+    },
+      "result" : 
+    {
+        "status": "응답상태코드", 
+        "message": "메시지"
+    }
+}

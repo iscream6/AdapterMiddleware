@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Globalization;
 using System.IO;
+using System.Net;
 using System.Text;
 using System.Xml;
 
@@ -343,6 +344,90 @@ namespace NpmAdapter
                 throw new Exception("Error in Base64Encode: " + e.Message);
             }
 
+        }
+
+        public static byte[] ConvertHexStringToByte(this string convertString)
+        {
+            try
+            {
+                byte[] convertArr = new byte[convertString.Length / 2];
+
+                for (int i = 0; i < convertArr.Length; i++)
+                {
+                    convertArr[i] = Convert.ToByte(convertString.Substring(i * 2, 2), 16);
+                }
+                return convertArr;
+            }
+            catch (Exception e)
+            {
+                throw new Exception("Error in Base64Encode: " + e.Message);
+            }
+        }
+
+        public static ResultPayload GetResultPayload(this JObject obj)
+        {
+            //결과 Payload 생성 =======
+            ResultPayload resultPayload = null;
+
+            if (obj != null && Helper.NVL(obj["status"]) != "200")
+            {
+                resultPayload = new ResultPayload();
+                string sCode = "";
+
+                if (Helper.NVL(obj["status"]) == "204") sCode = "404";
+                else sCode = Helper.NVL(obj["status"]);
+
+                resultPayload.code = sCode;
+                resultPayload.message = Helper.NVL(obj["message"]);
+            }
+            else
+            {
+                resultPayload = new ResultPayload();
+                resultPayload.code = "200";
+                resultPayload.message = "oK";
+            }
+            //결과 Payload 생성완료 =======
+
+            return resultPayload;
+        }
+
+        public static string GetLocalIP()
+        {
+            string localIP = "Not available, please check your network settings!";
+            IPHostEntry host = Dns.GetHostEntry(Dns.GetHostName());
+            foreach (IPAddress ip in host.AddressList)
+            {
+                if(ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+                {
+                    localIP = ip.ToString();
+                    break;
+                }
+            }
+
+            return localIP;
+        }
+
+        public static TValue TryGetValue<TKey, TValue>(this Dictionary<TKey, TValue> dictionary, TKey key)
+        {
+            return dictionary.ContainsKey(key) ? dictionary[key] : default(TValue);
+        }
+
+        public static IEnumerable<TValue> TryGetValues<TKey, TValue>(this Dictionary<TKey, TValue> dictionary, IEnumerable<TKey> keys)
+        {
+            TValue value;
+            foreach (TKey key in keys)
+                if (dictionary.TryGetValue(key, out value))
+                    yield return value;
+        }
+
+        public static IEnumerable<TValue> TryGetValues<TKey, TValue>(this Dictionary<TKey, TValue> dictionary, IEnumerable<TKey> keys, Action<TKey> notFoundHandler)
+        {
+            TValue value;
+            foreach (TKey key in keys)
+                if (dictionary.TryGetValue(key, out value))
+                    yield return value;
+                else
+                    notFoundHandler(key);
         }
     }
 }

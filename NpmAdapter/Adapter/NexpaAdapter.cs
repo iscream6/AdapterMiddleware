@@ -25,13 +25,15 @@ namespace NpmAdapter.Adapter
             WebOnly
         }
 
+        private Uri uri = null;
         private Dictionary<string, string> _OptionDetail;
         private Status runStatus = Status.Full;
         private bool isRun = false;
         private byte[] arrSelfResponseData = null;
         private bool bResponseSuccess = true;
 
-        public static string REQ_POST_STATUS = "/nexpa/mdl/";
+        public const string REQ_POST_STATUS = "/nexpa/mdl/";
+        public const string RSP_POST_STATUS = "/nxpms/v2.0/mdl";
 
         private INetwork MyTcpNetwork { get; set; }
         private INetwork MyHttpNetwork { get; set; }
@@ -44,7 +46,7 @@ namespace NpmAdapter.Adapter
 
         public bool Initialize()
         {
-            int port = 42131;
+            int port = 30542;
 
             try
             {
@@ -68,6 +70,11 @@ namespace NpmAdapter.Adapter
 
                 if (runStatus == Status.WebOnly || runStatus == Status.Full)
                 {
+                    //http://localhost:35042/nxpms/v2.0/mdl
+                    string domain = SysConfig.Instance.Nexpa_WebDomain;
+                    uri = new Uri(domain + RSP_POST_STATUS);
+                    Log.WriteLog(LogType.Info, $"NexpaAdapter | 생성자", $"Web Client Domain : {uri.OriginalString}", LogAdpType.Nexpa);
+
                     int.TryParse(SysConfig.Instance.Nexpa_WebPort, out port);
                     MyHttpNetwork = NetworkFactory.GetInstance().MakeNetworkControl(NetworkFactory.Adapters.HttpServer, port.ToString());
                     if (MyHttpNetwork != null) Log.WriteLog(LogType.Info, $"NexpaTcpAdapter | 생성자", $"WebServer 생성", LogAdpType.Nexpa);
@@ -140,9 +147,9 @@ namespace NpmAdapter.Adapter
         /// <param name="buffer"></param>
         /// <param name="offset"></param>
         /// <param name="size"></param>
-        private void MyTcpNetwork_ReceiveFromPeer(byte[] buffer, long offset, long size, RequestEventArgs pEvent = null)
+        private void MyTcpNetwork_ReceiveFromPeer(byte[] buffer, long offset, long size, RequestEventArgs pEvent = null, string id = null)
         {
-            Log.WriteLog(LogType.Info, "NexpaTcpAdapter | MyTcpNetwork_ReceiveFromPeer", "주차관제로부터 데이터 수신 ==========", LogAdpType.Nexpa);
+            Log.WriteLog(LogType.Info, "NexpaTcpAdapter | MyTcpNetwork_ReceiveFromPeer", $"[수신] {(id == null ? "" : id)} ==========", LogAdpType.Nexpa);
             if (!bResponseSuccess)
             {
                 arrSelfResponseData = buffer[..(int)size];
@@ -152,7 +159,7 @@ namespace NpmAdapter.Adapter
             {
                 TargetAdapter.SendMessage(buffer, offset, size);
             }
-            Log.WriteLog(LogType.Info, "NexpaTcpAdapter | MyTcpNetwork_ReceiveFromPeer", "주차관제로부터 데이터 수신 완료 =====", LogAdpType.Nexpa);
+            Log.WriteLog(LogType.Info, "NexpaTcpAdapter | MyTcpNetwork_ReceiveFromPeer", "수신 완료 =====", LogAdpType.Nexpa);
         }
 
         /// <summary>
@@ -162,7 +169,7 @@ namespace NpmAdapter.Adapter
         /// <param name="offset"></param>
         /// <param name="size"></param>
         /// <param name="pEvent"></param>
-        private void MyHttpNetwork_ReceiveFromPeer(byte[] buffer, long offset, long size, RequestEventArgs e = null)
+        private void MyHttpNetwork_ReceiveFromPeer(byte[] buffer, long offset, long size, RequestEventArgs e = null, string id = null)
         {
             string sJson = Encoding.UTF8.GetString(buffer[..(int)size]);
             JObject json = JObject.Parse(sJson);
@@ -215,28 +222,6 @@ namespace NpmAdapter.Adapter
                 resultPayload.result = ResultType.OK;
                 byte[]  result = resultPayload.Serialize();
 
-                //int iSec = 500; //5초
-                //while (iSec > 0 && !bResponseSuccess)
-                //{
-                //    Thread.Sleep(10); //0.01초씩..쉰다...
-                //    iSec -= 1;
-                //}
-
-                //byte[] result;
-
-                //if (bResponseSuccess == false)
-                //{
-                //    ResponseResultPayload resultPayload = new ResponseResultPayload();
-                //    resultPayload.command = cmdType;
-                //    resultPayload.Result = ResponseResultPayload.Status.ExceptionERROR;
-                //    result = resultPayload.Serialize();
-                //}
-                //else
-                //{
-                //    result = resultPayload.Serialize();
-                //}
-
-
                 //정상처리 응답을 보낸다.
                 e.Response.Body.Write(result, 0, result.Length);
             }
@@ -249,45 +234,13 @@ namespace NpmAdapter.Adapter
 
         private object lockObj = new object();
 
-        public void SendMessage(IPayload payload)
-        {
-            lock (lockObj)
-            {
-                byte[] msgBuffer = payload.Serialize();
-
-                switch (runStatus)
-                {
-
-                    case Status.TcpOnly:
-                        {
-                            MyTcpNetwork.SendToPeer(msgBuffer, 0, msgBuffer.Length);
-                        }
-
-                        break;
-                    case Status.WebOnly:
-
-                        {
-                            MyHttpNetwork.SendToPeer(msgBuffer, 0, msgBuffer.Length);
-                        }
-                        break;
-                    case Status.Full:
-
-                        {
-                            MyTcpNetwork.SendToPeer(msgBuffer, 0, msgBuffer.Length);
-                            MyHttpNetwork.SendToPeer(msgBuffer, 0, msgBuffer.Length);
-                        }
-                        break;
-                }
-            }
-        }
-
         /// <summary>
         /// Target Adapter에게 받은 Message 를 Peer에 전달한다.
         /// </summary>
         /// <param name="buffer"></param>
         /// <param name="offset"></param>
         /// <param name="size"></param>
-        public void SendMessage(byte[] buffer, long offset, long size)
+        public void SendMessage(byte[] buffer, long offset, long size, string pid = null)
         {
             lock (lockObj)
             {
@@ -313,16 +266,48 @@ namespace NpmAdapter.Adapter
                         case Status.WebOnly:
 
                             {
-                                MyHttpNetwork.SendToPeer(buffer, offset, size);
-                                //resultPayload.Deserialize(JObject.Parse(buffer.ToString(SysConfig.Instance.Nexpa_Encoding, size)));
-                                //bResponseSuccess = true;
+                                byte[] requestData = buffer[..(int)size];
+                                string responseData = string.Empty;
+                                string responseHeader = string.Empty;
+
+                                if (NetworkWebClient.Instance.SendData(uri, NetworkWebClient.RequestType.POST, ContentType.Json, requestData, ref responseData, ref responseHeader))
+                                {
+                                    try
+                                    {
+                                        Log.WriteLog(LogType.Info, "NexpaWebAdapter | SendMessage | WebClientResponse", $"==응답== {responseData}", LogAdpType.Nexpa);
+                                        ResponsePayload responsePayload = new ResponsePayload();
+                                        byte[] responseBuffer = SysConfig.Instance.Nexpa_Encoding.GetBytes(responseData);
+                                        TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        Log.WriteLog(LogType.Error, "NexpaWebAdapter | SendMessage | WebClientResponse", $"{responseData}\r\n{ex.Message}", LogAdpType.Nexpa);
+                                    }
+                                }
                             }
                             break;
                         case Status.Full:
 
                             {
                                 MyTcpNetwork.SendToPeer(buffer, offset, size);
-                                MyHttpNetwork.SendToPeer(buffer, offset, size);
+                                byte[] requestData = buffer[..(int)size];
+                                string responseData = string.Empty;
+                                string responseHeader = string.Empty;
+
+                                if (NetworkWebClient.Instance.SendData(uri, NetworkWebClient.RequestType.POST, ContentType.Json, requestData, ref responseData, ref responseHeader))
+                                {
+                                    try
+                                    {
+                                        Log.WriteLog(LogType.Info, "NexpaWebAdapter | SendMessage | WebClientResponse", $"==응답== {responseData}", LogAdpType.Nexpa);
+                                        ResponsePayload responsePayload = new ResponsePayload();
+                                        byte[] responseBuffer = SysConfig.Instance.Nexpa_Encoding.GetBytes(responseData);
+                                        TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        Log.WriteLog(LogType.Error, "NexpaWebAdapter | SendMessage | WebClientResponse", $"{responseData}\r\n{ex.Message}", LogAdpType.Nexpa);
+                                    }
+                                }
                             }
                             break;
                     }

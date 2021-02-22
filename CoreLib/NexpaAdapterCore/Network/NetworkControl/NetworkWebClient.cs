@@ -8,6 +8,7 @@ using System.Threading;
 
 namespace NexpaAdapterStandardLib.Network
 {
+    //http://qa.nexpa.co.kr:42142
     public delegate void WebSocketConnected();
     public delegate void WebSocketReceive(string strData);
     public delegate void WebSocketClose();
@@ -16,7 +17,8 @@ namespace NexpaAdapterStandardLib.Network
     {
         Json,
         FormData,
-        Multipart_FormData
+        Multipart_FormData,
+        Text
     }
 
     public class NetworkWebClient : Singleton<NetworkWebClient>
@@ -28,7 +30,7 @@ namespace NexpaAdapterStandardLib.Network
         private const string ContentTypeMultiFormData = "multipart/form-data";
         private const string ContentTypeFormData = "application/x-www-form-urlencoded;charset=UTF-8";
         private const string ContentTypeJson = "application/json;charset=UTF-8";
-
+        private const string ContentTypeText = "text/x-json;charset=UTF-8";
         public enum RequestType
         {
             GET,
@@ -63,6 +65,10 @@ namespace NexpaAdapterStandardLib.Network
                 {
                     sContentType.Append(ContentTypeMultiFormData);
                 }
+                else if (contentType == ContentType.Text)
+                {
+                    sContentType.Append(ContentTypeText);
+                }
                 else
                 {
                     sContentType.Append(ContentTypeJson);
@@ -76,12 +82,7 @@ namespace NexpaAdapterStandardLib.Network
                     }
                 }
 
-                //ContentType 설정 ===============
-
-                request.ContentType = sContentType.ToString();
-                request.ContentLength = (long)sendData.Length;
-
-                if(header != null)
+                if (header != null)
                 {
                     foreach (var item in header)
                     {
@@ -89,9 +90,16 @@ namespace NexpaAdapterStandardLib.Network
                     }
                 }
 
-                using (Stream requestStream = request.GetRequestStream())
+                //ContentType 설정 ===============
+                request.ContentType = sContentType.ToString();
+                request.ContentLength = (long)sendData.Length;
+
+                if (request.ContentLength != 0)
                 {
-                    requestStream.Write(sendData, 0, Convert.ToInt32(request.ContentLength));
+                    using (Stream requestStream = request.GetRequestStream())
+                    {
+                        requestStream.Write(sendData, 0, Convert.ToInt32(request.ContentLength));
+                    }
                 }
 
                 // Response 처리
@@ -177,8 +185,9 @@ namespace NexpaAdapterStandardLib.Network
                         bResult = false;
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Log.WriteLog(LogType.Error, "NetworkWebClient| SendData", $"{ex.Message}");
                 bResult = false;
                 OnWebSocketClose?.Invoke();
             }

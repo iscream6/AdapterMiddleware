@@ -72,7 +72,7 @@ namespace NpmAdapter.Adapter
             
         }
 
-        public void SendMessage(byte[] buffer, long offset, long size)
+        public void SendMessage(byte[] buffer, long offset, long size, string pid = null)
         {
             try
             {
@@ -112,6 +112,9 @@ namespace NpmAdapter.Adapter
                     case CmdType.alert_outcar:
                         {
                             RequestPayload<AlertInOutCarPayload> payload = new RequestPayload<AlertInOutCarPayload>();
+
+                            if (payload.data.kind.ToLower() == "a") return; //2021-02-10 세대원 알림은 빼달라는 요구사항
+
                             payload.Deserialize(jobj);
                             {
                                 Uri uri = null;
@@ -416,7 +419,7 @@ namespace NpmAdapter.Adapter
             return bResult;
         }
 
-        private void MyHttpNetwork_ReceiveFromPeer(byte[] buffer, long offset, long size, RequestEventArgs e)
+        private void MyHttpNetwork_ReceiveFromPeer(byte[] buffer, long offset, long size, RequestEventArgs e, string id = null)
         {
             lock (lockObj)
             {

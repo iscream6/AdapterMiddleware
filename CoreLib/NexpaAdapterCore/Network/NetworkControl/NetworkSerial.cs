@@ -163,7 +163,7 @@ namespace NexpaAdapterStandardLib.Network
             return true;
         }
 
-        public void SendToPeer(byte[] buffer, long offset, long size)
+        public void SendToPeer(byte[] buffer, long offset, long size, string id = null)
         {
             byte[] sendBuffer = new byte[size];
             Array.Copy(buffer, offset, sendBuffer, 0, size);

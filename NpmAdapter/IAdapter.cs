@@ -34,9 +34,9 @@ namespace NpmAdapter
         /// <param name="buffer"></param>
         /// <param name="offset"></param>
         /// <param name="size"></param>
-        void SendMessage(byte[] buffer, long offset, long size);
+        void SendMessage(byte[] buffer, long offset, long size, string pid = null);
 
-        void SendMessage(IPayload payload);
+        //void SendMessage(IPayload payload);
 
         /// <summary>
         /// Receive Test 용...

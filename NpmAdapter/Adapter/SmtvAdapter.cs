@@ -45,12 +45,7 @@ namespace NpmAdapter.Adapter
             return true;
         }
 
-        public void SendMessage(IPayload payload)
-        {
-            
-        }
-
-        public void SendMessage(byte[] buffer, long offset, long size)
+        public void SendMessage(byte[] buffer, long offset, long size, string pid = null)
         {
             var jobj = JObject.Parse(buffer.ToString(SysConfig.Instance.HomeNet_Encoding, size));
             JObject data = jobj["data"] as JObject;

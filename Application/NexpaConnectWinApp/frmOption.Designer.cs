@@ -66,6 +66,8 @@
             this.txtHomParkID = new System.Windows.Forms.TextBox();
             this.txtHomAuthToken = new System.Windows.Forms.TextBox();
             this.panel1 = new System.Windows.Forms.Panel();
+            this.txtNxpWDomain = new System.Windows.Forms.TextBox();
+            this.label35 = new System.Windows.Forms.Label();
             this.txtNxpDBPW = new System.Windows.Forms.TextBox();
             this.txtNxpDBID = new System.Windows.Forms.TextBox();
             this.txtNxpDBName = new System.Windows.Forms.TextBox();
@@ -104,6 +106,8 @@
             this.panel3 = new System.Windows.Forms.Panel();
             this.btnSave = new System.Windows.Forms.Button();
             this.btnClose = new System.Windows.Forms.Button();
+            this.label36 = new System.Windows.Forms.Label();
+            this.txtHomDomain2 = new System.Windows.Forms.TextBox();
             this.panel1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox7)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox6)).BeginInit();
@@ -183,7 +187,7 @@
             // label7
             // 
             this.label7.AutoSize = true;
-            this.label7.Location = new System.Drawing.Point(20, 398);
+            this.label7.Location = new System.Drawing.Point(20, 424);
             this.label7.Name = "label7";
             this.label7.Size = new System.Drawing.Size(16, 12);
             this.label7.TabIndex = 9;
@@ -192,7 +196,7 @@
             // label8
             // 
             this.label8.AutoSize = true;
-            this.label8.Location = new System.Drawing.Point(20, 425);
+            this.label8.Location = new System.Drawing.Point(20, 451);
             this.label8.Name = "label8";
             this.label8.Size = new System.Drawing.Size(62, 12);
             this.label8.TabIndex = 10;
@@ -282,7 +286,7 @@
             // label18
             // 
             this.label18.AutoSize = true;
-            this.label18.Location = new System.Drawing.Point(20, 452);
+            this.label18.Location = new System.Drawing.Point(20, 478);
             this.label18.Name = "label18";
             this.label18.Size = new System.Drawing.Size(41, 12);
             this.label18.TabIndex = 20;
@@ -291,7 +295,7 @@
             // label19
             // 
             this.label19.AutoSize = true;
-            this.label19.Location = new System.Drawing.Point(20, 479);
+            this.label19.Location = new System.Drawing.Point(20, 505);
             this.label19.Name = "label19";
             this.label19.Size = new System.Drawing.Size(69, 12);
             this.label19.TabIndex = 21;
@@ -316,7 +320,7 @@
             // 
             // txtHomID
             // 
-            this.txtHomID.Location = new System.Drawing.Point(124, 394);
+            this.txtHomID.Location = new System.Drawing.Point(124, 420);
             this.txtHomID.Name = "txtHomID";
             this.txtHomID.Size = new System.Drawing.Size(133, 21);
             this.txtHomID.TabIndex = 24;
@@ -324,7 +328,7 @@
             // 
             // txtHomPw
             // 
-            this.txtHomPw.Location = new System.Drawing.Point(124, 421);
+            this.txtHomPw.Location = new System.Drawing.Point(124, 447);
             this.txtHomPw.Name = "txtHomPw";
             this.txtHomPw.Size = new System.Drawing.Size(133, 21);
             this.txtHomPw.TabIndex = 25;
@@ -414,7 +418,7 @@
             // 
             // txtHomParkID
             // 
-            this.txtHomParkID.Location = new System.Drawing.Point(124, 448);
+            this.txtHomParkID.Location = new System.Drawing.Point(124, 474);
             this.txtHomParkID.Name = "txtHomParkID";
             this.txtHomParkID.Size = new System.Drawing.Size(133, 21);
             this.txtHomParkID.TabIndex = 36;
@@ -422,7 +426,7 @@
             // 
             // txtHomAuthToken
             // 
-            this.txtHomAuthToken.Location = new System.Drawing.Point(124, 475);
+            this.txtHomAuthToken.Location = new System.Drawing.Point(124, 501);
             this.txtHomAuthToken.Name = "txtHomAuthToken";
             this.txtHomAuthToken.Size = new System.Drawing.Size(133, 21);
             this.txtHomAuthToken.TabIndex = 37;
@@ -433,6 +437,8 @@
             this.panel1.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left)));
             this.panel1.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.panel1.Controls.Add(this.txtNxpWDomain);
+            this.panel1.Controls.Add(this.label35);
             this.panel1.Controls.Add(this.txtNxpDBPW);
             this.panel1.Controls.Add(this.txtNxpDBID);
             this.panel1.Controls.Add(this.txtNxpDBName);
@@ -469,6 +475,23 @@
             this.panel1.Name = "panel1";
             this.panel1.Size = new System.Drawing.Size(311, 597);
             this.panel1.TabIndex = 38;
+            // 
+            // txtNxpWDomain
+            // 
+            this.txtNxpWDomain.Location = new System.Drawing.Point(118, 84);
+            this.txtNxpWDomain.Name = "txtNxpWDomain";
+            this.txtNxpWDomain.Size = new System.Drawing.Size(133, 21);
+            this.txtNxpWDomain.TabIndex = 65;
+            this.txtNxpWDomain.Tag = "WebDomain";
+            // 
+            // label35
+            // 
+            this.label35.AutoSize = true;
+            this.label35.Location = new System.Drawing.Point(27, 88);
+            this.label35.Name = "label35";
+            this.label35.Size = new System.Drawing.Size(76, 12);
+            this.label35.TabIndex = 64;
+            this.label35.Text = "Web Domain";
             // 
             // txtNxpDBPW
             // 
@@ -683,7 +706,7 @@
             // 
             // txtNxpUWPort
             // 
-            this.txtNxpUWPort.Location = new System.Drawing.Point(118, 127);
+            this.txtNxpUWPort.Location = new System.Drawing.Point(118, 138);
             this.txtNxpUWPort.Name = "txtNxpUWPort";
             this.txtNxpUWPort.Size = new System.Drawing.Size(133, 21);
             this.txtNxpUWPort.TabIndex = 38;
@@ -691,7 +714,7 @@
             // 
             // txtNxpUWIP
             // 
-            this.txtNxpUWIP.Location = new System.Drawing.Point(118, 100);
+            this.txtNxpUWIP.Location = new System.Drawing.Point(118, 111);
             this.txtNxpUWIP.Name = "txtNxpUWIP";
             this.txtNxpUWIP.Size = new System.Drawing.Size(133, 21);
             this.txtNxpUWIP.TabIndex = 37;
@@ -700,7 +723,7 @@
             // label20
             // 
             this.label20.AutoSize = true;
-            this.label20.Location = new System.Drawing.Point(27, 131);
+            this.label20.Location = new System.Drawing.Point(27, 142);
             this.label20.Name = "label20";
             this.label20.Size = new System.Drawing.Size(83, 12);
             this.label20.TabIndex = 36;
@@ -709,7 +732,7 @@
             // label2
             // 
             this.label2.AutoSize = true;
-            this.label2.Location = new System.Drawing.Point(27, 104);
+            this.label2.Location = new System.Drawing.Point(27, 115);
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(72, 12);
             this.label2.TabIndex = 35;
@@ -720,6 +743,8 @@
             this.panel2.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left)));
             this.panel2.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.panel2.Controls.Add(this.label36);
+            this.panel2.Controls.Add(this.txtHomDomain2);
             this.panel2.Controls.Add(this.pictureBox4);
             this.panel2.Controls.Add(this.label24);
             this.panel2.Controls.Add(this.pictureBox3);
@@ -870,6 +895,23 @@
             this.btnClose.UseVisualStyleBackColor = true;
             this.btnClose.Click += new System.EventHandler(this.btnClose_Click);
             // 
+            // label36
+            // 
+            this.label36.AutoSize = true;
+            this.label36.Location = new System.Drawing.Point(20, 397);
+            this.label36.Name = "label36";
+            this.label36.Size = new System.Drawing.Size(54, 12);
+            this.label36.TabIndex = 46;
+            this.label36.Text = "Domain2";
+            // 
+            // txtHomDomain2
+            // 
+            this.txtHomDomain2.Location = new System.Drawing.Point(124, 393);
+            this.txtHomDomain2.Name = "txtHomDomain2";
+            this.txtHomDomain2.Size = new System.Drawing.Size(192, 21);
+            this.txtHomDomain2.TabIndex = 47;
+            this.txtHomDomain2.Tag = "Web_Domain2";
+            // 
             // frmOption
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 12F);
@@ -981,5 +1023,9 @@
         private System.Windows.Forms.Label label33;
         private System.Windows.Forms.Label label32;
         private System.Windows.Forms.Label label31;
+        private System.Windows.Forms.TextBox txtNxpWDomain;
+        private System.Windows.Forms.Label label35;
+        private System.Windows.Forms.Label label36;
+        private System.Windows.Forms.TextBox txtHomDomain2;
     }
 }

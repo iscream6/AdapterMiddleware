@@ -79,23 +79,18 @@ namespace NpmAdapter.Adapter
             return isRun;
         }
 
-        private void MyTcpServerNetwork_ReceiveFromPeer(byte[] buffer, long offset, long size, HttpServer.RequestEventArgs pEvent = null)
+        private void MyTcpServerNetwork_ReceiveFromPeer(byte[] buffer, long offset, long size, HttpServer.RequestEventArgs pEvent = null, string id = null)
         {
             throw new NotImplementedException();
         }
 
-        private void MyTcpClientNetwork_ReceiveFromPeer(byte[] buffer, long offset, long size, HttpServer.RequestEventArgs pEvent = null)
+        private void MyTcpClientNetwork_ReceiveFromPeer(byte[] buffer, long offset, long size, HttpServer.RequestEventArgs pEvent = null, string id = null)
         {
             Log.WriteLog(LogType.Info, $"CmxDLAdapter | MyTcpClientNetwork_ReceiveFromPeer", $"받은 메시지 : {buffer}", LogAdpType.HomeNet);
             MyTcpClientNetwork.Down();
         }
 
-        public void SendMessage(IPayload payload)
-        {
-
-        }
-
-        public void SendMessage(byte[] buffer, long offset, long size)
+        public void SendMessage(byte[] buffer, long offset, long size, string pid = null)
         {
             try
             {

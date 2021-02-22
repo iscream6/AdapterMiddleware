@@ -8,7 +8,7 @@ using System.Text;
 
 namespace NexpaAdapterStandardLib.Network
 {
-    public delegate void ReceiveAction(byte[] buffer, long offset, long size);
+    public delegate void ReceiveAction(byte[] buffer, long offset, long size, Guid guid);
 
     class NetworkTcpServer : TcpServer, INetwork
     {
@@ -42,28 +42,28 @@ namespace NexpaAdapterStandardLib.Network
         /// <param name="buffer"></param>
         /// <param name="offset"></param>
         /// <param name="size"></param>
-        public void SendToPeer(byte[] buffer, long offset, long size)
+        public void SendToPeer(byte[] buffer, long offset, long size, string id = null)
         {
             try
             {
-                if(MyEncoding == null)
+                if(id == null) //Broad Cast
                 {
-                    SystemStatus.Instance.SendEventMessage(LogAdpType.Nexpa, $"TcpServer Send Data : {JObject.Parse(buffer.ToString(Encoding.UTF8))}");
+                    //MultiCast 한다.
+                    int cntCast = 0;
+                    foreach (var item in _dicClientSession.Values)
+                    {
+                        Log.WriteLog(LogType.Info, $"TcpServerNetwork | SendToPeer", $"{item.Id}", LogAdpType.Nexpa);
+                        item.SendAsync(buffer, offset, size);
+                        cntCast += 1;
+                    }
+                    Log.WriteLog(LogType.Info, $"TcpServerNetwork | SendToPeer", $"Broad Cast {cntCast}개 완료", LogAdpType.Nexpa);
                 }
-                else
+                else //특정 Target에 Cast
                 {
-                    SystemStatus.Instance.SendEventMessage(LogAdpType.Nexpa, $"TcpServer Send Data : {JObject.Parse(buffer.ToString(MyEncoding))}");
+                    Guid guid = Guid.Parse(id);
+                    _dicClientSession[guid].SendAsync(buffer, offset, size);
+                    Log.WriteLog(LogType.Info, $"TcpServerNetwork | SendToPeer", $"{guid}", LogAdpType.Nexpa);
                 }
-                
-                //MultiCast 한다.
-                int cntCast = 0;
-                foreach (var item in _dicClientSession.Values)
-                {
-                    Log.WriteLog(LogType.Info, $"TcpServerNetwork | SendToPeer", $"{item.Id}", LogAdpType.Nexpa);
-                    item.SendAsync(buffer, offset, size);
-                    cntCast += 1;
-                }
-                Log.WriteLog(LogType.Info, $"TcpServerNetwork | SendToPeer", $"Broad Cast {cntCast}개 완료", LogAdpType.Nexpa);
             }
             catch (Exception ex)
             {
@@ -114,12 +114,12 @@ namespace NexpaAdapterStandardLib.Network
         /// <param name="buffer"></param>
         /// <param name="offset"></param>
         /// <param name="size"></param>
-        private void Session_receiveAction(byte[] buffer, long offset, long size)
+        private void Session_receiveAction(byte[] buffer, long offset, long size, Guid guid)
         {
             try
             {
                 Log.WriteLog(LogType.Info, "TcpServerNetwork| Session_receiveAction", $"Session_receiveAction Call");
-                ReceiveFromPeer?.Invoke(buffer, offset, size);
+                ReceiveFromPeer?.Invoke(buffer, offset, size, id: guid.ToString());
             }
             catch (Exception ex)
             {

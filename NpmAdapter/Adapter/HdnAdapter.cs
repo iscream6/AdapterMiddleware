@@ -131,12 +131,7 @@ namespace NpmAdapter.Adapter
 
         }
 
-        public void SendMessage(IPayload payload)
-        {
-
-        }
-
-        public void SendMessage(byte[] buffer, long offset, long size)
+        public void SendMessage(byte[] buffer, long offset, long size, string pid = null)
         {
             bResponseSuccess = false;
 
@@ -162,14 +157,17 @@ namespace NpmAdapter.Adapter
                         }
                         else
                         {
+                            string visitValue = "";
+                            if (Helper.NVL(data["kind"]) == "v") visitValue = "VISIT_";
+
                             //IN/OUT 설정
                             if (payload.command == CmdType.alert_incar)
                             {
-                                payload.data.type = "IN";
+                                payload.data.type = $"{visitValue}IN";
                             }
                             else if (payload.command == CmdType.alert_outcar)
                             {
-                                payload.data.type = "OUT";
+                                payload.data.type = $"{visitValue}OUT";
                             }
                             byte[] networkMessage = payload.data.Serialize();
                             MyTcpNetwork.SendToPeer(networkMessage, 0, networkMessage.Length);
@@ -188,13 +186,13 @@ namespace NpmAdapter.Adapter
             if(bResponseSuccess == false) MyTcpNetwork.Down();
         }
 
-        private void MyTcpNetwork_ReceiveFromPeer(byte[] buffer, long offset, long size, HttpServer.RequestEventArgs pEvent = null)
+        private void MyTcpNetwork_ReceiveFromPeer(byte[] buffer, long offset, long size, HttpServer.RequestEventArgs pEvent = null, string id = null)
         {
             //응답 처리...
             bResponseSuccess = true;
         }
 
-        private void MyTcpServer_ReceiveFromPeer(byte[] buffer, long offset, long size, HttpServer.RequestEventArgs pEvent = null)
+        private void MyTcpServer_ReceiveFromPeer(byte[] buffer, long offset, long size, HttpServer.RequestEventArgs pEvent = null, string id = null)
         {
             //세대 방문자 리스트(단지서버 -> 주차서버)
             //세대 방문자 등록(단지서버 -> 주차서버)
@@ -207,7 +205,7 @@ namespace NpmAdapter.Adapter
                 byte[] bLength = buffer[..8];
                 byte[] bData = buffer[8..];
 
-                UInt64 length = BitConverter.ToUInt64(bLength, 0);
+                UInt64 length = BitConverter.ToUInt64(bLength, 0);//Header
                 string sData = bData.ToString(SysConfig.Instance.HomeNet_Encoding, (size - 8));
                 var dicData = sData.DoubleSplit('&', '=');
 

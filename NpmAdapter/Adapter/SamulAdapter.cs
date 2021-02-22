@@ -43,12 +43,7 @@ namespace NpmAdapter.Adapter
             return true;
         }
 
-        public void SendMessage(IPayload payload)
-        {
-
-        }
-
-        public void SendMessage(byte[] buffer, long offset, long size)
+        public void SendMessage(byte[] buffer, long offset, long size, string pid = null)
         {
             receiveMessageBuffer.Append(buffer.ToString(SysConfig.Instance.Nexpa_Encoding, size));
             var jobj = JObject.Parse(receiveMessageBuffer.ToString());

@@ -102,12 +102,7 @@ namespace NpmAdapter.Adapter
             return true;
         }
 
-        public void SendMessage(IPayload payload)
-        {
-
-        }
-
-        public void SendMessage(byte[] buffer, long offset, long size)
+        public void SendMessage(byte[] buffer, long offset, long size, string pid = null)
         {
 
         }
@@ -132,7 +127,7 @@ namespace NpmAdapter.Adapter
         {
         }
 
-        private void MyHttpNetwork_ReceiveFromPeer(byte[] buffer, long offset, long size, HttpServer.RequestEventArgs e = null)
+        private void MyHttpNetwork_ReceiveFromPeer(byte[] buffer, long offset, long size, HttpServer.RequestEventArgs e = null, string id = null)
         {
             lock (lockObj)
             {

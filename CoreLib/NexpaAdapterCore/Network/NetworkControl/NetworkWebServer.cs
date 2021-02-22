@@ -52,7 +52,7 @@ namespace NexpaAdapterStandardLib.Network
         /// <param name="buffer">전달할 값</param>
         /// <param name="offset"></param>
         /// <param name="size"></param>
-        public void SendToPeer(byte[] buffer, long offset, long size)
+        public void SendToPeer(byte[] buffer, long offset, long size, string id = null)
         {
             string strJson = buffer.ToString(Encoding.UTF8);
             //string cmd = buffer.GetCommand();
@@ -104,6 +104,14 @@ namespace NexpaAdapterStandardLib.Network
             {
                 StreamReader reader = new StreamReader(e.Context.Request.Body);
                 string readData = reader.ReadToEnd();
+
+                //Path Query를 Param으로 전달하기 위함.
+                if ((readData == null || readData == "") && e.Request.Uri.Query != null && e.Request.Uri.Query != "" && e.Request.Uri.ToString().IndexOf('?') > -1)
+                {
+                    var uriString = e.Request.Uri.ToString();
+                    readData = uriString.Substring(e.Request.Uri.ToString().IndexOf('?') + 1);
+                }
+
                 byte[] receiveData = Encoding.UTF8.GetBytes(readData);
                 ReceiveFromPeer?.Invoke(receiveData, 0, receiveData.Length, e);
 

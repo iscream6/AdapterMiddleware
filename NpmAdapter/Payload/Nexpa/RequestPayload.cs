@@ -34,9 +34,25 @@ namespace NpmAdapter.Payload
         /// </summary>
         visit_list,
         /// <summary>
+        /// 방문 차량 리스트 Type-2
+        /// </summary>
+        visit_list2,
+        /// <summary>
+        /// 단일 방문 차량 리스트
+        /// </summary>
+        visit_single_list,
+        /// <summary>
+        /// 단일 방문 차량 출입 리스트
+        /// </summary>
+        visit_single_io,
+        /// <summary>
         /// 방문 차량 등록
         /// </summary>
         visit_reg,
+        /// <summary>
+        /// 방문 차량 등록 Type-2
+        /// </summary>
+        visit_reg2,
         /// <summary>
         /// 방문 차량 수정
         /// </summary>
@@ -45,6 +61,10 @@ namespace NpmAdapter.Payload
         /// 방문 차량 삭제
         /// </summary>
         visit_del,
+        /// <summary>
+        /// 방문 차량 삭제 Type-2
+        /// </summary>
+        visit_del2,
         /// <summary>
         /// 방문 차량 즐겨찾기 리스트
         /// </summary>
@@ -116,7 +136,11 @@ namespace NpmAdapter.Payload
         cust_reg,
         cust_del,
         cust_list,
-        cust_io_list
+        cust_io_list,
+        /// <summary>
+        /// 우정항공
+        /// </summary>
+        etc_uj_air
     }
 
     class RequestPayload<T> : IPayload where T : IPayload, new()

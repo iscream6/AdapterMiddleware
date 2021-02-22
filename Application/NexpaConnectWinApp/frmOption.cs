@@ -18,7 +18,7 @@ namespace NexpaConnectWinApp
         private void frmOption_Load(object sender, EventArgs e)
         {
             InitializeCtl();
-
+            
             BindIniData();
         }
 
@@ -82,6 +82,8 @@ namespace NexpaConnectWinApp
                 //Nexpa Web Port
                 txtNxpWPort.Text = SysConfig.Instance.Nexpa_WebPort;
                 //Nexpa 유도 ID
+                txtNxpWDomain.Text = SysConfig.Instance.Nexpa_WebDomain;
+                //Nexpa 유도 ID
                 txtNxpUWIP.Text = SysConfig.Instance.Nexpa_UWebIP;
                 //Nexpa 유도 Port
                 txtNxpUWPort.Text = SysConfig.Instance.Nexpa_UWebPort;
@@ -127,6 +129,7 @@ namespace NexpaConnectWinApp
                 if (item != null && item.Count() > 0)
                     cmbHomEncoder.SelectedItem = item.First();
                 txtHomDomain.Text = SysConfig.Instance.HW_Domain;
+                txtHomDomain2.Text = SysConfig.Instance.HW_Domain2;
                 txtHomID.Text = SysConfig.Instance.HC_Id;
                 txtHomPw.Text = SysConfig.Instance.HC_Pw;
                 txtHomParkID.Text = SysConfig.Instance.ParkId;
@@ -179,6 +182,12 @@ namespace NexpaConnectWinApp
                 if (txtNxpWPort.Text != SysConfig.Instance.Nexpa_WebPort)
                 {
                     SysConfig.Instance.WriteConfig(SysConfig.Sections.NexpaConfig, (string)txtNxpWPort.Tag, txtNxpWPort.Text);
+                    isChange = true;
+                }
+
+                if (txtNxpWDomain.Text != SysConfig.Instance.Nexpa_WebDomain)
+                {
+                    SysConfig.Instance.WriteConfig(SysConfig.Sections.NexpaConfig, (string)txtNxpWDomain.Tag, txtNxpWDomain.Text);
                     isChange = true;
                 }
 
@@ -289,6 +298,12 @@ namespace NexpaConnectWinApp
                 if (txtHomDomain.Text != SysConfig.Instance.HW_Domain)
                 {
                     SysConfig.Instance.WriteConfig(SysConfig.Sections.HomeNetConfig, (string)txtHomDomain.Tag, txtHomDomain.Text);
+                    isChange = true;
+                }
+
+                if (txtHomDomain2.Text != SysConfig.Instance.HW_Domain)
+                {
+                    SysConfig.Instance.WriteConfig(SysConfig.Sections.HomeNetConfig, (string)txtHomDomain2.Tag, txtHomDomain2.Text);
                     isChange = true;
                 }
 

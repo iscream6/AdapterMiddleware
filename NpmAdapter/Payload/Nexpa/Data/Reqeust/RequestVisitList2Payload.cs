@@ -3,9 +3,8 @@ using NexpaAdapterStandardLib;
 
 namespace NpmAdapter.Payload
 {
-    class RequestVisitList2Payload : IPayload
+    class RequestVisitListPayload : IPayload
     {
-        public string car_number { get; set; }
         /// <summary>
         /// 동
         /// </summary>
@@ -14,12 +13,21 @@ namespace NpmAdapter.Payload
         /// 호
         /// </summary>
         public string ho { get; set; }
+        /// <summary>
+        /// 쿼리 할 자료 총 합계를 count로 나눈 총 page 수 값 중 몇번째 page를 가져올지의 값, 0일경우 전체가져오기
+        /// </summary>
+        public string page { get; set; }
+        /// <summary>
+        /// 쿼리할 자료 수
+        /// </summary>
+        public string count { get; set; }
 
         public void Deserialize(JObject json)
         {
-            car_number = json["car_number"].ToString();
             dong = json["dong"].ToString();
             ho = json["ho"].ToString();
+            page = json["page"].ToString();
+            count = json["count"].ToString();
         }
 
         public byte[] Serialize()
@@ -30,9 +38,10 @@ namespace NpmAdapter.Payload
         public JObject ToJson()
         {
             JObject json = new JObject();
-            json["car_number"] = car_number;
             json["dong"] = dong;
             json["ho"] = ho;
+            json["page"] = page;
+            json["count"] = count;
             return json;
         }
     }

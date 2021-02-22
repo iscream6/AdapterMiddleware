@@ -247,7 +247,7 @@ namespace NpmAdapter.Adapter
         /// <param name="offset"></param>
         /// <param name="size"></param>
         /// <param name="pEvent"></param>
-        private void MyTcpNetwork_ReceiveFromPeer(byte[] buffer, long offset, long size, HttpServer.RequestEventArgs pEvent = null)
+        private void MyTcpNetwork_ReceiveFromPeer(byte[] buffer, long offset, long size, HttpServer.RequestEventArgs pEvent = null, string id = null)
         {
             //Client 연결을 끊어줘야 하나?? 응답 메시지가 뭐가 날라올지 모르겠다....
             //일단 연결을 끊는다.
@@ -262,7 +262,7 @@ namespace NpmAdapter.Adapter
         /// <param name="offset"></param>
         /// <param name="size"></param>
         /// <param name="e"></param>
-        private void MyHttpNetwork_ReceiveFromPeer(byte[] buffer, long offset, long size, HttpServer.RequestEventArgs e = null)
+        private void MyHttpNetwork_ReceiveFromPeer(byte[] buffer, long offset, long size, HttpServer.RequestEventArgs e = null, string id = null)
         {
             lock (lockObj)
             {
@@ -369,18 +369,13 @@ namespace NpmAdapter.Adapter
             }
         }
 
-        public void SendMessage(IPayload payload)
-        {
-
-        }
-
         /// <summary>
         /// Nexpa Adpater로부터 온 Message를 처리한다. JSon임...
         /// </summary>
         /// <param name="buffer"></param>
         /// <param name="offset"></param>
         /// <param name="size"></param>
-        public void SendMessage(byte[] buffer, long offset, long size)
+        public void SendMessage(byte[] buffer, long offset, long size, string pid = null)
         {
             try
             {

@@ -139,7 +139,7 @@ namespace NpmAdapter.Adapter
         /// <param name="buffer"></param>
         /// <param name="offset"></param>
         /// <param name="size"></param>
-        public unsafe void SendMessage(byte[] buffer, long offset, long size)
+        public unsafe void SendMessage(byte[] buffer, long offset, long size, string pid = null)
         {
             List<byte> lstBytes = new List<byte>();
             Log.WriteLog(LogType.Info, "SHT5800Adapter | SendMessage", $"Nexpa Adapter ---> SHT_5800 Adapter =======", LogAdpType.HomeNet);
@@ -265,7 +265,7 @@ namespace NpmAdapter.Adapter
         /// <param name="buffer"></param>
         /// <param name="offset"></param>
         /// <param name="size"></param>
-        private void MyNetwork_ReceiveFromPeer(byte[] buffer, long offset, long size , RequestEventArgs pEvent = null)
+        private void MyNetwork_ReceiveFromPeer(byte[] buffer, long offset, long size , RequestEventArgs pEvent = null, string id = null)
         {
             try
             {

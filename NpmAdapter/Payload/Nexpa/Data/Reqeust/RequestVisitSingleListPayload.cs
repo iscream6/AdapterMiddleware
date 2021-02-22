@@ -3,9 +3,8 @@ using NexpaAdapterStandardLib;
 
 namespace NpmAdapter.Payload
 {
-    class RequestVisitList2Payload : IPayload
+    class RequestVisitSingleListPayload : IPayload
     {
-        public string car_number { get; set; }
         /// <summary>
         /// 동
         /// </summary>
@@ -14,12 +13,13 @@ namespace NpmAdapter.Payload
         /// 호
         /// </summary>
         public string ho { get; set; }
+        public string car_number { get; set; }
 
         public void Deserialize(JObject json)
         {
-            car_number = json["car_number"].ToString();
             dong = json["dong"].ToString();
             ho = json["ho"].ToString();
+            car_number = Helper.NVL(json["car_number"]);
         }
 
         public byte[] Serialize()
@@ -30,9 +30,9 @@ namespace NpmAdapter.Payload
         public JObject ToJson()
         {
             JObject json = new JObject();
-            json["car_number"] = car_number;
             json["dong"] = dong;
             json["ho"] = ho;
+            json["car_number"] = car_number;
             return json;
         }
     }

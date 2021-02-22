@@ -4,6 +4,7 @@ using NexpaAdapterStandardLib;
 using NexpaAdapterStandardLib.Network;
 using NpmAdapter.Payload;
 using System;
+using System.Collections.Generic;
 using System.Text;
 using System.Threading;
 
@@ -11,22 +12,32 @@ namespace NpmAdapter.Adapter
 {
     class KakaoMovilAdapter : IAdapter
     {
-        private const string GET_IONDATA = "getIONData";
-        private const string SET_CUSTINFO = "setCustInfo";
-        private const string DEL_CUSTINFO = "delCustInfo";
-        private const string GET_CUSTINFO = "getCustInfo";
-        private const string GET_ALL_CUSTINFO = "getAllCustInfo";
-        private const string GET_IOSDATA = "getIOSData";
-        private const string SET_RESERVECAR = "setReserveCar";
-        private const string GET_RESERVECAR = "getReserveCar";
-        private const string DEL_RESERVECAR = "delReserveCar";
-        private const string GET_IORESERVE = "getIOReserve";
+        private const string GET_GATESTATUS = "/getGateStatus";
+        private const string GET_IONDATA = "/getIONData";
+        private const string SET_CUSTINFO = "/setCustInfo";
+        private const string DEL_CUSTINFO = "/delCustInfo";
+        private const string GET_CUSTINFO = "/getCustInfo";
+        private const string GET_ALL_CUSTINFO = "/getAllCustInfo";
+        private const string GET_IOSDATA = "/getIOSData";
+        private const string SET_RESERVECAR = "/setReserveCar";
+        private const string GET_RESERVECAR = "/getReserveCar";
+        private const string DEL_RESERVECAR = "/delReserveCar";
+        private const string GET_IORESERVE = "/getIOReserve";
+
+        private const string APT_INCAR_POST = "/v2/car-manager/LPR/in/car/info";
+        private const string APT_OUTCAR_POST = "/v2/car-manager/LPR/out/car/info";
 
         private object lockObj = new object();
+
         private string webport = "42141";
+        private string aptId = "";
+        private string hostDomain = "";
+
+        Dictionary<string, string> dicHeader = new Dictionary<string, string>();
 
         private bool isRun = false;
         private bool bResponseSuccess = false;
+
         private IPayload responsePayload;
         private StringBuilder receiveMessageBuffer = new StringBuilder();
 
@@ -41,13 +52,60 @@ namespace NpmAdapter.Adapter
 
         public bool Initialize()
         {
+            aptId = SysConfig.Instance.ParkId;
+            hostDomain = SysConfig.Instance.HW_Domain;
             webport = SysConfig.Instance.HW_Port;
             HttpNet = NetworkFactory.GetInstance().MakeNetworkControl(NetworkFactory.Adapters.HttpServer, webport);
-            HttpNet.ReceiveFromPeer += HttpServer_ReceiveFromPeer;
+
             return true;
         }
 
-        private void HttpServer_ReceiveFromPeer(byte[] buffer, long offset, long size, HttpServer.RequestEventArgs e = null)
+        public bool StartAdapter()
+        {
+            HttpNet.ReceiveFromPeer += HttpServer_ReceiveFromPeer;
+            isRun = HttpNet.Run();
+
+            if (isRun)
+            {
+                //Access Token을 가져온다. 실패 시 서버가 죽었다고 판단함.
+                try
+                {
+                    dicHeader.Add("token", GetAccessToken());
+                }
+                catch (Exception)
+                {
+                    isRun = false;
+                }
+            }
+
+            return isRun;
+        }
+
+        public bool StopAdapter()
+        {
+            bool bResult = false;
+            try
+            {
+                HttpNet.ReceiveFromPeer -= HttpServer_ReceiveFromPeer;
+                bResult = HttpNet.Down();
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLog(LogType.Error, "KakaoMovilAdapter | StopAdapter", $"{ex.Message}", LogAdpType.HomeNet);
+                return false;
+            }
+            isRun = !bResult;
+            return bResult;
+        }
+
+        /// <summary>
+        /// 카카오 모빌로부터 수신
+        /// </summary>
+        /// <param name="buffer"></param>
+        /// <param name="offset"></param>
+        /// <param name="size"></param>
+        /// <param name="e"></param>
+        private void HttpServer_ReceiveFromPeer(byte[] buffer, long offset, long size, HttpServer.RequestEventArgs e = null, string id = null)
         {
             lock (lockObj)
             {
@@ -55,24 +113,54 @@ namespace NpmAdapter.Adapter
                 {
                     bResponseSuccess = false;
 
-                    JObject json = JObject.Parse(SysConfig.Instance.HomeNet_Encoding.GetString(buffer[..(int)size]));
-                    string urlData = e.Request.Uri.PathAndQuery;
+                    Dictionary<string, string> dicParams = null;
+                    JObject json = null;
 
-                    Log.WriteLog(LogType.Info, $"NPAutoBoothAdapter | MyHttpNetwork_ReceiveFromPeer", $"URL : {urlData}", LogAdpType.Nexpa);
+                    string urlData = e.Request.Uri.LocalPath;
+                    string sMethod = e.Request.Method;
+                    Log.WriteLog(LogType.Info, $"KakaoMovilAdapter | MyHttpNetwork_ReceiveFromPeer", $"METHOD : {sMethod}, URL : {urlData}", LogAdpType.Nexpa);
+
+                    if (sMethod == "GET")
+                    {
+                        dicParams = new Dictionary<string, string>();
+                        foreach (var item in e.Request.Parameters)
+                        {
+                            dicParams.Add(item.Name.ToUpper(), item.Value);
+                        }
+                    }
+                    else
+                    {
+                        json = JObject.Parse(SysConfig.Instance.HomeNet_Encoding.GetString(buffer[..(int)size]));
+                    }
 
                     switch (urlData)
                     {
-                        case GET_IONDATA: //미등록 일반차량 출입 조회
+                        case GET_GATESTATUS: //차단기 상태조회, Alive Check~!
+                            {
+                                MvlResponsePayload payload = new MvlResponsePayload();
+                                payload.resultCode = MvlResponsePayload.SttCode.OK;
+                                payload.resultMessage = "SUCCESS";
+                                payload.responseTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+                                Log.WriteLog(LogType.Info, $"KakaoMovilAdapter | HttpServer_ReceiveFromPeer", $"{GET_GATESTATUS}: {payload.ToJson()}", LogAdpType.HomeNet);
+                                
+                                byte[] result = payload.Serialize();
+                                e.Response.Body.Write(result, 0, result.Length);
+                                return;
+                            }
+                        case GET_IONDATA: //미등록 일반차량 출입 조회(GET)
                             {
                                 RequestSearchIONPayload dataPayload = new RequestSearchIONPayload();
-                                dataPayload.car_number = Helper.NVL(json["Carno"]);
-                                dataPayload.start_date_time = Helper.NVL(json["StartDatetime"]).ConvertDateTimeFormat("yyyy-MM-dd HH:mm:ss", "yyyyMMddHHmmss");
-                                dataPayload.end_date_time = Helper.NVL(json["EndDatetime"]).ConvertDateTimeFormat("yyyy-MM-dd HH:mm:ss", "yyyyMMddHHmmss");
+                                dataPayload.car_number = dicParams.GetValue("CARNO");
+                                dataPayload.start_date_time = dicParams.GetValue("STARTDATETIME").ConvertDateTimeFormat("yyyy-MM-dd HH:mm:ss", "yyyyMMddHHmmss");
+                                dataPayload.end_date_time = dicParams.GetValue("ENDDATETIME").ConvertDateTimeFormat("yyyy-MM-dd HH:mm:ss", "yyyyMMddHHmmss");
 
                                 RequestPayload<RequestSearchIONPayload> payload = new RequestPayload<RequestSearchIONPayload>();
                                 payload.command = CmdType.ion_list;
                                 payload.data = dataPayload;
-                                TargetAdapter.SendMessage(payload);
+                                Log.WriteLog(LogType.Info, $"KakaoMovilAdapter | HttpServer_ReceiveFromPeer", $"{GET_IONDATA}: {payload.ToJson()}", LogAdpType.HomeNet);
+
+                                byte[] responseBuffer = payload.Serialize();
+                                TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);
                             }
                             break;
                         case SET_CUSTINFO: //정기차량 등록
@@ -90,7 +178,10 @@ namespace NpmAdapter.Adapter
                                 RequestPayload<RequestCustRegPayload> payload = new RequestPayload<RequestCustRegPayload>();
                                 payload.command = CmdType.cust_reg;
                                 payload.data = dataPayload;
-                                TargetAdapter.SendMessage(payload);
+                                Log.WriteLog(LogType.Info, $"KakaoMovilAdapter | HttpServer_ReceiveFromPeer", $"{SET_CUSTINFO}: {payload.ToJson()}", LogAdpType.HomeNet);
+
+                                byte[] responseBuffer = payload.Serialize();
+                                TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);
                             }
                             break;
                         case DEL_CUSTINFO: //정기차량 삭제
@@ -104,40 +195,52 @@ namespace NpmAdapter.Adapter
                                 RequestPayload<RequestCustDelPayload> payload = new RequestPayload<RequestCustDelPayload>();
                                 payload.command = CmdType.cust_del;
                                 payload.data = dataPayload;
-                                TargetAdapter.SendMessage(payload);
+                                Log.WriteLog(LogType.Info, $"KakaoMovilAdapter | HttpServer_ReceiveFromPeer", $"{DEL_CUSTINFO}: {payload.ToJson()}", LogAdpType.HomeNet);
+
+                                byte[] responseBuffer = payload.Serialize();
+                                TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);
                             }
                             break;
-                        case GET_CUSTINFO: //정기차량 세대 목록
+                        case GET_CUSTINFO: //정기차량 세대 목록(GET)
                             {
                                 RequestCustListPayload dataPayload = new RequestCustListPayload();
-                                dataPayload.car_number = Helper.NVL(json["Carno"]);
-                                dataPayload.dong = Helper.NVL(json["Dong"]);
-                                dataPayload.ho = Helper.NVL(json["Ho"]);
+                                dataPayload.car_number = dicParams.GetValue("CARNO");
+                                dataPayload.dong = dicParams.GetValue("DONG");
+                                dataPayload.ho = dicParams.GetValue("HO");
 
                                 RequestPayload<RequestCustListPayload> payload = new RequestPayload<RequestCustListPayload>();
                                 payload.command = CmdType.cust_list;
                                 payload.data = dataPayload;
-                                TargetAdapter.SendMessage(payload);
+                                Log.WriteLog(LogType.Info, $"KakaoMovilAdapter | HttpServer_ReceiveFromPeer", $"{GET_CUSTINFO}: {payload.ToJson()}", LogAdpType.HomeNet);
+
+                                byte[] responseBuffer = payload.Serialize();
+                                TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);
                             }
                             break;
-                        case GET_ALL_CUSTINFO: //정기차량 전체 목록
+                        case GET_ALL_CUSTINFO: //정기차량 전체 목록(GET)
                             {
                                 RequestEmptyPayload payload = new RequestEmptyPayload();
                                 payload.command = CmdType.cust_list;
-                                TargetAdapter.SendMessage(payload);
+                                Log.WriteLog(LogType.Info, $"KakaoMovilAdapter | HttpServer_ReceiveFromPeer", $"{GET_ALL_CUSTINFO}: {payload.ToJson()}", LogAdpType.HomeNet);
+
+                                byte[] responseBuffer = payload.Serialize();
+                                TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);
                             }
                             break;
-                        case GET_IOSDATA: //정기차량 출입조회
+                        case GET_IOSDATA: //정기차량 출입조회(GET)
                             {
                                 RequestSearchIONPayload dataPayload = new RequestSearchIONPayload();
-                                dataPayload.car_number = Helper.NVL(json["Carno"]);
-                                dataPayload.start_date_time = Helper.NVL(json["StartDatetime"]).ConvertDateTimeFormat("yyyy-MM-dd HH:mm:ss", "yyyyMMddHHmmss");
-                                dataPayload.end_date_time = Helper.NVL(json["EndDatetime"]).ConvertDateTimeFormat("yyyy-MM-dd HH:mm:ss", "yyyyMMddHHmmss");
+                                dataPayload.car_number = dicParams.GetValue("CARNO");
+                                dataPayload.start_date_time = dicParams.GetValue("STARTDATETIME").ConvertDateTimeFormat("yyyy-MM-dd HH:mm:ss", "yyyyMMddHHmmss");
+                                dataPayload.end_date_time = dicParams.GetValue("ENDDATETIME").ConvertDateTimeFormat("yyyy-MM-dd HH:mm:ss", "yyyyMMddHHmmss");
 
                                 RequestPayload<RequestSearchIONPayload> payload = new RequestPayload<RequestSearchIONPayload>();
-                                payload.command = CmdType.ios_list;
+                                payload.command = CmdType.cust_io_list;
                                 payload.data = dataPayload;
-                                TargetAdapter.SendMessage(payload);
+                                Log.WriteLog(LogType.Info, $"KakaoMovilAdapter | HttpServer_ReceiveFromPeer", $"{GET_IOSDATA}: {payload.ToJson()}", LogAdpType.HomeNet);
+
+                                byte[] responseBuffer = payload.Serialize();
+                                TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);
                             }
                             break;
                         case SET_RESERVECAR: //방문신청차량 등록
@@ -156,20 +259,26 @@ namespace NpmAdapter.Adapter
                                 RequestPayload<RequestVisitRegPayload> payload = new RequestPayload<RequestVisitRegPayload>();
                                 payload.command = CmdType.visit_reg;
                                 payload.data = dataPayload;
-                                TargetAdapter.SendMessage(payload);
+                                Log.WriteLog(LogType.Info, $"KakaoMovilAdapter | HttpServer_ReceiveFromPeer", $"{SET_RESERVECAR}: {payload.ToJson()}", LogAdpType.HomeNet);
+
+                                byte[] responseBuffer = payload.Serialize();
+                                TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);
                             }
                             break;
-                        case GET_RESERVECAR: //방문신청차량 목록
+                        case GET_RESERVECAR: //방문신청차량 목록(GET)
                             {
                                 RequestVisitSingleListPayload dataPayload = new RequestVisitSingleListPayload();
-                                dataPayload.car_number = Helper.NVL(json["Carno"]);
-                                dataPayload.dong = Helper.NVL(json["Dong"]);
-                                dataPayload.ho = Helper.NVL(json["Ho"]);
+                                dataPayload.car_number = dicParams.GetValue("CARNO"); 
+                                dataPayload.dong = dicParams.GetValue("DONG"); 
+                                dataPayload.ho = dicParams.GetValue("HO"); 
 
                                 RequestPayload<RequestVisitSingleListPayload> payload = new RequestPayload<RequestVisitSingleListPayload>();
                                 payload.command = CmdType.visit_single_list;
                                 payload.data = dataPayload;
-                                TargetAdapter.SendMessage(payload);
+                                Log.WriteLog(LogType.Info, $"KakaoMovilAdapter | HttpServer_ReceiveFromPeer", $"{GET_RESERVECAR}: {payload.ToJson()}", LogAdpType.HomeNet);
+
+                                byte[] responseBuffer = payload.Serialize();
+                                TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);
                             }
                             break;
                         case DEL_RESERVECAR: //방문신청차량 삭제
@@ -183,20 +292,26 @@ namespace NpmAdapter.Adapter
                                 RequestPayload<RequestVisitDelPayload> payload = new RequestPayload<RequestVisitDelPayload>();
                                 payload.command = CmdType.visit_del;
                                 payload.data = dataPayload;
-                                TargetAdapter.SendMessage(payload);
+                                Log.WriteLog(LogType.Info, $"KakaoMovilAdapter | HttpServer_ReceiveFromPeer", $"{DEL_RESERVECAR}: {payload.ToJson()}", LogAdpType.HomeNet);
+
+                                byte[] responseBuffer = payload.Serialize();
+                                TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);
                             }
                             break;
-                        case GET_IORESERVE: //방문신청차량 출입 조회
+                        case GET_IORESERVE: //방문신청차량 출입 조회(GET)
                             {
                                 RequestVisitSingleIOPayload dataPayload = new RequestVisitSingleIOPayload();
-                                dataPayload.dong = Helper.NVL(json["Dong"]);
-                                dataPayload.ho = Helper.NVL(json["Ho"]);
-                                dataPayload.car_number = Helper.NVL(json["Carno"]);
+                                dataPayload.dong = dicParams.GetValue("DONG");
+                                dataPayload.ho = dicParams.GetValue("HO");
+                                dataPayload.car_number = dicParams.GetValue("CARNO");
 
                                 RequestPayload<RequestVisitSingleIOPayload> payload = new RequestPayload<RequestVisitSingleIOPayload>();
                                 payload.command = CmdType.visit_single_io;
                                 payload.data = dataPayload;
-                                TargetAdapter.SendMessage(payload);
+                                Log.WriteLog(LogType.Info, $"KakaoMovilAdapter | HttpServer_ReceiveFromPeer", $"{GET_IORESERVE}: {payload.ToJson()}", LogAdpType.HomeNet);
+
+                                byte[] responseBuffer = payload.Serialize();
+                                TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);
                             }
                             break;
                         default:
@@ -209,6 +324,7 @@ namespace NpmAdapter.Adapter
                                 MvlResponsePayload payload = new MvlResponsePayload();
                                 payload.resultCode = MvlResponsePayload.SttCode.NotSupportedMethod;
                                 payload.resultMessage = "지원하지 않는 http 메소드 입니다";
+                                payload.responseTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
                                 byte[] result = payload.Serialize();
                                 e.Response.Body.Write(result, 0, result.Length);
                                 return;
@@ -232,42 +348,132 @@ namespace NpmAdapter.Adapter
                     {
                         MvlResponsePayload payload = new MvlResponsePayload();
                         payload.resultCode = MvlResponsePayload.SttCode.NotSupportedMethod;
-                        payload.resultMessage = "지원하지 않는 http 메소드 입니다";
+                        payload.resultMessage = "주차 시스템으로 부터 응답이 없습니다";
+                        payload.responseTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
                         byte[] result = payload.Serialize();
                         e.Response.Body.Write(result, 0, result.Length);
                     }
                 }
                 catch (Exception)
                 {
-
+                    MvlResponsePayload payload = new MvlResponsePayload();
+                    payload.resultCode = MvlResponsePayload.SttCode.InternalServerError;
+                    payload.resultMessage = MvlResponsePayload.SttCode.InternalServerError.GetDescription();
+                    payload.responseTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+                    byte[] result = payload.Serialize();
+                    e.Response.Body.Write(result, 0, result.Length);
                 }
             }
         }
 
-        public void SendMessage(IPayload payload)
+        private void Test()
         {
-            //Do Nothing
+            //Test
+            JObject responseTest = new JObject();
+            responseTest["command"] = "cust_reg";
+            JObject responseDataTest = new JObject();
+            responseDataTest["park_no"] = "1";
+            responseDataTest["reg_no"] = "12345";
+            responseDataTest["car_number"] = "11가1111";
+            responseDataTest["type"] = "1";
+            responseTest["data"] = responseDataTest;
+            JObject responseResultTest = new JObject();
+            responseResultTest["status"] = "200";
+            responseResultTest["message"] = "OK";
+            responseTest["result"] = responseResultTest;
+
+            byte[] test = responseTest.ToByteArray(SysConfig.Instance.Nexpa_Encoding);
+            this.SendMessage(test, 0, test.Length);
         }
 
-        public void SendMessage(byte[] buffer, long offset, long size)
+        /// <summary>
+        /// Nexpa 관제로부터 수신
+        /// </summary>
+        /// <param name="buffer"></param>
+        /// <param name="offset"></param>
+        /// <param name="size"></param>
+        public void SendMessage(byte[] buffer, long offset, long size, string pid = null)
         {
             receiveMessageBuffer.Append(buffer.ToString(SysConfig.Instance.Nexpa_Encoding, size));
             var jobj = JObject.Parse(receiveMessageBuffer.ToString());
             Thread.Sleep(10);
             receiveMessageBuffer.Clear();
 
-            Log.WriteLog(LogType.Info, $"AptStAdapter | SendMessage", $"넥스파에서 받은 메시지 : {jobj}", LogAdpType.HomeNet);
+            Log.WriteLog(LogType.Info, $"KakaoMovilAdapter | SendMessage", $"넥스파에서 받은 메시지 : {jobj}", LogAdpType.HomeNet);
             JObject data = jobj["data"] as JObject; //응답 데이터
 
             //결과 Payload 생성 =======
             JObject result = jobj["result"] as JObject; //응답 결과
             ResultPayload resultPayload = result.GetResultPayload();
 
-            if(resultPayload.code == "200")
+            if (resultPayload.code == "200")
             {
                 string cmd = jobj["command"].ToString();
                 switch ((CmdType)Enum.Parse(typeof(CmdType), cmd))
                 {
+                    case CmdType.alert_incar:
+                    case CmdType.alert_outcar:
+                        {
+                            RequestPayload<AlertInOutCarPayload> payload = new RequestPayload<AlertInOutCarPayload>();
+                            payload.Deserialize(jobj);
+                            {
+                                Uri uri = null;
+                                byte[] requestData;
+
+                                if (payload.command == CmdType.alert_incar)
+                                {
+                                    uri = new Uri(string.Concat(hostDomain, APT_INCAR_POST));
+                                }
+                                else
+                                {
+                                    uri = new Uri(string.Concat(hostDomain, APT_OUTCAR_POST));
+                                }
+
+                                RequestEzInOutCarPayload ioPayload = new RequestEzInOutCarPayload(payload.command)
+                                {
+                                    apt_idx = aptId,
+                                    car_number = payload.data.car_number,
+                                    date = payload.data.date_time
+                                };
+                                Log.WriteLog(LogType.Info, $"KakaoMovilAdapter | SendMessage", $"{ioPayload.ToJson()}", LogAdpType.HomeNet);
+
+                                requestData = ioPayload.Serialize();
+
+                                string responseData = string.Empty;
+                                string responseHeader = string.Empty;
+
+                                if (NetworkWebClient.Instance.SendData(uri, NetworkWebClient.RequestType.POST, ContentType.Json, requestData, ref responseData, ref responseHeader, header: dicHeader))
+                                {
+                                    try
+                                    {
+                                        Log.WriteLog(LogType.Info, "KakaoMovilAdapter | SendMessage | WebClientResponse", $"==응답== {responseData}", LogAdpType.Nexpa);
+                                        ResponsePayload responsePayload = new ResponsePayload();
+                                        byte[] responseBuffer;
+
+                                        var responseJobj = JObject.Parse(responseData);
+                                        if (responseJobj != null && Helper.NVL(responseJobj["code"]) == "0000")
+                                        {
+                                            responsePayload.command = payload.command;
+                                            responsePayload.result = ResultType.OK;
+                                            responseBuffer = responsePayload.Serialize();
+                                        }
+                                        else
+                                        {
+                                            responsePayload.command = payload.command;
+                                            responsePayload.result = ResultType.ExceptionERROR;
+                                            responseBuffer = responsePayload.Serialize();
+                                        }
+
+                                        TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        Log.WriteLog(LogType.Error, "NexpaTcpAdapter | RequestUDO_LocationMap", $"{ex.Message}", LogAdpType.Nexpa);
+                                    }
+                                }
+                            }
+                        }
+                        break;
                     case CmdType.ion_list:
                         {
                             MvlValuePayload<MvlIONDataPayload> payload = new MvlValuePayload<MvlIONDataPayload>();
@@ -304,7 +510,14 @@ namespace NpmAdapter.Adapter
                             if (data != null && data.HasValues)
                             {
                                 payload.carNo = Helper.NVL(data["car_number"]);
-                                payload.enrollType = MvlSingleCustInfoPayload.EnrollType.New;
+                                if(Helper.NVL(data["car_number"]) == "1" || Helper.NVL(data["car_number"]) == "")
+                                {
+                                    payload.enrollType = MvlSingleCustInfoPayload.EnrollType.New;
+                                }
+                                else
+                                {
+                                    payload.enrollType = MvlSingleCustInfoPayload.EnrollType.Modify;
+                                }
                                 payload.tkNo = Helper.NVL(data["reg_no"]);
                             }
 
@@ -338,6 +551,8 @@ namespace NpmAdapter.Adapter
                                     foreach (JObject item in list)
                                     {
                                         MvlCustInfoPayload dataPayload = new MvlCustInfoPayload();
+                                        dataPayload.tkNo = Helper.NVL(item["reg_no"]);
+                                        dataPayload.groupNo = ""; //Optional
                                         dataPayload.carNo = Helper.NVL(item["car_number"]);
                                         dataPayload.dong = Helper.NVL(item["dong"]);
                                         dataPayload.ho = Helper.NVL(item["ho"]);
@@ -492,22 +707,48 @@ namespace NpmAdapter.Adapter
             }
         }
 
-        public bool StartAdapter()
-        {
-
-            isRun = true;
-            return isRun;
-        }
-
-        public bool StopAdapter()
-        {
-
-            isRun = false; 
-            return isRun;
-        }
-
         public void TestReceive(byte[] buffer)
         {
+            
+        }
+
+        private string GetAccessToken()
+        {
+            //개발 - https://dev-openapi.themovill.com/facility/parking/oauth2/token
+            //운영 - https://openapi.themovill.com/facility/parking/oauth2/token
+            string id = SysConfig.Instance.HC_Id;
+            string secret = SysConfig.Instance.HC_Pw;
+            string authDomain = SysConfig.Instance.HW_Domain2;
+            Uri uri = new Uri(authDomain);
+
+            //Response Valiable
+            string accessToken = string.Empty;
+            string responseData = string.Empty;
+            string responseHeader = string.Empty;
+
+            try
+            {
+                //Request
+                string postMessage = "grant_type=client_credentials&scope=read";
+                Dictionary<string, string> dicAccHeader = new Dictionary<string, string>();
+                string auth = $"{id}:{secret}";
+                string authHeader = $"Basic {auth.Base64Encode()}";
+                dicAccHeader.Add("Authorization", authHeader);
+                Log.WriteLog(LogType.Info, "KakaoMovilAdapter | GetAccessToken", $"인증토큰 : {authHeader}", LogAdpType.HomeNet);
+
+                if (NetworkWebClient.Instance.SendData(uri, NetworkWebClient.RequestType.POST, ContentType.FormData, SysConfig.Instance.HomeNet_Encoding.GetBytes(postMessage), ref responseData, ref responseHeader, header: dicAccHeader))
+                {
+                    JObject jobj = JObject.Parse(responseData);
+                    accessToken = Helper.NVL(jobj["access_token"]);
+                }
+
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLog(LogType.Error, "KakaoMovilAdapter | GetAccessToken", $"Exception Message : {ex.Message}", LogAdpType.HomeNet);
+            }
+
+            return accessToken;
         }
     }
 }

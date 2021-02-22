@@ -46,7 +46,7 @@ namespace NexpaAdapterStandardLib.Network
         /// <param name="buffer"></param>
         /// <param name="offset"></param>
         /// <param name="size"></param>
-        public void SendToPeer(byte[] buffer, long offset, long size)
+        public void SendToPeer(byte[] buffer, long offset, long size, string id = null)
         {
             Send(buffer);
         }

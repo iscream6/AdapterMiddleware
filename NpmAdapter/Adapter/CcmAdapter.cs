@@ -117,7 +117,7 @@ namespace NpmAdapter.Adapter
 
         }
 
-        public void SendMessage(byte[] buffer, long offset, long size)
+        public void SendMessage(byte[] buffer, long offset, long size, string pid = null)
         {
             var jobj = JObject.Parse(buffer.ToString(SysConfig.Instance.Nexpa_Encoding, size));
 
@@ -135,7 +135,7 @@ namespace NpmAdapter.Adapter
             }
         }
 
-        private void MyTcpNetwork_ReceiveFromPeer(byte[] buffer, long offset, long size, HttpServer.RequestEventArgs pEvent = null)
+        private void MyTcpNetwork_ReceiveFromPeer(byte[] buffer, long offset, long size, HttpServer.RequestEventArgs pEvent = null, string id = null)
         {
             
         }

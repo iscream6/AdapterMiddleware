@@ -1,25 +1,22 @@
-﻿using Newtonsoft.Json.Linq;
-using NexpaAdapterStandardLib;
+﻿using NexpaAdapterStandardLib;
+using Newtonsoft.Json.Linq;
 
 namespace NpmAdapter.Payload
 {
-    class RequestVisitList2Payload : IPayload
+    class RequestVisitDel2Payload : IPayload
     {
-        public string car_number { get; set; }
-        /// <summary>
-        /// 동
-        /// </summary>
         public string dong { get; set; }
-        /// <summary>
-        /// 호
-        /// </summary>
         public string ho { get; set; }
+        /// <summary>
+        /// 차량번호
+        /// </summary>
+        public string car_number { get; set; }
 
         public void Deserialize(JObject json)
         {
-            car_number = json["car_number"].ToString();
-            dong = json["dong"].ToString();
-            ho = json["ho"].ToString();
+            dong = Helper.NVL(json["dong"]);
+            ho = Helper.NVL(json["ho"]);
+            car_number = Helper.NVL(json["car_number"]);
         }
 
         public byte[] Serialize()
@@ -31,8 +28,6 @@ namespace NpmAdapter.Payload
         {
             JObject json = new JObject();
             json["car_number"] = car_number;
-            json["dong"] = dong;
-            json["ho"] = ho;
             return json;
         }
     }

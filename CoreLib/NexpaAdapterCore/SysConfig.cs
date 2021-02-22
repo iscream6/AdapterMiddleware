@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 // [ 작성일  ]  [ Version ]   [             변경 내용             ]
@@ -16,11 +17,12 @@ using System.Text;
 // 2020-11-24   Cn0201124.1   [Etc_Config] 추가, AptId 추가
 //              Cn0201124.2   [Etc_Config] -> ParkId 추가
 //              Cn0201124.3   [Etc_Config] -> AuthToken 추가
+// 2021-02-02   Cn0210202.1   [Nexpa_Config] -> WebIP 추가
 namespace NexpaAdapterStandardLib
 {
     public class SysConfig : Singleton<SysConfig>
     {
-        public readonly string ConfigVersion = "Cn0201124.3";
+        public readonly string ConfigVersion = "Cn0210202.1";
 
         private const string config = "config";
 
@@ -74,6 +76,10 @@ namespace NexpaAdapterStandardLib
         /// 넥스파 Web 포트
         /// </summary>
         public string Nexpa_WebPort { get; private set; }
+        /// <summary>
+        /// 넥스파 Web IP
+        /// </summary>
+        public string Nexpa_WebDomain { get; private set; }
         /// <summary>
         /// 넥스파 유도 WebSocket IP or URL...
         /// </summary>
@@ -132,7 +138,8 @@ namespace NexpaAdapterStandardLib
         /// HomeNet Web Domain
         /// </summary>
         public string HW_Domain { get; private set; }
-        
+        public string HW_Domain2 { get; private set; }
+
         #endregion
 
         #region HomeNet_TcpConfig
@@ -189,6 +196,7 @@ namespace NexpaAdapterStandardLib
 
             Nexpa_TcpPort = ConfigManager.ReadConfig(config, Sections.NexpaConfig.GetDescription(), "TcpPort");
             Nexpa_WebPort = ConfigManager.ReadConfig(config, Sections.NexpaConfig.GetDescription(), "WebPort");
+            Nexpa_WebDomain = ConfigManager.ReadConfig(config, Sections.NexpaConfig.GetDescription(), "WebDomain");
             Nexpa_UWebIP = ConfigManager.ReadConfig(config, Sections.NexpaConfig.GetDescription(), "UWebIP");
             Nexpa_UWebPort = ConfigManager.ReadConfig(config, Sections.NexpaConfig.GetDescription(), "UWebPort");
             Nexpa_EncodCd = ConfigManager.ReadConfig(config, Sections.NexpaConfig.GetDescription(), "Encoding");
@@ -203,6 +211,7 @@ namespace NexpaAdapterStandardLib
             HS_Parity = ConfigManager.ReadConfig(config, Sections.HomeNetConfig.GetDescription(), "Serial_Parity");
             HW_Port = ConfigManager.ReadConfig(config, Sections.HomeNetConfig.GetDescription(), "Web_Port");
             HW_Domain = ConfigManager.ReadConfig(config, Sections.HomeNetConfig.GetDescription(), "Web_Domain");
+            HW_Domain2 = ConfigManager.ReadConfig(config, Sections.HomeNetConfig.GetDescription(), "Web_Domain2");
             HT_IP = ConfigManager.ReadConfig(config, Sections.HomeNetConfig.GetDescription(), "Tcp_IP");
             HT_Port = ConfigManager.ReadConfig(config, Sections.HomeNetConfig.GetDescription(), "Tcp_Port");
             HT_MyPort = ConfigManager.ReadConfig(config, Sections.HomeNetConfig.GetDescription(), "My_Port");
@@ -265,8 +274,16 @@ namespace NexpaAdapterStandardLib
             {
                 case "D":
                     return Encoding.Default;
+                case "7":
+                    return Encoding.UTF7;
                 case "8":
                     return Encoding.UTF8;
+                case "32":
+                    return Encoding.UTF32;
+                case "A":
+                    return Encoding.ASCII;
+                case "U":
+                    return Encoding.Unicode;
                 case "kr":
                     int iEuckr = 51949;
                     Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);

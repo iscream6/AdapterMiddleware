@@ -31,7 +31,7 @@ namespace NexpaAdapterStandardLib.Network
             {
                 string message = Encoding.Default.GetString(buffer, (int)offset, (int)size);
                 Log.WriteLog(LogType.Info, $"TcpNetworkSession | OnReceived", $"Incoming : {message}");
-                receiveAction?.Invoke(buffer, offset, size);
+                receiveAction?.Invoke(buffer, offset, size, Id);
             }
             catch (Exception ex)
             {

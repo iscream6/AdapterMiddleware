@@ -13,8 +13,16 @@ namespace NexpaAdapterStandardLib
     {
         [Description("D")]
         Default,
+        [Description("A")]
+        ASCII,
+        [Description("U")]
+        UNICODE,
+        [Description("7")]
+        UTF7,
         [Description("8")]
         UTF8,
+        [Description("32")]
+        UTF32,
         [Description("kr")]
         EUC_KR
     }
@@ -52,7 +60,15 @@ namespace NexpaAdapterStandardLib
         [Description("SMTV")]
         SmartVillage,
         [Description("SML")]
-        Samul
+        Samul,
+        [Description("KKM")]
+        KakaoMovil,
+        [Description("EZV")]
+        ezVille,
+        [Description("USN")]
+        Ulsan,
+        [Description("UJA")]
+        UjungAir,
     }
 
     public static class StdHelper

@@ -108,6 +108,18 @@ namespace NpmAdapter
                     case HomeNetAdapterType.Samul: //샘물
                         homenet = new SamulAdapter();
                         break;
+                    case HomeNetAdapterType.ezVille:
+                        homenet = new EzvAdapter();
+                        break;
+                    case HomeNetAdapterType.KakaoMovil:
+                        homenet = new KakaoMovilAdapter();
+                        break;
+                    case HomeNetAdapterType.Ulsan:
+                        homenet = new ULSNServerAdapter();
+                        break;
+                    case HomeNetAdapterType.UjungAir:
+                        homenet = new UJAirAdapter();
+                        break;
                     default:
                         homenet = null;
                         break;
