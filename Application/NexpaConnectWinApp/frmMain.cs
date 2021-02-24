@@ -530,11 +530,12 @@ namespace NexpaConnectWinApp
         private void timerDeath_Tick(object sender, EventArgs e)
         {
             //새벽 4시가 되면...스스로 죽는다...
-            DateTime deathTime = new DateTime(DateTime.Now.Year, DateTime.Now.Month, DateTime.Now.Day, 4, 0, 0);
+            string time = DateTime.Now.ToString("yyyyMMddHHmmss");
 
-            int result = DateTime.Compare(DateTime.Now, deathTime);
-            if(result == 0)
+            if (time.Substring(8, 4) == "0401")
             {
+                Log.WriteLog(LogType.Info, $"frmMain | timerDeath_Tick", $"프로그램 자동 종료 : {time}", LogAdpType.Nexpa);
+
                 //죽자
                 isShutdown = true;
                 this.Close();

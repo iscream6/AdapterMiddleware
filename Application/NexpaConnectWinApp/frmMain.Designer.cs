@@ -577,7 +577,7 @@
             // 
             // timerDeath
             // 
-            this.timerDeath.Interval = 20;
+            this.timerDeath.Interval = 3000;
             this.timerDeath.Tick += new System.EventHandler(this.timerDeath_Tick);
             // 
             // picBtnHide
