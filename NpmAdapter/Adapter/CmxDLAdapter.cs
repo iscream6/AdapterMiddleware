@@ -2,18 +2,14 @@
 using Newtonsoft.Json.Linq;
 using NexpaAdapterStandardLib;
 using NexpaAdapterStandardLib.Network;
-using NLog.Targets;
 using NpmAdapter.Payload;
 using NpmAdapter.Payload.CommaxDaelim.Response;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.IO;
 using System.Net.NetworkInformation;
-using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 using System.Xml;
 
 namespace NpmAdapter.Adapter
@@ -408,6 +404,7 @@ namespace NpmAdapter.Adapter
                             //동호가 없으면 PASS시킨다.
                             if(payload.data == null || payload.data.dong == null || payload.data.ho == null || payload.data.dong == "" || payload.data.ho == "")
                             {
+                                MyTcpNetwork.Down();
                                 ResponsePayload resultPayload = new ResponsePayload();
                                 resultPayload.command = payload.command;
                                 resultPayload.result = ResultType.FailFormatError;
@@ -485,14 +482,13 @@ namespace NpmAdapter.Adapter
                                 //코맥스 대림 TCP로 Data를 전송한다.
                                 MyTcpNetwork.SendToPeer(dataBytes, 0, dataBytes.Length);
                                 Log.WriteLog(LogType.Info, $"CmxDLAdapter | SendMessage", $"전송완료", LogAdpType.HomeNet);
+                                MyTcpNetwork.Down();
                                 //넥스파로 잘 받았다고 응답처리하자.
                                 ResponsePayload resultPayload = new ResponsePayload();
                                 resultPayload.command = payload.command;
                                 resultPayload.result = ResultType.OK;
                                 byte[] result = resultPayload.Serialize();
-                                
                                 TargetAdapter.SendMessage(result, 0, result.Length);
-                                MyTcpNetwork.Down();
                             }
                         }
                         else

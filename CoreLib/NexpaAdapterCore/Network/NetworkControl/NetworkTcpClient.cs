@@ -1,12 +1,13 @@
 ﻿using NetworkCore;
 using System;
 using System.Collections.Generic;
+using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 
 namespace NexpaAdapterStandardLib.Network
 {
-    class NetworkTcpClient : TcpClient, INetwork
+    class NetworkTcpClient : NetworkCore.TcpClient, INetwork
     {
         public Action OnConnectionAction { get; set; }
         public event SendToPeer ReceiveFromPeer;
@@ -37,7 +38,14 @@ namespace NexpaAdapterStandardLib.Network
             {
                 Disconnect();
             }
+
             return Connect();
+        }
+
+        protected override void OnError(SocketError error)
+        {
+            base.OnError(error);
+            Log.WriteLog(LogType.Info, "TcpClientNetwork| OnError", $"Error : {error.ToString()}");
         }
 
         /// <summary>
