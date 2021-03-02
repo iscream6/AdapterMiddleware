@@ -105,7 +105,6 @@ namespace NpmAdapter.Adapter
 			return true;
 		}
 
-		private GovInterfaceModel gov;
 		public void TestReceive(byte[] buffer)
 		{
 			string strMawb = "98811111112";
