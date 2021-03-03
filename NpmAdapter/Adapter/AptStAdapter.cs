@@ -67,11 +67,6 @@ namespace NpmAdapter.Adapter
             return true;
         }
 
-        public void SendMessage(IPayload payload)
-        {
-            
-        }
-
         public void SendMessage(byte[] buffer, long offset, long size, string pid = null)
         {
             try
@@ -385,6 +380,22 @@ namespace NpmAdapter.Adapter
                             Log.WriteLog(LogType.Info, $"AptStAdapter | MyHttpNetwork_ReceiveFromPeer", $"{responsePayload.ToJson()}", LogAdpType.HomeNet);
                         }
                         break;
+                    case CmdType.remain_point:
+                        {
+                            ResponseCmdRemainPointData dataPayload = new ResponseCmdRemainPointData();
+                            dataPayload.point = data.NPGetValue(NPElements.Point);
+                            
+                            responsePayload.data = dataPayload;
+
+                            if (resultPayload != null)
+                            {
+                                responsePayload.result = resultPayload;
+                            }
+
+                            bResponseSuccess = true;
+                            Log.WriteLog(LogType.Info, $"AptStAdapter | MyHttpNetwork_ReceiveFromPeer", $"{responsePayload.ToJson()}", LogAdpType.HomeNet);
+                        }
+                        break;
                 }
             }
             catch (Exception ex)
@@ -437,7 +448,7 @@ namespace NpmAdapter.Adapter
                     e.Response.Status = System.Net.HttpStatusCode.BadRequest;
                     e.Response.Reason = "Bad Request";
 
-                    //에러 메시지를 만들어 대림으로 보낸다.
+                    //에러 메시지를 만들어 보낸다.
                     CmdHeader responseHeader = new CmdHeader();
                     responseHeader.Deserialize(json["header"] as JObject);
                     responsePayload.header = responseHeader;
@@ -452,15 +463,124 @@ namespace NpmAdapter.Adapter
                     e.Response.Connection.Type = ConnectionType.Close;
                     e.Response.ContentType = new ContentTypeHeader("application/json;charset=UTF-8");
                     e.Response.Reason = "OK";
+                    
+                    string sMethod = e.Request.Method;
+                    if (sMethod == "GET")
+                    {
+                        Dictionary<string, string> dicParams = new Dictionary<string, string>();
+                        foreach (var item in e.Request.Parameters)
+                        {
+                            dicParams.Add(item.Name.ToUpper(), item.Value);
+                        }
 
-                    //IPayload response = RequestToNexpa(json);
-                    Log.WriteLog(LogType.Info, $"AptStAdapter | MyHttpNetwork_ReceiveFromPeer", $"#=#=#=#=#=#=# \r\n Receive JSON : {json} \r\n #=#=#=#=#=#=#", LogAdpType.HomeNet);
-                    RequestToNexpa(json);
-                    byte[] result = responsePayload.Serialize();
-                    Log.WriteLog(LogType.Info, $"AptStAdapter | MyHttpNetwork_ReceiveFromPeer", $"#=#=#=#=#=#=# \r\n Send JSON : {responsePayload.ToJson()} \r\n #=#=#=#=#=#=#", LogAdpType.HomeNet);
-                    //응답을 보낸다.
-                    e.Response.Body.Write(result, 0, result.Length);
+                        if(dicParams.Count == 0)
+                        {
+                            //에러 메시지를 만들어 보낸다.
+                            JObject jResult = new JObject();
+                            JObject jErr = new JObject();
+                            JObject jData = new JObject();
 
+                            jErr["code"] = 404;
+                            jErr["message"] = "변수값이 유효하지 않습니다.";
+                            jData["remaining_time"] = -1;
+                            jData["unit"] = "";
+
+                            jResult["error"] = jErr;
+                            jResult["data"] = jData;
+
+                            byte[] result = jResult.ToByteArray(SysConfig.Instance.HomeNet_Encoding);
+                            e.Response.Encoding = SysConfig.Instance.HomeNet_Encoding;
+                            e.Response.ContentType = new ContentTypeHeader("application/json");
+                            e.Response.Body.Write(result, 0, result.Length);
+                        }
+                        else
+                        {
+                            //param list : apt_id, dong, ho 
+                            //apt_id는 무시하자...
+                            RequestPayload<RequestCarInfoPayload> payload = new RequestPayload<RequestCarInfoPayload>();
+                            payload.command = CmdType.remain_point;
+
+                            RequestCarInfoPayload data = new RequestCarInfoPayload();
+                            data.dong = dicParams.GetValue("DONG");
+                            data.ho = dicParams.GetValue("HO");
+                            payload.data = data;
+
+                            byte[] sendMsg = payload.Serialize();
+                            TargetAdapter.SendMessage(sendMsg, 0, sendMsg.Length);
+
+                            int iSec = 5 * 100; //10초
+                            while (iSec > 0 && !bResponseSuccess)
+                            {
+                                Thread.Sleep(10); //0.01초씩..쉰다...
+                                iSec -= 1;
+                            }
+
+                            if (bResponseSuccess) //응답성공
+                            {
+                                JObject jRemain = responsePayload.data.ToJson();
+                                ResultPayload objResult = responsePayload.result;
+                                
+                                JObject jResult = new JObject();
+                                JObject jErr = new JObject();
+                                JObject jData = new JObject();
+
+                                if(objResult.code == "200")
+                                {
+                                    jErr["code"] = 0;
+                                    jErr["message"] = "";
+                                    int iTime = 0;
+                                    int.TryParse(Helper.NVL(jRemain["point"], "0"), out iTime);
+                                    jData["remaining_time"] = iTime;
+                                    jData["unit"] = "m";
+                                }
+                                else
+                                {
+                                    int iCode = 0;
+                                    int.TryParse(objResult.code, out iCode);
+                                    jErr["code"] = iCode;
+                                    jErr["message"] = objResult.message;
+                                    jData["remaining_time"] = -1;
+                                    jData["unit"] = "";
+                                }
+                                jResult["error"] = jErr;
+                                jResult["data"] = jData;
+
+                                byte[] result = jResult.ToByteArray(SysConfig.Instance.HomeNet_Encoding);
+                                e.Response.Encoding = SysConfig.Instance.HomeNet_Encoding;
+                                e.Response.ContentType = new ContentTypeHeader("application/json");
+                                e.Response.Body.Write(result, 0, result.Length);
+                            }
+                            else
+                            {
+                                JObject jResult = new JObject();
+                                JObject jErr = new JObject();
+                                JObject jData = new JObject();
+                                
+                                jErr["code"] = 404;
+                                jErr["message"] = "주차 시스템으로 부터 응답이 없습니다";
+                                jData["remaining_time"] = -1;
+                                jData["unit"] = "";
+
+                                jResult["error"] = jErr;
+                                jResult["data"] = jData;
+
+                                byte[] result = jResult.ToByteArray(SysConfig.Instance.HomeNet_Encoding);
+                                e.Response.Encoding = SysConfig.Instance.HomeNet_Encoding;
+                                e.Response.ContentType = new ContentTypeHeader("application/json");
+                                e.Response.Body.Write(result, 0, result.Length);
+                            }
+                        }
+                    }
+                    else 
+                    {
+                        Log.WriteLog(LogType.Info, $"AptStAdapter | MyHttpNetwork_ReceiveFromPeer", $"#=#=#=#=#=#=# \r\n Receive JSON : {json} \r\n #=#=#=#=#=#=#", LogAdpType.HomeNet);
+                        RequestToNexpa(json);
+
+                        byte[] result = responsePayload.Serialize();
+                        Log.WriteLog(LogType.Info, $"AptStAdapter | MyHttpNetwork_ReceiveFromPeer", $"#=#=#=#=#=#=# \r\n Send JSON : {responsePayload.ToJson()} \r\n #=#=#=#=#=#=#", LogAdpType.HomeNet);
+                        //응답을 보낸다.
+                        e.Response.Body.Write(result, 0, result.Length);
+                    }
                 }
             }
         }

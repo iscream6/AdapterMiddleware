@@ -19,7 +19,7 @@ Body
       "date_time" : "yyyyMMddHHmmss",
       "kind" : "a/v", //a:세대원, v:방문객, n:일반차량
       "lprid" : "Lpr 식별 번호",
-      "car_image" : "차량 이미지 경로" //미들웨어에서도 이미지를 Loading 할 수 있는 경로,
+      "car_image" : "차량 이미지 경로", //미들웨어에서도 이미지를 Loading 할 수 있는 경로,
       "reg_no" : "차량 식별키", //TkNo
       "visit_in_date_time" : "yyyyMMddHHmmss", //방문시작일시, kind가 v 일 경우 외 빈값
       "visit_out_date_time" : "yyyyMMddHHmmss" //방문종료일시, kind가 v 일 경우 외 빈값
@@ -928,7 +928,7 @@ Body
     }
 }
 
-2.1.4 AutoBooth 할인 요청
+2.1.5 AutoBooth 할인 요청
 Body
 {
     "command" : "discount",
@@ -951,7 +951,7 @@ Body
     }
 }
 
-9.1.1	우정항공 바코드 결과 응답(미들웨어 -> 넥스파)
+9.1.2	우정항공 바코드 결과 응답(미들웨어 -> 넥스파)
 Body
 {
     "command": "etc_uj_air",
@@ -965,4 +965,27 @@ Body
         "status": "응답상태코드", 
         "message": "메시지"
     }
+}
+
+9.1.3   세대 포인트 초회 요청(미들웨어 -> 넥스파)
+Body
+{
+  "command" : "remain_point",
+  "data": {
+      "dong" : "123",
+      "ho" : "456",
+  }
+}
+
+9.1.4   세대 포인트 초회 응답(미들웨어 -> 넥스파)
+Body
+{
+  "command" : "remain_point",
+  "data": {
+      "point" : "6000",
+  },
+  "result": {
+      "status": "응답상태코드", 
+      "message": "메시지"
+  }
 }
