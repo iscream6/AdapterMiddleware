@@ -38,7 +38,8 @@ namespace NpmAdapter
         Reason,
         LprID,
         Visit_In_Date_Time,
-        Visit_Out_Date_Time
+        Visit_Out_Date_Time,
+        Point
     }
 
     public static class Helper
@@ -246,7 +247,15 @@ namespace NpmAdapter
             }
             else
             {
-                return DateTime.ParseExact(dateTime, from, null).ToString(to);
+                try
+                {
+                    return DateTime.ParseExact(dateTime, from, null).ToString(to);
+                }
+                catch (Exception ex)
+                {
+                    Log.WriteLog(LogType.Error, "Helper | ConvertDateTimeFormat", $"{dateTime} : {ex.Message}");
+                    return "";
+                }
             }
         }
 
