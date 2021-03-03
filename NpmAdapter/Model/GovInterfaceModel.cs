@@ -33,12 +33,12 @@ namespace NpmAdapter.Model
 
             if(iRet > 0)
             {
-                Transaction.Commit();
+                Transaction?.Commit();
                 bResult = true;
             }
             else
             {
-                Transaction.Rollback();
+                Transaction?.Rollback();
                 bResult = false;
             }
 

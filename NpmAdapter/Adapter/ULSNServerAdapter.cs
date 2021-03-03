@@ -8,12 +8,21 @@ using System.Threading;
 
 using System.Runtime.InteropServices;
 using Newtonsoft.Json.Linq;
+using System.Xml;
+using NpmAdapter.Model;
+using System.Threading.Tasks;
+using NpmAdapter.Payload;
+using System.Runtime.CompilerServices;
 
 namespace NpmAdapter.Adapter
 {
     class ULSNServerAdapter : IAdapter
     {
-        private Queue<string> peer;
+        [DllImport("user32.dll")]
+        public static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
+        [DllImport("user32.dll")]
+        public static extern IntPtr SendMessage(IntPtr hWnd, uint Msg, int wParam);
+        
         //==== Alive Check ====
         private Thread aliveCheckThread;
         private TimeSpan waitForWork;
@@ -21,26 +30,35 @@ namespace NpmAdapter.Adapter
         ManualResetEvent _pauseEvent = new ManualResetEvent(false);
         private delegate void SafeCallDelegate();
         private bool isRun;
-
-        [DllImport("user32.dll")]
-        public static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
-        [DllImport("user32.dll")]
-        public static extern IntPtr SendMessage(IntPtr hWnd, uint Msg, int wParam);
-
         //==== Alive Check ====
+        //==== Process Thread ====
+        private Thread processThread;
+        private TimeSpan waitForProcess;
+        private ManualResetEventSlim shutdownProcessEvent = new ManualResetEventSlim(false);
+        ManualResetEvent _pauseProcessEvent = new ManualResetEvent(false);
+        private delegate void ProcessSafeCallDelegate();
+        //==== Process Thread ====
+        private bool isProcessing = false;
+        private GovInterfaceModel gov;
+        private StringBuilder receiveMessageBuffer = new StringBuilder();
+        private object lockObj = new object();
+        private RequestPayload<AlertInOutCarPayload> currentPayload = new RequestPayload<AlertInOutCarPayload>();
+        private Queue<RequestPayload<AlertInOutCarPayload>> quePayload = new Queue<RequestPayload<AlertInOutCarPayload>>();
+
         public bool IsRuning => isRun;
         public IAdapter TargetAdapter { get; set; }
-        private INetwork TcpServer { get; set; }
-
+        private INetwork TcpJavaServer { get; set; }
 
         public void Dispose()
         {
-            if (isRun) TcpServer.Down();
-#if (!DEBUG)
+            if (isRun) TcpJavaServer.Down();
+//#if (!DEBUG)
             _pauseEvent.Set();
             shutdownEvent.Set();
+            _pauseProcessEvent.Set();
+            shutdownProcessEvent.Set();
             JClientKill();
-#endif
+//#endif
         }
 
         public bool Initialize()
@@ -54,14 +72,16 @@ namespace NpmAdapter.Adapter
 
             try
             {
-                peer = new Queue<string>();
-                TcpServer = NetworkFactory.GetInstance().MakeNetworkControl(NetworkFactory.Adapters.TcpServer, SysConfig.Instance.HT_MyPort);
-#if (!DEBUG)
+                TcpJavaServer = NetworkFactory.GetInstance().MakeNetworkControl(NetworkFactory.Adapters.TcpServer, SysConfig.Instance.HT_MyPort);
+//#if (!DEBUG)
                 JClientKill();
-#endif
+//#endif
                 aliveCheckThread = new Thread(new ThreadStart(AliveCheck));
                 aliveCheckThread.Name = "alive check";
+                processThread = new Thread(new ThreadStart(ProcessAction));
+                processThread.Name = "process";
                 waitForWork = TimeSpan.FromSeconds(10);
+                waitForProcess = TimeSpan.FromSeconds(1); //1초
             }
             catch (Exception ex)
             {
@@ -71,19 +91,14 @@ namespace NpmAdapter.Adapter
 
             return true;
         }
-
-        public void SendMessage(byte[] buffer, long offset, long size, string pid = null)
-        {
-            if (pid != null && pid != "") peer.Enqueue(pid);
-        }
         
         public bool StartAdapter()
         {
-            TcpServer.ReceiveFromPeer += TcpServer_ReceiveFromPeer;
-            isRun = TcpServer.Run();
+            TcpJavaServer.ReceiveFromPeer += TcpServer_ReceiveFromPeer;
+            isRun = TcpJavaServer.Run();
 
             //Alive Check Thread 시작
-#if (!DEBUG)
+//#if (!DEBUG)
             if (aliveCheckThread.IsAlive)
             {
                 _pauseEvent.Set();
@@ -93,53 +108,322 @@ namespace NpmAdapter.Adapter
                 aliveCheckThread.Start();
                 _pauseEvent.Set();
             }
-#endif
+
+            if (processThread.IsAlive)
+            {
+                _pauseProcessEvent.Set();
+            }
+            else
+            {
+                processThread.Start();
+                _pauseProcessEvent.Set();
+            }
+//#endif
             return isRun;
+        }
+
+        
+        public void SendMessage(byte[] buffer, long offset, long size, string pid = null)
+        {
+            lock (lockObj)
+            {
+                //이리로 alert_incar가 들어올거임....
+                receiveMessageBuffer.Append(buffer.ToString(SysConfig.Instance.Nexpa_Encoding, size));
+                var jobj = JObject.Parse(receiveMessageBuffer.ToString());
+                Thread.Sleep(10);
+                receiveMessageBuffer.Clear();
+
+                Log.WriteLog(LogType.Info, $"ULSNServerAdapter | SendMessage", $"넥스파에서 받은 메시지 : {jobj}", LogAdpType.HomeNet);
+                RequestPayload<AlertInOutCarPayload> alertPayload = new RequestPayload<AlertInOutCarPayload>();
+                alertPayload.Deserialize(jobj);
+                quePayload.Enqueue(alertPayload);
+            }
+        }
+
+        /// <summary>
+        /// DiscountProcess가 돌고 있는지 여부
+        /// </summary>
+        private bool isProcessRun = false;
+
+        private void ProcessAction()
+        {
+            do
+            {
+                if (shutdownProcessEvent.IsSet) return;
+                {
+                    try
+                    {
+                        if(isProcessRun == false && quePayload.Count > 0)
+                        {
+                            currentPayload = quePayload.Dequeue();
+                            DiscountProcess(currentPayload.data.car_number);
+                        }
+                        //여기서 큐를 실행하자..
+                    }
+                    catch (Exception)
+                    {
+
+                    }
+                }
+
+                shutdownProcessEvent.Wait(waitForProcess);
+            }
+            while (_pauseProcessEvent.WaitOne());
+        }
+        
+        private async void DiscountProcess(string carno)
+        {
+            isProcessRun = true;
+            try
+            {
+                //친환경
+                isProcessing = true;
+                Task test = RequestEcoCarTask(carno);
+                Task waitTask = WaitTask();
+                await test;
+                await waitTask;
+
+                if (!isProcessing) //처리완료
+                {
+                    Log.WriteLog(LogType.Info, $"ULSNServerAdapter | DiscountProcess", $"친환경 처리완료", LogAdpType.HomeNet);
+                }
+                else //처리 실패
+                {
+                    Log.WriteLog(LogType.Info, $"ULSNServerAdapter | DiscountProcess", $"친환경 처리실패", LogAdpType.HomeNet);
+                }
+
+                //국가유공자 
+                isProcessing = true;
+                Task test2 = RequestNationalCarTask(carno);
+                waitTask = WaitTask();
+                await test2;
+                await waitTask;
+
+                if (!isProcessing) //처리완료
+                {
+                    Log.WriteLog(LogType.Info, $"ULSNServerAdapter | DiscountProcess", $"국가유공자 처리완료", LogAdpType.HomeNet);
+                }
+                else //처리 실패
+                {
+                    Log.WriteLog(LogType.Info, $"ULSNServerAdapter | DiscountProcess", $"국가유공자 처리실패", LogAdpType.HomeNet);
+                }
+
+                //장애인
+                isProcessing = true;
+                Task test3 = RequestDisabilityCarTask(carno);
+                waitTask = WaitTask();
+                await test3;
+                await waitTask;
+
+                if (!isProcessing) //처리완료
+                {
+                    Log.WriteLog(LogType.Info, $"ULSNServerAdapter | DiscountProcess", $"장애인 처리완료", LogAdpType.HomeNet);
+                }
+                else //처리 실패
+                {
+                    Log.WriteLog(LogType.Info, $"ULSNServerAdapter | DiscountProcess", $"장애인 처리실패", LogAdpType.HomeNet);
+                }
+
+                //경차
+                isProcessing = true;
+                Task test4 = RequestSamlCarTask(carno);
+                waitTask = WaitTask();
+                await test4;
+                await waitTask;
+
+                if (!isProcessing) //처리완료
+                {
+                    Log.WriteLog(LogType.Info, $"ULSNServerAdapter | DiscountProcess", $"경차 처리완료", LogAdpType.HomeNet);
+                }
+                else //처리 실패
+                {
+                    Log.WriteLog(LogType.Info, $"ULSNServerAdapter | DiscountProcess", $"경차 처리실패", LogAdpType.HomeNet);
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLog(LogType.Error, "ULSNServerAdapter | DiscountProcess", $"{ex.Message}");
+            }
+            isProcessRun = false;
         }
 
         private void TcpServer_ReceiveFromPeer(byte[] buffer, long offset, long size, HttpServer.RequestEventArgs pEvent = null, string id = null)
         {
-            string testMessage = Encoding.UTF8.GetString(buffer, (int)offset, (int)size);
-            Log.WriteLog(LogType.Error, $"ULSNServerAdapter | TcpServer_ReceiveFromPeer", $"{testMessage}", LogAdpType.HomeNet);
-            Log.WriteLog(LogType.Error, $"ULSNServerAdapter | Initialize", $"Hello", LogAdpType.HomeNet);
-            //Client로부터 받은 메시지를 처리한다.'
-            peer.Enqueue(id);
+            string receiveMessage = Encoding.UTF8.GetString(buffer, (int)offset, (int)size);
+            Log.WriteLog(LogType.Info, $"ULSNServerAdapter | TcpServer_ReceiveFromPeer", $"{receiveMessage}", LogAdpType.HomeNet);
+
+            if (isProcessing) //작업 진행중
+            {
+                try
+                {
+                    string xmlData = string.Empty;
+                    string command = string.Empty;
+
+                    JObject obj = JObject.Parse(receiveMessage);
+                    var jResult = obj["result"];
+
+                    if (Helper.NVL(jResult["status"]) == "200")
+                    {
+                        command = Helper.NVL(obj["command"]);
+                        xmlData = Helper.NVL(obj["data"]).Replace("\\n", "").Replace(" ", ""); //\n과 공백을 제거
+                                                                                               //DB 저장
+                        if (gov == null) gov = new GovInterfaceModel();
+                        Dictionary<string, object> param = new Dictionary<string, object>();
+                        param.Add("TkNo", currentPayload.data.reg_no);
+                        param.Add("CarNo", currentPayload.data.car_number);
+                        param.Add("RequestDateTime", $"{currentPayload.data.date_time}");
+                        param.Add("InterfaceCode", command); //command
+                        param.Add("InterfaceData", xmlData);
+
+                        if (gov.Save(param))
+                        {
+                            //DB저장성공
+                            Log.WriteLog(LogType.Info, $"ULSNServerAdapter | TcpServer_ReceiveFromPeer", $"DB저장성공", LogAdpType.HomeNet);
+                        }
+                        else
+                        {
+                            //DB저장실패
+                            Log.WriteLog(LogType.Info, $"ULSNServerAdapter | TcpServer_ReceiveFromPeer", $"DB저장실패", LogAdpType.HomeNet);
+                        }
+
+                        isProcessing = false;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Log.WriteLog(LogType.Error, "ULSNServerAdapter | TcpServer_ReceiveFromPeer", $"{ex.Message}");
+                    isProcessing = false;
+                }
+            }
         }
 
         public bool StopAdapter()
         {
-            isRun = !TcpServer.Down();
+            isRun = !TcpJavaServer.Down();
             //Alive Check Thread pause
-#if (!DEBUG)
+//#if (!DEBUG)
             _pauseEvent.Reset();
-#endif
+            _pauseProcessEvent.Reset();
+//#endif
             return !isRun;
         }
 
+        /// <summary>
+        /// 친환경차
+        /// </summary>
+        /// <param name="carno"></param>
+        /// <returns></returns>
+        private async Task RequestEcoCarTask(string carno)
+        {
+            await Task.Run( () => 
+            {
+                JObject json = new JObject();
+                json["infoType"] = "echoCar";
+                json["CAR_NO"] = carno;
+                byte[] data = Encoding.UTF8.GetBytes($"eco#{carno}#{json.ToString()}");
+                TcpJavaServer.SendToPeer(data, 0, data.Length);
+            });
+        }
+
+        /// <summary>
+        /// 국가유공자
+        /// </summary>
+        /// <param name="carno"></param>
+        /// <returns></returns>
+        private async Task RequestNationalCarTask(string carno)
+        {
+            await Task.Run(() =>
+            {
+                JObject json = new JObject();
+                json["infoType"] = "nationalCar";
+                json["CAR_NO"] = carno;
+                byte[] data = Encoding.UTF8.GetBytes($"national#{carno}#{json.ToString()}");
+                TcpJavaServer.SendToPeer(data, 0, data.Length);
+            });
+        }
+
+        /// <summary>
+        /// 장애인
+        /// </summary>
+        /// <param name="carno"></param>
+        /// <returns></returns>
+        private async Task RequestDisabilityCarTask(string carno)
+        {
+            await Task.Run(() =>
+            {
+                JObject json = new JObject();
+                json["infoType"] = "disabilityCar";
+                json["CAR_NO"] = carno;
+                byte[] data = Encoding.UTF8.GetBytes($"disability#{carno}#{json.ToString()}");
+                TcpJavaServer.SendToPeer(data, 0, data.Length);
+            });
+        }
+
+        /// <summary>
+        /// 경차
+        /// </summary>
+        /// <param name="carno"></param>
+        /// <returns></returns>
+        private async Task RequestSamlCarTask(string carno)
+        {
+            await Task.Run(() =>
+            {
+                JObject json = new JObject();
+                json["infoType"] = "smallCar";
+                json["CAR_NO"] = carno;
+                byte[] data = Encoding.UTF8.GetBytes($"samll#{carno}#{json.ToString()}");
+                TcpJavaServer.SendToPeer(data, 0, data.Length);
+            });
+        }
+
+        private async Task RequestDecriptDataTask(string pe, string pm, string encData)
+        {
+            await Task.Run(() =>
+            {
+                string strData = $"{encData}&{pe}&{pm}";
+                byte[] data = Encoding.UTF8.GetBytes($"dec#{strData}");
+                TcpJavaServer.SendToPeer(data, 0, data.Length);
+            });
+        }
+
+        private async Task WaitTask()
+        {
+            await Task.Run(() =>
+            {
+                int iSec = 10 * 100; //10초
+                while (iSec > 0 && isProcessing)
+                {
+                    Thread.Sleep(10); //0.01초씩..쉰다...
+                    iSec -= 1;
+                }
+            });
+        }
+
+        int number = 11;
+        int tknum = 12341234;
+
         public void TestReceive(byte[] buffer)
         {
-            //JObject json = new JObject();
-            //json["infoType"] = "disabilityCar";
-            //json["CAR_NO"] = "11가1111";
-            //string strData = "{\"infoType\":\"echoCar\",\"CAR_NO\":\"11가1111\"}";//json.ToString();
-            string privateExponent = "32121578780987823488238876392745049073356503855799731576462257342701047108272294427839700472215763113281677630971377137068058057743355696373629740906087657473217347764355582817477026515679978625458931790426710351924748873922266231334861062186898348419164106275767687575168130415099689337531007099600067822754917898237190255023341394238207790286811897979735675823152723041657179973736230833668988754008937631594613308341063778163612990663717028967130494144902543555334245252765200615005122669618539958158750817518261590359483900590389989639651535717826586899753462521556557321429754075166616004657553442578704260080216222473034150628640374506432152915796693383830525503126746740376704500097584653642456340075095702312592775954563908200064705520068259283354844891588405678212570705123843484721073380127410922476953625115042106767144953453771900091391166832401204927345334557219732902108130658305911369314406852592964778184646684826788674870326104570645431337942349618110682979574156902305863218089980596561858255108567940060515098984242872621360551576210021058878791049062938612395480694062037486141495344944406515349742639417652913335549873414161864556003548129530587108796966071638519702373907505907720825573199163713562870569851489";
-            string privateModulus = "551664546270859273571465210207372191069330501362040620630662201118605483316258218007686176584802009212563235561051138215940597728072930365104447675514220861588638710805181297460427643280429444228695496003457892121093361360126719602461422807270114533633846444705185256974264612949263191853713210766899802122612435612361304440111301088624062880510165450182897533129444447060033177132796478025724453870933895587478032596632153257208780023356400138212481969280523584115812481952430019052827757966140003469038273670779431301726807230868026402257296304072117669195267996141313442655802356610113866115629475882148988755995102161375373758046150473600059430321763448126715135580154863225813319407574878152858030137106503262948942900143029688558401221467657070242568641574846725628758563171326743519374209709998736386612164640309449653200915704068710052161608779457402434155085829003661662396492885000336511271184718275595014127174185031557876949402785896910596024026413527311649030839678452780939886045689508101129412919649813484296883649243080091353017317745620374162559872626559466353202762611718072259915109188524876254830578534133762281062683147731404416340194511092928664108111832033366280826955050110148272716685004352723410703737801101";
-            string encData = "009ce153f4d40dc839f03b8cee720274146b358a40b98ee0c95e45e9851aa1fc40f44c49812a05746da4eabd4433ae4ef97e822cdaf3b05bfb033e02fe9159f10a1d55e195c527feaa4fe58809c46d74e1e260c3298e13db534cf1c151c67c5a906fc21597f81f5578dd8af2558f160ebb760c71bdf480c4cb41c6c653d752bf0d4e085cbc08108d4daecb65d0c0f05d4fc1af9fb3a6e400d46a9c4fd236736c37dc916583ebfc8cf90ee886a1c4141e651c5c0f1880d74931360049bd768d9eba83c2eb945931323335eb8d1fc35f1df0be0cb644cf9b6ae1c1d275bcb48b0ec85438b1fcc74686cbd60260f01491b22fabdd2547f20d026da2584ed8ba46cbec6d47f937f0a4f1139ff804be77c9c859a678af0ac8320b15b3caea9359dbf987574d6328c4cc062dbe55453a6546581c192aeaf3eac523d5edf72f49bd71e742b0cae30202198b0c6eb067931c5d81212de5d5f7a3fc34cb0faaebd48e67f325bb1e51b211525a8ab40e4c4fdd0c62a2de6ea7a835e12b49d3829954756319cd7828f6bb5cc887e2df6d3f4fc24266088347600b4663f5bcf98e1379910482d342425574335cae76c8b88772ecc3c91199d612e930644b8d51bef1e839e00d642794ba8a503f090b3934ef7221317605a575c06596badb74f53d5c38ec11b607a7150a38575482ef001ec8acd27618056705f6f98f0ed98887fd7437021b1e";
-            //string strData = "{\"param\":\"" + encData + "\",\"exponent\":\"" + privateExponent + "\",\"modulus\":\"" + privateModulus + "\"}";
-            string strData = $"{encData}&{privateExponent}&{privateModulus}";
-            byte[] data = Encoding.UTF8.GetBytes($"D#{strData}");
-            TcpServer.SendToPeer(data, 0, data.Length);
 
-
-            //if (gov == null) gov = new GovInterfaceModel();
-            //Dictionary<string, object> param = new Dictionary<string, object>();
-            //param.Add("TkNo", "2020032613341710");
-            //param.Add("CarNo", "11가1111");
-            //param.Add("RequestDateTime", "20210219180312");
-            //param.Add("InterfaceCode", "TEST");
-            //param.Add("InterfaceData", "<faultcode>soap:Server</faultcode><faultstring>Fault occured</faultstring><detail />");
-
-            //bool bResult = gov.Save(param);
+            lock (lockObj)
+            {
+                string json = "{\"command\": \"alert_incar\",\"data\": {\"dong\" : \"123\"," +
+                            "\"ho\" : \"456\"," +
+                            $"\"car_number\" : \"{number++}가1111\"," +
+                            "\"date_time\" : \"yyyyMMddHHmmss\"," +
+                            "\"kind\" : \"v\"," +
+                            "\"lprid\" : \"Lpr 식별 번호\"," +
+                            "\"car_image\" : \"차량 이미지 경로\"," +
+                            $"\"reg_no\" : \"{tknum++}\"," +
+                            "\"visit_in_date_time\" : \"yyyyMMddHHmmss\"," + //방문시작일시, kind가 v 일 경우 외 빈값
+                            "\"visit_out_date_time\" : \"yyyyMMddHHmmss\"" + //방문종료일시, kind가 v 일 경우 외 빈값
+                            "}" +
+                            "}";
+                JObject jObject = JObject.Parse(json);
+                RequestPayload<AlertInOutCarPayload> alertPayload = new RequestPayload<AlertInOutCarPayload>();
+                alertPayload.Deserialize(jObject);
+                quePayload.Enqueue(alertPayload);
+            }
         }
 
         /// <summary>
