@@ -140,7 +140,11 @@ namespace NpmAdapter.Payload
         /// <summary>
         /// 우정항공
         /// </summary>
-        etc_uj_air
+        etc_uj_air,
+        /// <summary>
+        /// 세대 포인트 조회
+        /// </summary>
+        remain_point
     }
 
     class RequestPayload<T> : IPayload where T : IPayload, new()
