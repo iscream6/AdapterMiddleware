@@ -55,10 +55,10 @@ namespace NpmAdapter.Adapter
 //#if (!DEBUG)
             _pauseEvent.Set();
             shutdownEvent.Set();
-            _pauseProcessEvent.Set();
-            shutdownProcessEvent.Set();
             JClientKill();
 //#endif
+            _pauseProcessEvent.Set();
+            shutdownProcessEvent.Set();
         }
 
         public bool Initialize()
@@ -75,12 +75,12 @@ namespace NpmAdapter.Adapter
                 TcpJavaServer = NetworkFactory.GetInstance().MakeNetworkControl(NetworkFactory.Adapters.TcpServer, SysConfig.Instance.HT_MyPort);
 //#if (!DEBUG)
                 JClientKill();
-//#endif
                 aliveCheckThread = new Thread(new ThreadStart(AliveCheck));
                 aliveCheckThread.Name = "alive check";
+                waitForWork = TimeSpan.FromSeconds(10);
+//#endif
                 processThread = new Thread(new ThreadStart(ProcessAction));
                 processThread.Name = "process";
-                waitForWork = TimeSpan.FromSeconds(10);
                 waitForProcess = TimeSpan.FromSeconds(1); //1초
             }
             catch (Exception ex)
@@ -108,6 +108,7 @@ namespace NpmAdapter.Adapter
                 aliveCheckThread.Start();
                 _pauseEvent.Set();
             }
+//#endif
 
             if (processThread.IsAlive)
             {
@@ -118,7 +119,7 @@ namespace NpmAdapter.Adapter
                 processThread.Start();
                 _pauseProcessEvent.Set();
             }
-//#endif
+
             return isRun;
         }
 
@@ -136,7 +137,11 @@ namespace NpmAdapter.Adapter
                 Log.WriteLog(LogType.Info, $"ULSNServerAdapter | SendMessage", $"넥스파에서 받은 메시지 : {jobj}", LogAdpType.HomeNet);
                 RequestPayload<AlertInOutCarPayload> alertPayload = new RequestPayload<AlertInOutCarPayload>();
                 alertPayload.Deserialize(jobj);
-                quePayload.Enqueue(alertPayload);
+                //미인식 차량은 거른다.
+                if (!alertPayload.data.car_number.Contains("0000"))
+                {
+                    quePayload.Enqueue(alertPayload);
+                }
             }
         }
 
@@ -303,8 +308,8 @@ namespace NpmAdapter.Adapter
             //Alive Check Thread pause
 //#if (!DEBUG)
             _pauseEvent.Reset();
-            _pauseProcessEvent.Reset();
 //#endif
+            _pauseProcessEvent.Reset();
             return !isRun;
         }
 
