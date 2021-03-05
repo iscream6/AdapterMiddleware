@@ -31,6 +31,7 @@ namespace NpmAdapter.Adapter
         private delegate void SafeCallDelegate();
         private bool isRun;
         //==== Alive Check ====
+
         //==== Process Thread ====
         private Thread processThread;
         private TimeSpan waitForProcess;
@@ -38,6 +39,7 @@ namespace NpmAdapter.Adapter
         ManualResetEvent _pauseProcessEvent = new ManualResetEvent(false);
         private delegate void ProcessSafeCallDelegate();
         //==== Process Thread ====
+
         private bool isProcessing = false;
         private GovInterfaceModel gov;
         private StringBuilder receiveMessageBuffer = new StringBuilder();
@@ -257,6 +259,13 @@ namespace NpmAdapter.Adapter
             string receiveMessage = Encoding.UTF8.GetString(buffer, (int)offset, (int)size);
             Log.WriteLog(LogType.Info, $"ULSNServerAdapter | TcpServer_ReceiveFromPeer", $"{receiveMessage}", LogAdpType.HomeNet);
 
+            if (receiveMessage.Contains("Hello"))
+            {
+                byte[] data = Encoding.UTF8.GetBytes($"init#{SysConfig.Instance.HW_Domain}#{SysConfig.Instance.AuthToken}");
+                TcpJavaServer.SendToPeer(data, 0, data.Length);
+                return;
+            }
+
             if (isProcessing) //작업 진행중
             {
                 try
@@ -324,7 +333,7 @@ namespace NpmAdapter.Adapter
             {
                 JObject json = new JObject();
                 json["infoType"] = "echoCar";
-                json["CAR_NO"] = carno;
+                json["carNumber"] = carno;
                 byte[] data = Encoding.UTF8.GetBytes($"eco#{carno}#{json.ToString()}");
                 TcpJavaServer.SendToPeer(data, 0, data.Length);
             });
@@ -341,7 +350,7 @@ namespace NpmAdapter.Adapter
             {
                 JObject json = new JObject();
                 json["infoType"] = "nationalCar";
-                json["CAR_NO"] = carno;
+                json["carNo"] = carno;
                 byte[] data = Encoding.UTF8.GetBytes($"national#{carno}#{json.ToString()}");
                 TcpJavaServer.SendToPeer(data, 0, data.Length);
             });
@@ -375,7 +384,7 @@ namespace NpmAdapter.Adapter
             {
                 JObject json = new JObject();
                 json["infoType"] = "smallCar";
-                json["CAR_NO"] = carno;
+                json["vhrNo"] = carno;
                 byte[] data = Encoding.UTF8.GetBytes($"samll#{carno}#{json.ToString()}");
                 TcpJavaServer.SendToPeer(data, 0, data.Length);
             });
@@ -414,7 +423,7 @@ namespace NpmAdapter.Adapter
             {
                 string json = "{\"command\": \"alert_incar\",\"data\": {\"dong\" : \"123\"," +
                             "\"ho\" : \"456\"," +
-                            $"\"car_number\" : \"{number++}가1111\"," +
+                            $"\"car_number\" : \"46부5989\"," +
                             "\"date_time\" : \"yyyyMMddHHmmss\"," +
                             "\"kind\" : \"v\"," +
                             "\"lprid\" : \"Lpr 식별 번호\"," +
