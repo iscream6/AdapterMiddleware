@@ -139,8 +139,8 @@ namespace NpmAdapter.Adapter
                 Log.WriteLog(LogType.Info, $"ULSNServerAdapter | SendMessage", $"넥스파에서 받은 메시지 : {jobj}", LogAdpType.HomeNet);
                 RequestPayload<AlertInOutCarPayload> alertPayload = new RequestPayload<AlertInOutCarPayload>();
                 alertPayload.Deserialize(jobj);
-                //미인식 차량은 거른다.
-                if (!alertPayload.data.car_number.Contains("0000"))
+                //미인식 차량은 거르고 일반차량만 적용...
+                if (!alertPayload.data.car_number.Contains("0000") && alertPayload.data.kind == "n")
                 {
                     quePayload.Enqueue(alertPayload);
                 }
