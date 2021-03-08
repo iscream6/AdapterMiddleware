@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json.Linq;
+using NLog.Targets;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -156,6 +157,65 @@ namespace NexpaAdapterStandardLib
             }
 
             return default(T);
+        }
+
+        public static void DeleteLogFiles(string dirPath, int toDays)
+        {
+            DateTime dateTime = DateTime.Now.AddDays(-toDays);
+            int[] compare = new int[3];
+            compare[0] = dateTime.Year;
+            compare[1] = dateTime.Month;
+            compare[2] = dateTime.Day;
+
+            RecursiveDirDelete(dirPath, compare, 0);
+        }
+
+        private static void RecursiveDirDelete(string dirPath, int[] compare, int compareIdx)
+        {
+            string[] dirs = Directory.GetDirectories(dirPath);
+            int iCompare = compare[compareIdx];
+
+            if (compareIdx == 2)
+            {
+                //DayCheck~!
+                foreach (var day in dirs)
+                {
+                    int targetD = int.Parse(day.Replace(dirPath + $"\\{compare[0]}-{compare[1].ToString("00")}-", ""));
+                    if (targetD < iCompare)
+                    {
+                        DirectoryInfo dir = new DirectoryInfo(day);
+                        System.IO.FileInfo[] files = dir.GetFiles("*.*", SearchOption.AllDirectories);
+                        foreach (System.IO.FileInfo file in files)
+                        {
+                            file.Attributes = FileAttributes.Normal;
+                        }
+                        Directory.Delete(day, true);
+                    }
+                }
+            }
+            else
+            {
+                //연도 폴더 탐색
+                foreach (var dir in dirs)
+                {
+                    int target = int.Parse(dir.Replace(dirPath + "\\", ""));
+                    if (target == iCompare)
+                    {
+                        compareIdx += 1;
+                        RecursiveDirDelete(dir, compare, compareIdx);
+                    }
+                    else if (target < iCompare)
+                    {
+                        DirectoryInfo dirInfo = new DirectoryInfo(dir);
+                        System.IO.FileInfo[] files = dirInfo.GetFiles("*.*", SearchOption.AllDirectories);
+                        foreach (System.IO.FileInfo file in files)
+                        {
+                            file.Attributes = FileAttributes.Normal;
+                        }
+                        Directory.Delete(dir, true);
+                    }
+                }
+            }
         }
     }
 }

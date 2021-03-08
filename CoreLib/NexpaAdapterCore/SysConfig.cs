@@ -63,11 +63,13 @@ namespace NexpaAdapterStandardLib
         /// </summary>
         public string Version { get; private set; }
 
+        public string LogLimit { get; private set; }
+
         #endregion
 
         #region Nexpa_Config
 
-        
+
         /// <summary>
         /// 넥스파 Tcp 포트
         /// </summary>
@@ -193,6 +195,7 @@ namespace NexpaAdapterStandardLib
             Sys_Option = ReadOption(ConfigManager.ReadConfig(config, Sections.SysConfig.GetDescription(), "Options"));
             ValidateConfig = ConfigVersion.Equals(ConfigManager.ReadConfig(config, Sections.SysConfig.GetDescription(), "Config_Version"));
             Version = ConfigManager.ReadConfig(config, Sections.SysConfig.GetDescription(), "PVersion");
+            LogLimit = ConfigManager.ReadConfig(config, Sections.SysConfig.GetDescription(), "LogLimit");
 
             Nexpa_TcpPort = ConfigManager.ReadConfig(config, Sections.NexpaConfig.GetDescription(), "TcpPort");
             Nexpa_WebPort = ConfigManager.ReadConfig(config, Sections.NexpaConfig.GetDescription(), "WebPort");
@@ -222,8 +225,6 @@ namespace NexpaAdapterStandardLib
 
             ParkId = ConfigManager.ReadConfig(config, Sections.EtcConfig.GetDescription(), "ParkId");
             AuthToken = ConfigManager.ReadConfig(config, Sections.EtcConfig.GetDescription(), "AuthToken");
-
-            
         }
 
         #endregion

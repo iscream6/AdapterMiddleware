@@ -30,6 +30,11 @@ namespace NexpaConnectWinApp
 
         private void frmMain_Load(object sender, EventArgs e)
         {
+            //과거 로그를 지우자..
+            if(SysConfig.Instance.LogLimit != null && SysConfig.Instance.LogLimit != "")
+            {
+                StdHelper.DeleteLogFiles(Application.StartupPath + "\\Log", int.Parse(SysConfig.Instance.LogLimit));
+            }
             Initialize();
             isShutdown = false;
         }
