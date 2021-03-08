@@ -8,30 +8,27 @@ namespace NpmAdapter.Payload
 {
     class RequestEzInOutCarPayload : IPayload
     {
-        public enum IOType
-        {
-            InCar,
-            OutCar
-        }
-
         public RequestEzInOutCarPayload(CmdType type)
         {
             if (type == CmdType.alert_incar) dateName = "in_date";
             else dateName = "out_date";
         }
 
-        public string apt_idx { get; set; }
+        public int apt_idx { get; set; }
         public string car_number { get; set; }
-        public string date { get; set; }
+        public long date { get; set; }
 
-        private IOType type;
         private string dateName = "";
 
         public void Deserialize(JObject json)
         {
-            apt_idx = Helper.NVL(json["apt_id"]);
+            int aptid = 0; 
+            int.TryParse(Helper.NVL(json["apt_idx"]), out aptid);
+            apt_idx = aptid;
             car_number = Helper.NVL(json["car_number"]);
-            date = Helper.NVL(json[dateName]);
+            long iDate = 0;
+            long.TryParse(Helper.NVL(json[dateName]), out iDate);
+            date = iDate;
         }
 
         public byte[] Serialize()
@@ -42,9 +39,13 @@ namespace NpmAdapter.Payload
         public JObject ToJson()
         {
             JObject json = new JObject();
-            json["apt_id"] = Helper.NVL(apt_idx);
+            int aptid = 0;
+            int.TryParse(Helper.NVL(apt_idx), out aptid);
+            json["apt_idx"] = aptid;
             json["car_number"] = Helper.NVL(car_number);
-            json[dateName] = Helper.NVL(date);
+            long iDate = 0;
+            long.TryParse(Helper.NVL(date), out iDate);
+            json[dateName] = iDate;
             return json;
         }
     }

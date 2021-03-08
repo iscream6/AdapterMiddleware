@@ -438,5 +438,20 @@ namespace NpmAdapter
                 else
                     notFoundHandler(key);
         }
+
+        public static long GetUTCMillisecond(this string strTime)
+        {
+            try
+            {
+                DateTime date = DateTime.ParseExact(strTime, "yyyyMMddHHmmss", null);
+                var utc = (long)date.ToUniversalTime().Subtract(new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)).TotalMilliseconds;
+                return utc;
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLog(LogType.Error, "Helper | GetUTCMillisecond", ex.Message);
+                return 0;
+            }
+        }
     }
 }

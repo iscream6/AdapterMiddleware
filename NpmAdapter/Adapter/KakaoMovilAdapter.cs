@@ -27,6 +27,9 @@ namespace NpmAdapter.Adapter
         private const string APT_INCAR_POST = "/v2/car-manager/LPR/in/car/info";
         private const string APT_OUTCAR_POST = "/v2/car-manager/LPR/out/car/info";
 
+        private const string AuthorizationSeed = "NexpaRegistryHashStoreValidationSeed";
+        private string ValidationAuthoData = string.Empty;
+
         private object lockObj = new object();
 
         private string webport = "42141";
@@ -52,6 +55,7 @@ namespace NpmAdapter.Adapter
 
         public bool Initialize()
         {
+            ValidationAuthoData = Helper.Base64Encode(AuthorizationSeed);
             aptId = SysConfig.Instance.ParkId;
             hostDomain = SysConfig.Instance.HW_Domain;
             webport = SysConfig.Instance.HW_Port;
@@ -70,7 +74,7 @@ namespace NpmAdapter.Adapter
                 //Access Token을 가져온다. 실패 시 서버가 죽었다고 판단함.
                 try
                 {
-                    dicHeader.Add("token", GetAccessToken());
+                    dicHeader.Add("Authorization","bearer " + GetAccessToken());
                 }
                 catch (Exception)
                 {
@@ -109,249 +113,282 @@ namespace NpmAdapter.Adapter
         {
             lock (lockObj)
             {
+                bResponseSuccess = false;
+
+                Dictionary<string, string> dicParams = null;
+                JObject json = null;
+
+                string urlData = e.Request.Uri.LocalPath;
+                string sMethod = e.Request.Method;
+                //Header에 Authorization을 추가하여 보낸다.
+                HeaderFactory hf = new HeaderFactory();
+                IHeader iHeader = hf.Parse("Authorization", dicHeader["token"]);
+                Log.WriteLog(LogType.Info, $"KakaoMovilAdapter | MyHttpNetwork_ReceiveFromPeer", $"METHOD : {sMethod}, URL : {urlData}", LogAdpType.Nexpa);
+
                 try
                 {
-                    bResponseSuccess = false;
-
-                    Dictionary<string, string> dicParams = null;
-                    JObject json = null;
-
-                    string urlData = e.Request.Uri.LocalPath;
-                    string sMethod = e.Request.Method;
-                    Log.WriteLog(LogType.Info, $"KakaoMovilAdapter | MyHttpNetwork_ReceiveFromPeer", $"METHOD : {sMethod}, URL : {urlData}", LogAdpType.Nexpa);
-
-                    if (sMethod == "GET")
+                    if (e.Request.Headers["Authorization"].HeaderValue != ValidationAuthoData)
                     {
-                        dicParams = new Dictionary<string, string>();
-                        foreach (var item in e.Request.Parameters)
+                        e.Response.Connection.Type = ConnectionType.Close;
+                        e.Response.ContentType = new ContentTypeHeader("application/json;charset=UTF-8");
+                        e.Response.Status = System.Net.HttpStatusCode.Unauthorized;
+                        e.Response.Reason = "Faild Authorization";
+
+                        MvlResponsePayload resultPayload = new MvlResponsePayload();
+                        resultPayload.resultCode = MvlResponsePayload.SttCode.InvalidToken;
+                        resultPayload.resultMessage = "권한이 없습니다. 토큰을 확인 바랍니다";
+                        resultPayload.responseTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+                        byte[] result = resultPayload.Serialize();
+
+                        e.Response.Body.Write(result, 0, result.Length);
+                    }
+                    else
+                    {
+                        if (sMethod == "GET")
                         {
-                            dicParams.Add(item.Name.ToUpper(), item.Value);
+                            dicParams = new Dictionary<string, string>();
+                            foreach (var item in e.Request.Parameters)
+                            {
+                                dicParams.Add(item.Name.ToUpper(), item.Value);
+                            }
                         }
-                    }
-                    else
-                    {
-                        json = JObject.Parse(SysConfig.Instance.HomeNet_Encoding.GetString(buffer[..(int)size]));
-                    }
+                        else
+                        {
+                            json = JObject.Parse(SysConfig.Instance.HomeNet_Encoding.GetString(buffer[..(int)size]));
+                        }
 
-                    switch (urlData)
-                    {
-                        case GET_GATESTATUS: //차단기 상태조회, Alive Check~!
-                            {
-                                MvlResponsePayload payload = new MvlResponsePayload();
-                                payload.resultCode = MvlResponsePayload.SttCode.OK;
-                                payload.resultMessage = "SUCCESS";
-                                payload.responseTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-                                Log.WriteLog(LogType.Info, $"KakaoMovilAdapter | HttpServer_ReceiveFromPeer", $"{GET_GATESTATUS}: {payload.ToJson()}", LogAdpType.HomeNet);
-                                
-                                byte[] result = payload.Serialize();
-                                e.Response.Body.Write(result, 0, result.Length);
-                                return;
-                            }
-                        case GET_IONDATA: //미등록 일반차량 출입 조회(GET)
-                            {
-                                RequestSearchIONPayload dataPayload = new RequestSearchIONPayload();
-                                dataPayload.car_number = dicParams.GetValue("CARNO");
-                                dataPayload.start_date_time = dicParams.GetValue("STARTDATETIME").ConvertDateTimeFormat("yyyy-MM-dd HH:mm:ss", "yyyyMMddHHmmss");
-                                dataPayload.end_date_time = dicParams.GetValue("ENDDATETIME").ConvertDateTimeFormat("yyyy-MM-dd HH:mm:ss", "yyyyMMddHHmmss");
+                        switch (urlData)
+                        {
+                            case GET_GATESTATUS: //차단기 상태조회, Alive Check~!
+                                {
+                                    MvlResponsePayload payload = new MvlResponsePayload();
+                                    payload.resultCode = MvlResponsePayload.SttCode.OK;
+                                    payload.resultMessage = "SUCCESS";
+                                    payload.responseTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+                                    Log.WriteLog(LogType.Info, $"KakaoMovilAdapter | HttpServer_ReceiveFromPeer", $"{GET_GATESTATUS}: {payload.ToJson()}", LogAdpType.HomeNet);
 
-                                RequestPayload<RequestSearchIONPayload> payload = new RequestPayload<RequestSearchIONPayload>();
-                                payload.command = CmdType.ion_list;
-                                payload.data = dataPayload;
-                                Log.WriteLog(LogType.Info, $"KakaoMovilAdapter | HttpServer_ReceiveFromPeer", $"{GET_IONDATA}: {payload.ToJson()}", LogAdpType.HomeNet);
+                                    byte[] result = payload.Serialize();
+                                    e.Response.Encoding = SysConfig.Instance.HomeNet_Encoding;
+                                    e.Response.ContentType = new ContentTypeHeader("application/json");
+                                    e.Response.Add(iHeader);
+                                    e.Response.Body.Write(result, 0, result.Length);
+                                    return;
+                                }
+                            case GET_IONDATA: //미등록 일반차량 출입 조회(GET)
+                                {
+                                    RequestSearchIONPayload dataPayload = new RequestSearchIONPayload();
+                                    dataPayload.car_number = dicParams.GetValue("CARNO");
+                                    dataPayload.start_date_time = dicParams.GetValue("STARTDATETIME").ConvertDateTimeFormat("yyyy-MM-dd HH:mm:ss", "yyyyMMddHHmmss");
+                                    dataPayload.end_date_time = dicParams.GetValue("ENDDATETIME").ConvertDateTimeFormat("yyyy-MM-dd HH:mm:ss", "yyyyMMddHHmmss");
 
-                                byte[] responseBuffer = payload.Serialize();
-                                TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);
-                            }
-                            break;
-                        case SET_CUSTINFO: //정기차량 등록
-                            {
-                                RequestCustRegPayload dataPayload = new RequestCustRegPayload();
-                                dataPayload.car_number = Helper.NVL(json["Carno"]);
-                                dataPayload.dong = Helper.NVL(json["Dong"]);
-                                dataPayload.ho = Helper.NVL(json["Ho"]);
-                                dataPayload.name = Helper.NVL(json["Name"]);
-                                dataPayload.start_date = Helper.NVL(json["EffStart"]).ConvertDateTimeFormat("yyyy-MM-dd", "yyyyMMdd");
-                                dataPayload.end_date = Helper.NVL(json["EffEnd"]).ConvertDateTimeFormat("yyyy-MM-dd", "yyyyMMdd");
-                                dataPayload.tel_number = Helper.NVL(json["Contact"]);
-                                dataPayload.remark = Helper.NVL(json["Remark"]);
+                                    RequestPayload<RequestSearchIONPayload> payload = new RequestPayload<RequestSearchIONPayload>();
+                                    payload.command = CmdType.ion_list;
+                                    payload.data = dataPayload;
+                                    Log.WriteLog(LogType.Info, $"KakaoMovilAdapter | HttpServer_ReceiveFromPeer", $"{GET_IONDATA}: {payload.ToJson()}", LogAdpType.HomeNet);
 
-                                RequestPayload<RequestCustRegPayload> payload = new RequestPayload<RequestCustRegPayload>();
-                                payload.command = CmdType.cust_reg;
-                                payload.data = dataPayload;
-                                Log.WriteLog(LogType.Info, $"KakaoMovilAdapter | HttpServer_ReceiveFromPeer", $"{SET_CUSTINFO}: {payload.ToJson()}", LogAdpType.HomeNet);
+                                    byte[] responseBuffer = payload.Serialize();
+                                    TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);
+                                }
+                                break;
+                            case SET_CUSTINFO: //정기차량 등록
+                                {
+                                    RequestCustRegPayload dataPayload = new RequestCustRegPayload();
+                                    dataPayload.car_number = Helper.NVL(json["Carno"]);
+                                    dataPayload.dong = Helper.NVL(json["Dong"]);
+                                    dataPayload.ho = Helper.NVL(json["Ho"]);
+                                    dataPayload.name = Helper.NVL(json["Name"]);
+                                    dataPayload.start_date = Helper.NVL(json["EffStart"]).ConvertDateTimeFormat("yyyy-MM-dd", "yyyyMMdd");
+                                    dataPayload.end_date = Helper.NVL(json["EffEnd"]).ConvertDateTimeFormat("yyyy-MM-dd", "yyyyMMdd");
+                                    dataPayload.tel_number = Helper.NVL(json["Contact"]);
+                                    dataPayload.remark = Helper.NVL(json["Remark"]);
 
-                                byte[] responseBuffer = payload.Serialize();
-                                TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);
-                            }
-                            break;
-                        case DEL_CUSTINFO: //정기차량 삭제
-                            {
-                                RequestCustDelPayload dataPayload = new RequestCustDelPayload();
-                                dataPayload.car_number = Helper.NVL(json["Carno"]);
-                                dataPayload.dong = Helper.NVL(json["Dong"]);
-                                dataPayload.ho = Helper.NVL(json["Ho"]);
-                                dataPayload.reg_no = Helper.NVL(json["TKNo"]);
+                                    RequestPayload<RequestCustRegPayload> payload = new RequestPayload<RequestCustRegPayload>();
+                                    payload.command = CmdType.cust_reg;
+                                    payload.data = dataPayload;
+                                    Log.WriteLog(LogType.Info, $"KakaoMovilAdapter | HttpServer_ReceiveFromPeer", $"{SET_CUSTINFO}: {payload.ToJson()}", LogAdpType.HomeNet);
 
-                                RequestPayload<RequestCustDelPayload> payload = new RequestPayload<RequestCustDelPayload>();
-                                payload.command = CmdType.cust_del;
-                                payload.data = dataPayload;
-                                Log.WriteLog(LogType.Info, $"KakaoMovilAdapter | HttpServer_ReceiveFromPeer", $"{DEL_CUSTINFO}: {payload.ToJson()}", LogAdpType.HomeNet);
+                                    byte[] responseBuffer = payload.Serialize();
+                                    TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);
+                                }
+                                break;
+                            case DEL_CUSTINFO: //정기차량 삭제
+                                {
+                                    RequestCustDelPayload dataPayload = new RequestCustDelPayload();
+                                    dataPayload.car_number = Helper.NVL(json["Carno"]);
+                                    dataPayload.dong = Helper.NVL(json["Dong"]);
+                                    dataPayload.ho = Helper.NVL(json["Ho"]);
+                                    dataPayload.reg_no = Helper.NVL(json["TKNo"]);
 
-                                byte[] responseBuffer = payload.Serialize();
-                                TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);
-                            }
-                            break;
-                        case GET_CUSTINFO: //정기차량 세대 목록(GET)
-                            {
-                                RequestCustListPayload dataPayload = new RequestCustListPayload();
-                                dataPayload.car_number = dicParams.GetValue("CARNO");
-                                dataPayload.dong = dicParams.GetValue("DONG");
-                                dataPayload.ho = dicParams.GetValue("HO");
+                                    RequestPayload<RequestCustDelPayload> payload = new RequestPayload<RequestCustDelPayload>();
+                                    payload.command = CmdType.cust_del;
+                                    payload.data = dataPayload;
+                                    Log.WriteLog(LogType.Info, $"KakaoMovilAdapter | HttpServer_ReceiveFromPeer", $"{DEL_CUSTINFO}: {payload.ToJson()}", LogAdpType.HomeNet);
 
-                                RequestPayload<RequestCustListPayload> payload = new RequestPayload<RequestCustListPayload>();
-                                payload.command = CmdType.cust_list;
-                                payload.data = dataPayload;
-                                Log.WriteLog(LogType.Info, $"KakaoMovilAdapter | HttpServer_ReceiveFromPeer", $"{GET_CUSTINFO}: {payload.ToJson()}", LogAdpType.HomeNet);
+                                    byte[] responseBuffer = payload.Serialize();
+                                    TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);
+                                }
+                                break;
+                            case GET_CUSTINFO: //정기차량 세대 목록(GET)
+                                {
+                                    RequestCustListPayload dataPayload = new RequestCustListPayload();
+                                    dataPayload.car_number = dicParams.GetValue("CARNO");
+                                    dataPayload.dong = dicParams.GetValue("DONG");
+                                    dataPayload.ho = dicParams.GetValue("HO");
 
-                                byte[] responseBuffer = payload.Serialize();
-                                TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);
-                            }
-                            break;
-                        case GET_ALL_CUSTINFO: //정기차량 전체 목록(GET)
-                            {
-                                RequestEmptyPayload payload = new RequestEmptyPayload();
-                                payload.command = CmdType.cust_list;
-                                Log.WriteLog(LogType.Info, $"KakaoMovilAdapter | HttpServer_ReceiveFromPeer", $"{GET_ALL_CUSTINFO}: {payload.ToJson()}", LogAdpType.HomeNet);
+                                    RequestPayload<RequestCustListPayload> payload = new RequestPayload<RequestCustListPayload>();
+                                    payload.command = CmdType.cust_list;
+                                    payload.data = dataPayload;
+                                    Log.WriteLog(LogType.Info, $"KakaoMovilAdapter | HttpServer_ReceiveFromPeer", $"{GET_CUSTINFO}: {payload.ToJson()}", LogAdpType.HomeNet);
 
-                                byte[] responseBuffer = payload.Serialize();
-                                TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);
-                            }
-                            break;
-                        case GET_IOSDATA: //정기차량 출입조회(GET)
-                            {
-                                RequestSearchIONPayload dataPayload = new RequestSearchIONPayload();
-                                dataPayload.car_number = dicParams.GetValue("CARNO");
-                                dataPayload.start_date_time = dicParams.GetValue("STARTDATETIME").ConvertDateTimeFormat("yyyy-MM-dd HH:mm:ss", "yyyyMMddHHmmss");
-                                dataPayload.end_date_time = dicParams.GetValue("ENDDATETIME").ConvertDateTimeFormat("yyyy-MM-dd HH:mm:ss", "yyyyMMddHHmmss");
+                                    byte[] responseBuffer = payload.Serialize();
+                                    TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);
+                                }
+                                break;
+                            case GET_ALL_CUSTINFO: //정기차량 전체 목록(GET)
+                                {
+                                    RequestEmptyPayload payload = new RequestEmptyPayload();
+                                    payload.command = CmdType.cust_list;
+                                    Log.WriteLog(LogType.Info, $"KakaoMovilAdapter | HttpServer_ReceiveFromPeer", $"{GET_ALL_CUSTINFO}: {payload.ToJson()}", LogAdpType.HomeNet);
 
-                                RequestPayload<RequestSearchIONPayload> payload = new RequestPayload<RequestSearchIONPayload>();
-                                payload.command = CmdType.cust_io_list;
-                                payload.data = dataPayload;
-                                Log.WriteLog(LogType.Info, $"KakaoMovilAdapter | HttpServer_ReceiveFromPeer", $"{GET_IOSDATA}: {payload.ToJson()}", LogAdpType.HomeNet);
+                                    byte[] responseBuffer = payload.Serialize();
+                                    TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);
+                                }
+                                break;
+                            case GET_IOSDATA: //정기차량 출입조회(GET)
+                                {
+                                    RequestSearchIONPayload dataPayload = new RequestSearchIONPayload();
+                                    dataPayload.car_number = dicParams.GetValue("CARNO");
+                                    dataPayload.start_date_time = dicParams.GetValue("STARTDATETIME").ConvertDateTimeFormat("yyyy-MM-dd HH:mm:ss", "yyyyMMddHHmmss");
+                                    dataPayload.end_date_time = dicParams.GetValue("ENDDATETIME").ConvertDateTimeFormat("yyyy-MM-dd HH:mm:ss", "yyyyMMddHHmmss");
 
-                                byte[] responseBuffer = payload.Serialize();
-                                TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);
-                            }
-                            break;
-                        case SET_RESERVECAR: //방문신청차량 등록
-                            {
-                                RequestVisitRegPayload dataPayload = new RequestVisitRegPayload();
-                                dataPayload.car_number = Helper.NVL(json["Carno"]);
-                                dataPayload.dong = Helper.NVL(json["Dong"]);
-                                dataPayload.ho = Helper.NVL(json["Ho"]);
-                                dataPayload.date = Helper.NVL(json["Reservestart"]).ConvertDateTimeFormat("yyyy-MM-dd", "yyyyMMdd");
-                                DateTime startDate = Convert.ToDateTime(Helper.NVL(json["Reservestart"]));
-                                DateTime endDate = Convert.ToDateTime(Helper.NVL(json["Reserveend"]));
+                                    RequestPayload<RequestSearchIONPayload> payload = new RequestPayload<RequestSearchIONPayload>();
+                                    payload.command = CmdType.cust_io_list;
+                                    payload.data = dataPayload;
+                                    Log.WriteLog(LogType.Info, $"KakaoMovilAdapter | HttpServer_ReceiveFromPeer", $"{GET_IOSDATA}: {payload.ToJson()}", LogAdpType.HomeNet);
 
-                                TimeSpan dateDiff = endDate - startDate;
-                                dataPayload.term = dateDiff.Days.ToString();
-                                //TODO : Remark 추가해야함... 2021-01-14
-                                RequestPayload<RequestVisitRegPayload> payload = new RequestPayload<RequestVisitRegPayload>();
-                                payload.command = CmdType.visit_reg;
-                                payload.data = dataPayload;
-                                Log.WriteLog(LogType.Info, $"KakaoMovilAdapter | HttpServer_ReceiveFromPeer", $"{SET_RESERVECAR}: {payload.ToJson()}", LogAdpType.HomeNet);
+                                    byte[] responseBuffer = payload.Serialize();
+                                    TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);
+                                }
+                                break;
+                            case SET_RESERVECAR: //방문신청차량 등록
+                                {
+                                    RequestVisitRegPayload dataPayload = new RequestVisitRegPayload();
+                                    dataPayload.car_number = Helper.NVL(json["Carno"]);
+                                    dataPayload.dong = Helper.NVL(json["Dong"]);
+                                    dataPayload.ho = Helper.NVL(json["Ho"]);
+                                    dataPayload.date = Helper.NVL(json["Reservestart"]).ConvertDateTimeFormat("yyyy-MM-dd", "yyyyMMdd");
+                                    DateTime startDate = Convert.ToDateTime(Helper.NVL(json["Reservestart"]));
+                                    DateTime endDate = Convert.ToDateTime(Helper.NVL(json["Reserveend"]));
 
-                                byte[] responseBuffer = payload.Serialize();
-                                TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);
-                            }
-                            break;
-                        case GET_RESERVECAR: //방문신청차량 목록(GET)
-                            {
-                                RequestVisitSingleListPayload dataPayload = new RequestVisitSingleListPayload();
-                                dataPayload.car_number = dicParams.GetValue("CARNO"); 
-                                dataPayload.dong = dicParams.GetValue("DONG"); 
-                                dataPayload.ho = dicParams.GetValue("HO"); 
+                                    TimeSpan dateDiff = endDate - startDate;
+                                    dataPayload.term = dateDiff.Days.ToString();
+                                    //TODO : Remark 추가해야함... 2021-01-14
+                                    RequestPayload<RequestVisitRegPayload> payload = new RequestPayload<RequestVisitRegPayload>();
+                                    payload.command = CmdType.visit_reg;
+                                    payload.data = dataPayload;
+                                    Log.WriteLog(LogType.Info, $"KakaoMovilAdapter | HttpServer_ReceiveFromPeer", $"{SET_RESERVECAR}: {payload.ToJson()}", LogAdpType.HomeNet);
 
-                                RequestPayload<RequestVisitSingleListPayload> payload = new RequestPayload<RequestVisitSingleListPayload>();
-                                payload.command = CmdType.visit_single_list;
-                                payload.data = dataPayload;
-                                Log.WriteLog(LogType.Info, $"KakaoMovilAdapter | HttpServer_ReceiveFromPeer", $"{GET_RESERVECAR}: {payload.ToJson()}", LogAdpType.HomeNet);
+                                    byte[] responseBuffer = payload.Serialize();
+                                    TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);
+                                }
+                                break;
+                            case GET_RESERVECAR: //방문신청차량 목록(GET)
+                                {
+                                    RequestVisitSingleListPayload dataPayload = new RequestVisitSingleListPayload();
+                                    dataPayload.car_number = dicParams.GetValue("CARNO");
+                                    dataPayload.dong = dicParams.GetValue("DONG");
+                                    dataPayload.ho = dicParams.GetValue("HO");
 
-                                byte[] responseBuffer = payload.Serialize();
-                                TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);
-                            }
-                            break;
-                        case DEL_RESERVECAR: //방문신청차량 삭제
-                            {
-                                RequestVisitDelPayload dataPayload = new RequestVisitDelPayload();
-                                dataPayload.dong = Helper.NVL(json["Dong"]);
-                                dataPayload.ho = Helper.NVL(json["Ho"]);
-                                dataPayload.reg_no = Helper.NVL(json["Belong"]);
-                                dataPayload.car_number = Helper.NVL(json["Carno"]);
+                                    RequestPayload<RequestVisitSingleListPayload> payload = new RequestPayload<RequestVisitSingleListPayload>();
+                                    payload.command = CmdType.visit_single_list;
+                                    payload.data = dataPayload;
+                                    Log.WriteLog(LogType.Info, $"KakaoMovilAdapter | HttpServer_ReceiveFromPeer", $"{GET_RESERVECAR}: {payload.ToJson()}", LogAdpType.HomeNet);
 
-                                RequestPayload<RequestVisitDelPayload> payload = new RequestPayload<RequestVisitDelPayload>();
-                                payload.command = CmdType.visit_del;
-                                payload.data = dataPayload;
-                                Log.WriteLog(LogType.Info, $"KakaoMovilAdapter | HttpServer_ReceiveFromPeer", $"{DEL_RESERVECAR}: {payload.ToJson()}", LogAdpType.HomeNet);
+                                    byte[] responseBuffer = payload.Serialize();
+                                    TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);
+                                }
+                                break;
+                            case DEL_RESERVECAR: //방문신청차량 삭제
+                                {
+                                    RequestVisitDelPayload dataPayload = new RequestVisitDelPayload();
+                                    dataPayload.dong = Helper.NVL(json["Dong"]);
+                                    dataPayload.ho = Helper.NVL(json["Ho"]);
+                                    dataPayload.reg_no = Helper.NVL(json["Belong"]);
+                                    dataPayload.car_number = Helper.NVL(json["Carno"]);
 
-                                byte[] responseBuffer = payload.Serialize();
-                                TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);
-                            }
-                            break;
-                        case GET_IORESERVE: //방문신청차량 출입 조회(GET)
-                            {
-                                RequestVisitSingleIOPayload dataPayload = new RequestVisitSingleIOPayload();
-                                dataPayload.dong = dicParams.GetValue("DONG");
-                                dataPayload.ho = dicParams.GetValue("HO");
-                                dataPayload.car_number = dicParams.GetValue("CARNO");
+                                    RequestPayload<RequestVisitDelPayload> payload = new RequestPayload<RequestVisitDelPayload>();
+                                    payload.command = CmdType.visit_del;
+                                    payload.data = dataPayload;
+                                    Log.WriteLog(LogType.Info, $"KakaoMovilAdapter | HttpServer_ReceiveFromPeer", $"{DEL_RESERVECAR}: {payload.ToJson()}", LogAdpType.HomeNet);
 
-                                RequestPayload<RequestVisitSingleIOPayload> payload = new RequestPayload<RequestVisitSingleIOPayload>();
-                                payload.command = CmdType.visit_single_io;
-                                payload.data = dataPayload;
-                                Log.WriteLog(LogType.Info, $"KakaoMovilAdapter | HttpServer_ReceiveFromPeer", $"{GET_IORESERVE}: {payload.ToJson()}", LogAdpType.HomeNet);
+                                    byte[] responseBuffer = payload.Serialize();
+                                    TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);
+                                }
+                                break;
+                            case GET_IORESERVE: //방문신청차량 출입 조회(GET)
+                                {
+                                    RequestVisitSingleIOPayload dataPayload = new RequestVisitSingleIOPayload();
+                                    dataPayload.dong = dicParams.GetValue("DONG");
+                                    dataPayload.ho = dicParams.GetValue("HO");
+                                    dataPayload.car_number = dicParams.GetValue("CARNO");
 
-                                byte[] responseBuffer = payload.Serialize();
-                                TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);
-                            }
-                            break;
-                        default:
-                            e.Response.Connection.Type = ConnectionType.Close;
-                            e.Response.ContentType = new ContentTypeHeader("application/json;charset=UTF-8");
-                            e.Response.Status = System.Net.HttpStatusCode.MethodNotAllowed;
-                            e.Response.Reason = "Bad Request";
+                                    RequestPayload<RequestVisitSingleIOPayload> payload = new RequestPayload<RequestVisitSingleIOPayload>();
+                                    payload.command = CmdType.visit_single_io;
+                                    payload.data = dataPayload;
+                                    Log.WriteLog(LogType.Info, $"KakaoMovilAdapter | HttpServer_ReceiveFromPeer", $"{GET_IORESERVE}: {payload.ToJson()}", LogAdpType.HomeNet);
 
-                            {
-                                MvlResponsePayload payload = new MvlResponsePayload();
-                                payload.resultCode = MvlResponsePayload.SttCode.NotSupportedMethod;
-                                payload.resultMessage = "지원하지 않는 http 메소드 입니다";
-                                payload.responseTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-                                byte[] result = payload.Serialize();
-                                e.Response.Body.Write(result, 0, result.Length);
-                                return;
-                            }
-                    }
+                                    byte[] responseBuffer = payload.Serialize();
+                                    TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);
+                                }
+                                break;
+                            default:
+                                e.Response.Connection.Type = ConnectionType.Close;
+                                e.Response.ContentType = new ContentTypeHeader("application/json;charset=UTF-8");
+                                e.Response.Status = System.Net.HttpStatusCode.MethodNotAllowed;
+                                e.Response.Reason = "Bad Request";
 
-                    //3초 대기 Task
-                    int iSec = 5 * 100; //3초
-                    while (iSec > 0 && !bResponseSuccess)
-                    {
-                        Thread.Sleep(10); //0.01초씩..쉰다...
-                        iSec -= 1;
-                    }
+                                {
+                                    MvlResponsePayload payload = new MvlResponsePayload();
+                                    payload.resultCode = MvlResponsePayload.SttCode.NotSupportedMethod;
+                                    payload.resultMessage = "지원하지 않는 http 메소드 입니다";
+                                    payload.responseTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+                                    byte[] result = payload.Serialize();
+                                    e.Response.Add(iHeader);
+                                    e.Response.Body.Write(result, 0, result.Length);
+                                    return;
+                                }
+                        }
 
-                    if (bResponseSuccess) //응답성공
-                    {
-                        byte[] result = responsePayload.Serialize();
-                        e.Response.Body.Write(result, 0, result.Length);
-                    }
-                    else
-                    {
-                        MvlResponsePayload payload = new MvlResponsePayload();
-                        payload.resultCode = MvlResponsePayload.SttCode.NotSupportedMethod;
-                        payload.resultMessage = "주차 시스템으로 부터 응답이 없습니다";
-                        payload.responseTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-                        byte[] result = payload.Serialize();
-                        e.Response.Body.Write(result, 0, result.Length);
+                        //Task waitTask = WaitTask(15);
+                        //await waitTask;
+                        //5초 대기 Task
+                        int iSec = 5 * 100; //10초
+                        while (iSec > 0 && !bResponseSuccess)
+                        {
+                            Thread.Sleep(10); //0.01초씩..쉰다...
+                            iSec -= 1;
+                        }
+
+                        if (bResponseSuccess) //응답성공
+                        {
+                            byte[] result = responsePayload.Serialize();
+                            e.Response.Encoding = SysConfig.Instance.HomeNet_Encoding;
+                            e.Response.ContentType = new ContentTypeHeader("application/json");
+                            e.Response.Add(iHeader);
+                            e.Response.Body.Write(result, 0, result.Length);
+                        }
+                        else
+                        {
+                            MvlResponsePayload payload = new MvlResponsePayload();
+                            payload.resultCode = MvlResponsePayload.SttCode.NotSupportedMethod;
+                            payload.resultMessage = "주차 시스템으로 부터 응답이 없습니다";
+                            payload.responseTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+                            byte[] result = payload.Serialize();
+                            e.Response.Encoding = SysConfig.Instance.HomeNet_Encoding;
+                            e.Response.ContentType = new ContentTypeHeader("application/json");
+                            e.Response.Add(iHeader);
+                            e.Response.Body.Write(result, 0, result.Length);
+                        }
                     }
                 }
                 catch (Exception)
@@ -361,6 +398,9 @@ namespace NpmAdapter.Adapter
                     payload.resultMessage = MvlResponsePayload.SttCode.InternalServerError.GetDescription();
                     payload.responseTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
                     byte[] result = payload.Serialize();
+                    e.Response.Encoding = SysConfig.Instance.HomeNet_Encoding;
+                    e.Response.ContentType = new ContentTypeHeader("application/json");
+                    e.Response.Add(iHeader);
                     e.Response.Body.Write(result, 0, result.Length);
                 }
             }
@@ -431,9 +471,9 @@ namespace NpmAdapter.Adapter
 
                                 RequestEzInOutCarPayload ioPayload = new RequestEzInOutCarPayload(payload.command)
                                 {
-                                    apt_idx = aptId,
+                                    apt_idx = int.Parse(aptId),
                                     car_number = payload.data.car_number,
-                                    date = payload.data.date_time
+                                    date = payload.data.date_time.GetUTCMillisecond()
                                 };
                                 Log.WriteLog(LogType.Info, $"KakaoMovilAdapter | SendMessage", $"{ioPayload.ToJson()}", LogAdpType.HomeNet);
 
