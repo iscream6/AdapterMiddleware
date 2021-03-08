@@ -31,6 +31,7 @@ namespace NexpaAdapterStandardLib.Network
         private object lockThis = new object();
 
         public Action OnConnectionAction { get; set; }
+        public NetStatus Status { get; set; }
 
         public event SendToPeer ReceiveFromPeer;
 
@@ -67,11 +68,13 @@ namespace NexpaAdapterStandardLib.Network
                 Log.WriteLog(LogType.Info, $"SerialNetwork | Connect", $"Connect 완료");
                 SystemStatus.Instance.SendEventMessage(LogAdpType.HomeNet, "Success connect serial network!");
                 System.Threading.Thread.Sleep(100);
+                Status = NetStatus.Connected;
                 return true;
             }
             catch (Exception ex)
             {
                 Log.WriteLog(LogType.Error, $"SerialNetwork | Connect", $"Error : {ex.Message}");
+                Status = NetStatus.Disconnected;
                 return false;
             }
         }
@@ -87,6 +90,7 @@ namespace NexpaAdapterStandardLib.Network
                 }
                 SerialPort.Close();
                 Log.WriteLog(LogType.Info, $"SerialNetwork | Disconnect", $"Disconnect 완료");
+                Status = NetStatus.Disconnected;
             }
             catch (Exception ex)
             {

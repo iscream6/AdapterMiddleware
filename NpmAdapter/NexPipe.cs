@@ -39,14 +39,17 @@ namespace NpmAdapter
                         Log.WriteLog(LogType.Info, $"AdapterPipe | GeneratePipe", $"Nexpa Full Adapter 생성", LogAdpType.Nexpa);
                         break;
                     case NexpaAdapterType.Tcp_Only:
+                    case NexpaAdapterType.Tcp:
                         nexpa = new NexpaAdapter(NexpaAdapter.Status.TcpOnly);
                         Log.WriteLog(LogType.Info, $"AdapterPipe | GeneratePipe", $"Nexpa TcpAdapter 생성", LogAdpType.Nexpa);
                         break;
                     case NexpaAdapterType.Web_Only:
+                    case NexpaAdapterType.Web:
                         nexpa = new NexpaAdapter(NexpaAdapter.Status.WebOnly);
                         Log.WriteLog(LogType.Info, $"AdapterPipe | GeneratePipe", $"Nexpa WebAdapter 생성", LogAdpType.Nexpa);
                         break;
                     case NexpaAdapterType.AutoBooth:
+                    case NexpaAdapterType.NPAutoBooth:
                         nexpa = new NPAutoBoothAdapter();
                         Log.WriteLog(LogType.Info, $"AdapterPipe | GeneratePipe", $"Nexpa WebAdapter 생성", LogAdpType.Nexpa);
                         break;

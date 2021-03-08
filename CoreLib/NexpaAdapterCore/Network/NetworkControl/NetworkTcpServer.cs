@@ -27,6 +27,7 @@ namespace NexpaAdapterStandardLib.Network
             get => _dicClientSession.Count;
         }
         public Action OnConnectionAction { get; set; }
+        public NetStatus Status { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
 
         #region Implements IHomeNetServerAdapter
 

@@ -19,13 +19,13 @@ namespace NpmAdapter.Payload
         public void BindData(string msg)
         {
             Dictionary<string, string> dicBody = GetBodyMessage(msg).DoubleSplit('#', '=');
-            mode = (EZV_VISIT_MODE)int.Parse(dicBody["mode"]);
-            dong = dicBody["dongho"].Split('&')[0];
-            ho = dicBody["dongho"].Split('&')[1];
-            no = dicBody["no"];
-            inout = dicBody["inout"];
-            time = dicBody["time"];
-            carno = dicBody["carno"];
+            mode = (EZV_VISIT_MODE)int.Parse(dicBody.GetValue("MODE"));
+            dong = dicBody.GetValue("DONGHO").Split('&')[0];
+            ho = dicBody.GetValue("DONGHO").Split('&')[1];
+            no = dicBody.GetValue("NO");
+            inout = dicBody.GetValue("INOUT");
+            time = dicBody.GetValue("TIME");
+            carno = dicBody.GetValue("CARNO");
         }
 
         private string GetBodyMessage(string origin)

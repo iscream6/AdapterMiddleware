@@ -6,7 +6,9 @@ using NLog.Targets;
 using NpmAdapter.Payload;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 
@@ -45,7 +47,8 @@ namespace NpmAdapter.Adapter
 
         public void Dispose()
         {
-
+            _pauseEvent.Set();
+            shutdownEvent.Set();
         }
 
         public bool Initialize()
@@ -62,18 +65,10 @@ namespace NpmAdapter.Adapter
 
                 TcpClientNetwork = NetworkFactory.GetInstance().MakeNetworkControl(NetworkFactory.Adapters.TcpClient, tcpServerIp, tcpport);
 
-                //Alive Check
-                if (SysConfig.Instance.Sys_Option.GetValueToUpper("CmxAliveCheckUse").Equals("Y"))
-                {
-                    aliveCheckThread = new Thread(new ThreadStart(AliveCheck));
-                    aliveCheckThread.Name = "Ezv thread for alive check";
-                    if (!TimeSpan.TryParse(SysConfig.Instance.Sys_Option.GetValueToUpper("CmxAliveCheckTime"), out waitForWork))
-                    {
-                        //Default 3분
-                        waitForWork = TimeSpan.FromMinutes(3);
-                    }
-                }
-                //Alive Check
+                //이지빌은 Default AliveCheck함.
+                aliveCheckThread = new Thread(new ThreadStart(AliveCheck));
+                aliveCheckThread.Name = "Ezv thread for alive check";
+                waitForWork = TimeSpan.FromMinutes(5);
 
                 return true;
             }
@@ -88,7 +83,10 @@ namespace NpmAdapter.Adapter
         {
             try
             {
-                if (SysConfig.Instance.Sys_Option.GetValueToUpper("CmxAliveCheckUse").Equals("Y"))
+                isRun = TcpClientNetwork.Run();
+                TcpClientNetwork.ReceiveFromPeer += TcpClientNetwork_ReceiveFromPeer;
+                
+                if (isRun)
                 {
                     //Alive Check Thread 시작
                     if (aliveCheckThread.IsAlive)
@@ -101,9 +99,7 @@ namespace NpmAdapter.Adapter
                         _pauseEvent.Set();
                     }
                 }
-
-                TcpClientNetwork.ReceiveFromPeer += TcpClientNetwork_ReceiveFromPeer;
-                isRun = TcpClientNetwork.Run();
+                
                 return isRun;
             }
             catch (Exception ex)
@@ -133,7 +129,20 @@ namespace NpmAdapter.Adapter
 
         public void TestReceive(byte[] buffer)
         {
-            AliveCheck();
+            string json = "{\"command\": \"alert_incar\",\"data\": {\"dong\" : \"101\"," +
+                            "\"ho\" : \"101\"," +
+                            $"\"car_number\" : \"46부5989\"," +
+                            "\"date_time\" : \"20210305042525\"," +
+                            "\"kind\" : \"v\"," +
+                            "\"lprid\" : \"Lpr 식별 번호\"," +
+                            "\"car_image\" : \"차량 이미지 경로\"," +
+                            $"\"reg_no\" : \"111111\"," +
+                            "\"visit_in_date_time\" : \"yyyyMMddHHmmss\"," + //방문시작일시, kind가 v 일 경우 외 빈값
+                            "\"visit_out_date_time\" : \"yyyyMMddHHmmss\"" + //방문종료일시, kind가 v 일 경우 외 빈값
+                            "}" +
+                            "}";
+            byte[] test = SysConfig.Instance.Nexpa_Encoding.GetBytes(json);
+            SendMessage(test, 0, test.Length);
         }
 
         /// <summary>
@@ -143,7 +152,7 @@ namespace NpmAdapter.Adapter
         {
             do
             {
-                if (shutdownEvent.IsSet || !isRun) return;
+                if (shutdownEvent.IsSet) return;
 
                 {
                     //Alive Check 서버로 전달....
@@ -151,11 +160,18 @@ namespace NpmAdapter.Adapter
 
                     try
                     {
-                        //<start=0072&0>$version=3.0$cmd=10$copy=1-10$dongho=100&900$target=server
-                        string message = GetResponseMessage("$version=3.0$cmd=10$copy=1-10$dongho=100&900$target=server");
-                        Log.WriteLog(LogType.Info, $"EzvAdapter | AliveCheck", $"전송 : {message}", LogAdpType.HomeNet);
-                        byte[] responseData = SysConfig.Instance.HomeNet_Encoding.GetBytes(message);
-                        TcpClientNetwork.SendToPeer(responseData, 0, responseData.Length);
+                        if(TcpClientNetwork.Status == NetStatus.Disconnected)
+                        {
+                            isRun = TcpClientNetwork.Run();
+                        }
+                        else
+                        {
+                            //<start=0072&0>$version=3.0$cmd=10$copy=1-10$dongho=100&900$target=server
+                            string message = GetResponseMessage("$version=3.0$cmd=10$copy=1-10$dongho=100&900$target=server");
+                            Log.WriteLog(LogType.Info, $"EzvAdapter | AliveCheck", $"전송 : {message}", LogAdpType.HomeNet);
+                            byte[] responseData = SysConfig.Instance.HomeNet_Encoding.GetBytes(message);
+                            TcpClientNetwork.SendToPeer(responseData, 0, responseData.Length);
+                        }
                     }
                     catch (Exception ex)
                     {
@@ -175,6 +191,7 @@ namespace NpmAdapter.Adapter
                 bResponseSuccess = false;
 
                 string receiveMsg = SysConfig.Instance.HomeNet_Encoding.GetString(buffer[..(int)size]);
+                Log.WriteLog(LogType.Info, "EzvAdapter | TcpClientNetwork_ReceiveFromPeer", $"{receiveMsg}", LogAdpType.HomeNet);
                 ezHeader.Initialize();
                 ezHeader.BindData(receiveMsg);
 
@@ -388,7 +405,7 @@ namespace NpmAdapter.Adapter
                             }
                             else if (payload.data.kind == "v")
                             {
-                                alertPayload.mode = EZV_VISIT_MODE.입차예약;
+                                alertPayload.mode = EZV_VISIT_MODE.일반입차통보;
                             }
 
                             if ((CmdType)Enum.Parse(typeof(CmdType), cmd) == CmdType.alert_incar)
@@ -498,20 +515,10 @@ namespace NpmAdapter.Adapter
 
         private string GetResponseMessage(string msg)
         {
-            //int msgLength = SysConfig.Instance.HomeNet_Encoding.GetBytes(msg).Length;
-            //string sMsgLength = msgLength.ToString();
-            //int totalLength = (sMsgLength.Length + 10) + msgLength;
-            //string sGap = totalLength.ToString();
-            //int gap = sGap.Length - sMsgLength.Length;
-            //totalLength += gap;
-
-            int msgLength = SysConfig.Instance.HomeNet_Encoding.GetBytes(msg).Length;
+            int msgLength = msg.Length;
             int totalLength = msgLength + 14;
-
-            //0000 형태로 만들기
-            string fmt = "0000.##";
+            string fmt = "0000.##"; //0000 형태로 만들기
             string sResultLen = totalLength.ToString(fmt);
-            
             return $"<start={sResultLen}&0>{msg}";
         }
     }

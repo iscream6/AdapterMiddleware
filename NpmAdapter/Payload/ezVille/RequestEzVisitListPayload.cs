@@ -16,10 +16,10 @@ namespace NpmAdapter.Payload
         public void BindData(string msg)
         {
             Dictionary<string, string> dicBody = GetBodyMessage(msg).DoubleSplit('#', '=');
-            mode = (EZV_VISIT_MODE)int.Parse(dicBody["mode"]);
-            dong = dicBody["dongho"].Split('&')[0]; 
-            ho = dicBody["dongho"].Split('&')[1]; 
-            param = dicBody["param"];
+            mode = (EZV_VISIT_MODE)int.Parse(dicBody["MODE"]);
+            dong = dicBody["DONGHO"].Split('&')[0]; 
+            ho = dicBody["DONGHO"].Split('&')[1]; 
+            param = dicBody["PARAM"];
         }
 
         private string GetBodyMessage(string origin)

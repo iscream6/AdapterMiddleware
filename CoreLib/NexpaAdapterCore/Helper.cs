@@ -36,7 +36,13 @@ namespace NexpaAdapterStandardLib
         [Description("2")]
         Web_Only,
         [Description("4")]
-        AutoBooth
+        AutoBooth,
+        [Description("TCP")]
+        Tcp,
+        [Description("WEB")]
+        Web,
+        [Description("AB")]
+        NPAutoBooth
     }
 
     public enum HomeNetAdapterType

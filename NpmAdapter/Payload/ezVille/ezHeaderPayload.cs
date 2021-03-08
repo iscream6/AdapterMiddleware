@@ -44,11 +44,11 @@ namespace NpmAdapter.Payload
         {
             string hdr = GetHeaderMessage(msg);
             Dictionary<string, string> dicHdr = hdr.DoubleSplit('$', '=');
-            version = dicHdr["version"];
-            cmd = (EZV_HEAD_CMD)int.Parse(dicHdr["cmd"]);
-            copy = dicHdr["copy"];
-            if (dicHdr.Keys.Contains("dongho")) dongho = dicHdr["dongho"];
-            target = dicHdr["target"];
+            version = dicHdr["VERSION"];
+            cmd = (EZV_HEAD_CMD)int.Parse(dicHdr["CMD"]);
+            copy = dicHdr["COPY"];
+            if (dicHdr.Keys.Contains("DONGHO")) dongho = dicHdr["DONGHO"];
+            target = dicHdr["TARGET"];
         }
 
         public EZV_VISIT_MODE GetMode(string msg)
@@ -61,7 +61,7 @@ namespace NpmAdapter.Payload
         public override string ToString()
         {
             StringBuilder strResult = new StringBuilder();
-            strResult.Append($"$version={version}$cmd={cmd}$copy={copy}");
+            strResult.Append($"$version={version}$cmd={(int)cmd}$copy={copy}");
             if (dongho != "") strResult.Append($"$dongho={dongho}");
             strResult.Append($"$target={target}");
             return strResult.ToString();

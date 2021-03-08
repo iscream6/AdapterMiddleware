@@ -10,6 +10,8 @@ namespace NexpaAdapterStandardLib.Network
     class NetworkTcpClient : NetworkCore.TcpClient, INetwork
     {
         public Action OnConnectionAction { get; set; }
+        public NetStatus Status { get; set; }
+
         public event SendToPeer ReceiveFromPeer;
         private bool _stop;
         private int _stopCnt = 0;
@@ -22,10 +24,12 @@ namespace NexpaAdapterStandardLib.Network
 
             if (IsConnected)
             {
+                Status = NetStatus.Disconnected;
                 return Disconnect();
             }
             else
             {
+                Status = NetStatus.Disconnected;
                 return true;
             }
         }
@@ -39,7 +43,10 @@ namespace NexpaAdapterStandardLib.Network
                 Disconnect();
             }
 
-            return Connect();
+            bool stt = Connect();
+            if (stt) Status = NetStatus.Connected;
+            else Status = NetStatus.Disconnected;
+            return stt;
         }
 
         protected override void OnError(SocketError error)
@@ -56,7 +63,8 @@ namespace NexpaAdapterStandardLib.Network
         /// <param name="size"></param>
         public void SendToPeer(byte[] buffer, long offset, long size, string id = null)
         {
-            Send(buffer);
+            //Send(buffer);
+            SendAsync(buffer, offset, size);
         }
 
         protected override void OnReceived(byte[] buffer, long offset, long size)
@@ -74,16 +82,15 @@ namespace NexpaAdapterStandardLib.Network
 
         protected override void OnConnected()
         {
-            Log.WriteLog(LogType.Info, "TcpClientNetwork| OnConnected", $"Chat TCP client connected a new session with Id {Id}");
+            Log.WriteLog(LogType.Info, "TcpClientNetwork| OnConnected", $"TCP client connected a new session with Id {Id}");
             if(OnConnectionAction != null) OnConnectionAction();
         }
-
-
 
         protected override void OnDisconnected()
         {
             //서버에서 끊어짐....
             Log.WriteLog(LogType.Info, "TcpClientNetwork| OnDisconnected", $"client disconnected a session with Id {Id}");
+            Status = NetStatus.Disconnected;
             // Wait for a while...
             Thread.Sleep(500);
             //연결 재 시도...
@@ -95,7 +102,9 @@ namespace NexpaAdapterStandardLib.Network
 
             if (!_stop)
             {
-                Connect();
+                bool stt = Connect();
+                if (stt) Status = NetStatus.Connected;
+                else Status = NetStatus.Disconnected;
             }
 
             _stopCnt = 0;

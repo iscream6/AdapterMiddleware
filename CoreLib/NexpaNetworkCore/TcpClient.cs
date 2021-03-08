@@ -1,4 +1,6 @@
-﻿using System;
+﻿using HttpServer.Logging;
+using System;
+using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -121,7 +123,7 @@ namespace NetworkCore
         public virtual bool Connect()
         {
             if (IsConnected || IsConnecting)
-                return false;
+                return true;
 
             // Setup buffers
             _receiveBuffer = new Buffer();
@@ -163,6 +165,7 @@ namespace NetworkCore
                 // Call the client disconnected handler
                 SendError(ex.SocketErrorCode);
                 OnDisconnected();
+                
                 return false;
             }
 
@@ -196,6 +199,9 @@ namespace NetworkCore
             // Call the empty send buffer handler
             if (_sendBufferMain.IsEmpty)
                 OnEmpty();
+
+            //Receive to server...
+            ReceiveAsync();
 
             return true;
         }

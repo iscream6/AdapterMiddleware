@@ -19,6 +19,7 @@ namespace NexpaAdapterStandardLib.Network
         private int _port;
 
         public Action OnConnectionAction { get; set; }
+        public NetStatus Status { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
 
         public NetworkWebServer(int port)
         {
