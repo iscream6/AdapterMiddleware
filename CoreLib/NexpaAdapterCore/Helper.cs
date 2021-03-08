@@ -24,7 +24,9 @@ namespace NexpaAdapterStandardLib
         [Description("32")]
         UTF32,
         [Description("kr")]
-        EUC_KR
+        EUC_KR,
+        [Description("ksc_5601")]
+        KSC_5601
     }
 
     public enum NexpaAdapterType

@@ -288,6 +288,8 @@ namespace NexpaAdapterStandardLib
                     int iEuckr = 51949;
                     Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
                     return Encoding.GetEncoding(iEuckr);
+                case "ksc_5601":
+                    return Encoding.GetEncoding("ksc_5601");
                 default:
                     return Encoding.UTF8;
             }
