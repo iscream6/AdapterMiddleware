@@ -198,7 +198,7 @@ namespace NpmAdapter.Adapter
             }
             else
             {
-                Log.WriteLog(LogType.Info, "NexpaTcpAdapter | MyHttpNetwork_ReceiveFromPeer", $"PMS로부터 데이터 수신(전송한 Command : {cmdType})==========", LogAdpType.Nexpa);
+                Log.WriteLog(LogType.Info, "NexpaTcpAdapter | MyHttpNetwork_ReceiveFromPeer", $"PMS로부터 데이터 수신(전송받은 Command : {cmdType})==========", LogAdpType.Nexpa);
                 e.Response.Connection.Type = ConnectionType.Close;
                 e.Response.ContentType = new ContentTypeHeader("application/json;charset=UTF-8");
                 e.Response.Status = System.Net.HttpStatusCode.OK;
@@ -220,9 +220,10 @@ namespace NpmAdapter.Adapter
                 ResponsePayload resultPayload = new ResponsePayload();
                 resultPayload.command = cmdType;
                 resultPayload.result = ResultType.OK;
-                byte[]  result = resultPayload.Serialize();
+                byte[] result = resultPayload.Serialize();
 
                 //정상처리 응답을 보낸다.
+                Log.WriteLog(LogType.Info, "NexpaTcpAdapter | MyHttpNetwork_ReceiveFromPeer", $"PMS로 응답 송신(전송한 Command : {cmdType})==========\r\n{resultPayload.ToJson()}", LogAdpType.Nexpa);
                 e.Response.Body.Write(result, 0, result.Length);
             }
         }

@@ -27,6 +27,8 @@ namespace NpmAdapter.Payload
         public JObject ToJson()
         {
             JObject json = new JObject();
+            json["dong"] = dong;
+            json["ho"] = ho;
             json["car_number"] = car_number;
             return json;
         }

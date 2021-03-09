@@ -21,6 +21,7 @@ namespace NpmAdapter.Payload
 
         public void BindData(string msg)
         {
+            //GetBodyMessage(msg).DoubleSplit('#', '=')
             string bodyMsg = GetBodyMessage(msg);
             int secondIdx = 0;
             int iList = -1;
@@ -30,14 +31,24 @@ namespace NpmAdapter.Payload
             {
                 try
                 {
+                    if (bodyMsg == null || bodyMsg == string.Empty) break;
+
                     secondIdx = bodyMsg.IndexOf('#', 1); //맨 앞에 #이 있음...
                     if (secondIdx == -1)
                     {
-                        break;
+                        if (bodyMsg.Length > 0) 
+                        {
+                            bodyMsg = bodyMsg + "#";
+                            secondIdx = bodyMsg.IndexOf('#', 1);
+                        }
+                        else
+                        {
+                            break;
+                        }
                     }
                     else
                     {
-                        var result = bodyMsg.Substring(1, secondIdx - 1);
+                        var result = bodyMsg.Substring(0, secondIdx);
                         string[] pieces = result.Split('=');
                         if (pieces == null || pieces.Length != 2)
                         {
@@ -52,18 +63,25 @@ namespace NpmAdapter.Payload
                             {
                                 case "mode":
                                     mode = (EZV_VISIT_MODE)int.Parse(value);
+                                    bodyMsg = bodyMsg.Substring(secondIdx + 1);
                                     break;
                                 case "dongho":
                                     dong = value.Split('&')[0];
                                     ho = value.Split('&')[1];
+                                    bodyMsg = bodyMsg.Substring(secondIdx + 1);
                                     break;
                                 case "no":
                                     iList += 1;
                                     list.Add(new CarInfo());
                                     list[iList].no = value;
+                                    bodyMsg = bodyMsg.Substring(secondIdx + 1);
                                     break;
                                 case "carno":
                                     list[iList].carno = value;
+                                    bodyMsg = bodyMsg.Substring(secondIdx + 1);
+                                    break;
+                                default:
+                                    secondIdx = -1;
                                     break;
                             }
                         }

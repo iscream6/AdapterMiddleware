@@ -1,4 +1,5 @@
-﻿using System;
+﻿using NexpaAdapterStandardLib;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -48,21 +49,24 @@ namespace NpmAdapter.Payload
             cmd = (EZV_HEAD_CMD)int.Parse(dicHdr["CMD"]);
             copy = dicHdr["COPY"];
             if (dicHdr.Keys.Contains("DONGHO")) dongho = dicHdr["DONGHO"];
+            else dongho = $"{SysConfig.Instance.HC_Id}&{SysConfig.Instance.HC_Pw}";
             target = dicHdr["TARGET"];
         }
 
         public EZV_VISIT_MODE GetMode(string msg)
         {
             Dictionary<string, string> dicBody = GetBodyMessage(msg).DoubleSplit('#', '=');
-            EZV_VISIT_MODE mode = (EZV_VISIT_MODE)int.Parse(dicBody["mode"]);
+            EZV_VISIT_MODE mode = (EZV_VISIT_MODE)int.Parse(dicBody["MODE"]);
             return mode;
         }
 
         public override string ToString()
         {
             StringBuilder strResult = new StringBuilder();
-            strResult.Append($"$version={version}$cmd={(int)cmd}$copy={copy}");
+            strResult.Append($"$version={version}$copy={copy}");
             if (dongho != "") strResult.Append($"$dongho={dongho}");
+            else strResult.Append($"{SysConfig.Instance.HC_Id}&{SysConfig.Instance.HC_Pw}");
+            strResult.Append($"cmd={(int)cmd}");
             strResult.Append($"$target={target}");
             return strResult.ToString();
         }
@@ -75,8 +79,10 @@ namespace NpmAdapter.Payload
         {
             StringBuilder strResult = new StringBuilder();
             int iCmd = (int)cmd + 1;
-            strResult.Append($"$version={version}$cmd={iCmd}$copy={copy}");
+            strResult.Append($"$version={version}$copy={copy}");
             if (dongho != "") strResult.Append($"$dongho={dongho}");
+            else strResult.Append($"{SysConfig.Instance.HC_Id}&{SysConfig.Instance.HC_Pw}");
+            strResult.Append($"$cmd={iCmd}");
             strResult.Append($"$target={target}");
             return strResult.ToString();
         }

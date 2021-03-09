@@ -33,6 +33,12 @@ namespace NpmAdapter.Adapter
         ManualResetEvent _pauseEvent = new ManualResetEvent(false);
         private delegate void SafeCallDelegate();
 
+        private const string ERR_SAVE_CARNUMBER = "#0001&차번저장오류";
+        private const string ERR_FAIL_RESERVE = "#0002&예약실패";
+        private const string ERR_FAIL_RESERVE_CANCEL = "#0003&예약취소실패";
+        private StringBuilder ErrorMessage = new StringBuilder();
+        private string AuthDong = "100";
+        private string AuthHo = "900";
         #endregion
 
         #region Properties
@@ -58,6 +64,8 @@ namespace NpmAdapter.Adapter
                 ezHeader = new ezHeaderPayload();
                 ezHeader.Initialize();
 
+                AuthDong = SysConfig.Instance.HC_Id;
+                AuthHo = SysConfig.Instance.HC_Pw;
                 tcpServerIp = SysConfig.Instance.HT_IP;
                 tcpport = SysConfig.Instance.HT_Port;
 
@@ -167,7 +175,7 @@ namespace NpmAdapter.Adapter
                         else
                         {
                             //<start=0072&0>$version=3.0$cmd=10$copy=1-10$dongho=100&900$target=server
-                            string message = GetResponseMessage("$version=3.0$cmd=10$copy=1-10$dongho=100&900$target=server");
+                            string message = GetResponseMessage($"$version=2.0$copy=0-0$dongho={AuthDong}&{AuthHo}$cmd=10$target=server");
                             Log.WriteLog(LogType.Info, $"EzvAdapter | AliveCheck", $"전송 : {message}", LogAdpType.HomeNet);
                             byte[] responseData = SysConfig.Instance.HomeNet_Encoding.GetBytes(message);
                             TcpClientNetwork.SendToPeer(responseData, 0, responseData.Length);
@@ -184,11 +192,14 @@ namespace NpmAdapter.Adapter
             while (_pauseEvent.WaitOne());
         }
 
+        private static Dictionary<CmdType, JObject> dicBuffer = new Dictionary<CmdType, JObject>();
+
         private void TcpClientNetwork_ReceiveFromPeer(byte[] buffer, long offset, long size, HttpServer.RequestEventArgs pEvent = null, string id = null)
         {
             lock (lockObj)
             {
                 bResponseSuccess = false;
+                ErrorMessage.Clear();
 
                 string receiveMsg = SysConfig.Instance.HomeNet_Encoding.GetString(buffer[..(int)size]);
                 Log.WriteLog(LogType.Info, "EzvAdapter | TcpClientNetwork_ReceiveFromPeer", $"{receiveMsg}", LogAdpType.HomeNet);
@@ -201,8 +212,8 @@ namespace NpmAdapter.Adapter
                     {
                         //살아있다고 리턴하자....
                         ResponseEzAliveCheckPayload responsePayload = new ResponseEzAliveCheckPayload();
-                        responsePayload.dong = "100";
-                        responsePayload.ho = "900";
+                        responsePayload.dong = AuthDong;
+                        responsePayload.ho = AuthHo;
                         responsePayload.ip = Helper.GetLocalIP();
                         responsePayload.status = "0";
 
@@ -226,8 +237,18 @@ namespace NpmAdapter.Adapter
 
                         sendPayload.data = data;
 
+                        if (dicBuffer.ContainsKey(sendPayload.command))
+                        {
+                            dicBuffer[sendPayload.command] = data.ToJson();
+                        }
+                        else
+                        {
+                            dicBuffer.Add(sendPayload.command, data.ToJson());
+                        }
+
                         byte[] responseBuffer = sendPayload.Serialize();
                         TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);
+                        Log.WriteLog(LogType.Info, $"EzvAdapter | TcpClientNetwork_ReceiveFromPeer", $"SendMessage : {sendPayload.ToJson()}", LogAdpType.HomeNet);
 
                         int iSec = 3 * 100; //3초
                         while (iSec > 0 && !bResponseSuccess)
@@ -238,7 +259,20 @@ namespace NpmAdapter.Adapter
 
                         if (!bResponseSuccess) //응답 실패
                         {
-                            Log.WriteLog(LogType.Info, $"EzvAdapter | TcpClientNetwork_ReceiveFromPeer", $"응답실패", LogAdpType.HomeNet);
+                            Log.WriteLog(LogType.Error, $"EzvAdapter | TcpClientNetwork_ReceiveFromPeer", $"응답시간초과", LogAdpType.HomeNet);
+                            string responseMsg = "";
+                            if (ErrorMessage.Length > 0)
+                            {
+                                responseMsg = GetResponseMessage(ezHeader.ResponseToString() + ErrorMessage.ToString());
+                                ErrorMessage.Clear();
+
+                            }
+                            else
+                            {
+                                responseMsg = GetResponseMessage(ezHeader.ResponseToString() + "#0004&주차관제응답없음");
+                            }
+                            byte[] responseData = SysConfig.Instance.HomeNet_Encoding.GetBytes(responseMsg);
+                            TcpClientNetwork.SendToPeer(responseData, 0, responseData.Length);
                         }
                     }
                     else if(ezHeader.target == "server") //미들웨어가 보낸 Alive Check 에 대한 응답..
@@ -252,6 +286,8 @@ namespace NpmAdapter.Adapter
                     var mode = ezHeader.GetMode(receiveMsg);
                     if(mode == EZV_VISIT_MODE.입차예약)
                     {
+                        ErrorMessage.Append(ERR_FAIL_RESERVE);
+
                         RequestEzVisitRegPayload requestPayload = new RequestEzVisitRegPayload();
                         requestPayload.BindData(receiveMsg);
 
@@ -265,16 +301,28 @@ namespace NpmAdapter.Adapter
                         if(requestPayload.inout == "0")
                         {
                             data.start_date_time = requestPayload.time;
+                            data.end_date_time = "";
                         }
                         else
                         {
-                            data.end_date_tiem = requestPayload.time;
+                            data.end_date_time = requestPayload.time;
+                            data.start_date_time = "";
                         }
 
                         sendPayload.data = data;
 
+                        if (dicBuffer.ContainsKey(sendPayload.command))
+                        {
+                            dicBuffer[sendPayload.command] = data.ToJson();
+                        }
+                        else
+                        {
+                            dicBuffer.Add(sendPayload.command, data.ToJson());
+                        }
+
                         byte[] responseBuffer = sendPayload.Serialize();
                         TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);
+                        Log.WriteLog(LogType.Info, $"EzvAdapter | TcpClientNetwork_ReceiveFromPeer", $"SendMessage : {sendPayload.ToJson()}", LogAdpType.HomeNet);
 
                         int iSec = 3 * 100; //3초
                         while (iSec > 0 && !bResponseSuccess)
@@ -285,16 +333,30 @@ namespace NpmAdapter.Adapter
 
                         if (!bResponseSuccess) //응답 실패
                         {
+                            Log.WriteLog(LogType.Error, $"EzvAdapter | TcpClientNetwork_ReceiveFromPeer", $"응답시간초과", LogAdpType.HomeNet);
+                            string responseMsg = "";
+                            if (ErrorMessage.Length > 0)
+                            {
+                                responseMsg = GetResponseMessage(ezHeader.ResponseToString() + ErrorMessage.ToString());
+                                ErrorMessage.Clear();
 
+                            }
+                            else
+                            {
+                                responseMsg = GetResponseMessage(ezHeader.ResponseToString() + "#0004&주차관제응답없음");
+                            }
+                            byte[] responseData = SysConfig.Instance.HomeNet_Encoding.GetBytes(responseMsg);
+                            TcpClientNetwork.SendToPeer(responseData, 0, responseData.Length);
                         }
                     }
                     else if(mode == EZV_VISIT_MODE.입차예약취소)
                     {
+                        ErrorMessage.Append(ERR_FAIL_RESERVE_CANCEL);
                         RequestEzVisitDelPayload requestPayload = new RequestEzVisitDelPayload();
                         requestPayload.BindData(receiveMsg);
 
                         RequestPayload<RequestVisitDel2Payload> sendPayload = new RequestPayload<RequestVisitDel2Payload>();
-                        sendPayload.command = CmdType.visit_reg2;
+                        sendPayload.command = CmdType.visit_del2;
 
                         RequestVisitDel2Payload data = new RequestVisitDel2Payload();
                         data.dong = requestPayload.dong;
@@ -316,7 +378,17 @@ namespace NpmAdapter.Adapter
 
                         sendPayload.data = data;
 
+                        if (dicBuffer.ContainsKey(sendPayload.command))
+                        {
+                            dicBuffer[sendPayload.command] = data.ToJson();
+                        }
+                        else
+                        {
+                            dicBuffer.Add(sendPayload.command, data.ToJson());
+                        }
+
                         byte[] responseBuffer = sendPayload.Serialize();
+                        Log.WriteLog(LogType.Info, $"EzvAdapter | TcpClientNetwork_ReceiveFromPeer", $"SendMessage : {sendPayload.ToJson()}", LogAdpType.HomeNet);
                         TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);
 
                         int iSec = 3 * 100; //3초
@@ -328,7 +400,21 @@ namespace NpmAdapter.Adapter
 
                         if (!bResponseSuccess) //응답 실패
                         {
-                            
+                            Log.WriteLog(LogType.Error, $"EzvAdapter | TcpClientNetwork_ReceiveFromPeer", $"응답시간초과", LogAdpType.HomeNet);
+                            string responseMsg = "";
+                            if (ErrorMessage.Length > 0)
+                            {
+                                responseMsg = GetResponseMessage(ezHeader.ResponseToString() + ErrorMessage.ToString());
+                                ErrorMessage.Clear();
+
+                            }
+                            else
+                            {
+                                responseMsg = GetResponseMessage(ezHeader.ResponseToString() + "#0004&주차관제응답없음");
+                            }
+                            byte[] responseData = SysConfig.Instance.HomeNet_Encoding.GetBytes(responseMsg);
+                            TcpClientNetwork.SendToPeer(responseData, 0, responseData.Length);
+                            bResponseSuccess = true;
                         }
                     }
                 }
@@ -359,10 +445,24 @@ namespace NpmAdapter.Adapter
 
                 resultPayload.code = sCode;
                 resultPayload.message = Helper.NVL(result["message"]);
+
+                string responseMsg = "";
+                if (ErrorMessage.Length > 0)
+                {
+                    responseMsg = GetResponseMessage(ezHeader.ResponseToString() + ErrorMessage.ToString());
+                    ErrorMessage.Clear();
+                }
+                else
+                {
+                    responseMsg = GetResponseMessage(ezHeader.ResponseToString() + $"#0{resultPayload.code}&{resultPayload.message}");
+                }
+
+                byte[] responseData = SysConfig.Instance.HomeNet_Encoding.GetBytes(responseMsg);
+                TcpClientNetwork.SendToPeer(responseData, 0, responseData.Length);
+                bResponseSuccess = true;
+                return;
             }
             //결과 Payload 생성완료 =======
-
-            if (data == null || data.Count == 0) return;
 
             string cmd = jobj["command"].ToString();
             switch ((CmdType)Enum.Parse(typeof(CmdType), cmd))
@@ -391,22 +491,14 @@ namespace NpmAdapter.Adapter
                             headerPayload.version = "3.0";
                             headerPayload.cmd = EZV_HEAD_CMD.이벤트전송;
                             headerPayload.copy = "1-10";
-                            headerPayload.dongho = "100&900";
+                            headerPayload.dongho = $"{AuthDong}&{AuthHo}";
                             headerPayload.target = "parking";
 
                             RequestEzAlertIOCarPayload alertPayload = new RequestEzAlertIOCarPayload();
                             alertPayload.dong = payload.data.dong;
                             alertPayload.ho = payload.data.ho;
                             alertPayload.carno = payload.data.car_number;
-
-                            if (payload.data.kind == "a") //아파트 주민
-                            {
-                                alertPayload.mode = EZV_VISIT_MODE.일반입차통보;
-                            }
-                            else if (payload.data.kind == "v")
-                            {
-                                alertPayload.mode = EZV_VISIT_MODE.일반입차통보;
-                            }
+                            alertPayload.mode = EZV_VISIT_MODE.일반입차통보;
 
                             if ((CmdType)Enum.Parse(typeof(CmdType), cmd) == CmdType.alert_incar)
                             {
@@ -438,15 +530,18 @@ namespace NpmAdapter.Adapter
                                 int iNo = 1;
 
                                 visitlst.total = list.Count.ToString();
+                                JObject sendedJson = dicBuffer.TryGetValue(CmdType.visit_list2);
+                                dicBuffer.Remove(CmdType.visit_list2);
+
+                                if (sendedJson != null && sendedJson.Count > 0)
+                                {
+                                    visitlst.dongho = $"{Helper.NVL(sendedJson["dong"])}&{Helper.NVL(sendedJson["ho"])}";
+                                }
 
                                 foreach (JObject item in list)
                                 {
                                     if (visitlst.list == null) visitlst.list = new List<ResponseEzVisitListPayload.CarInfo>();
-                                    if (visitlst.dongho == null || visitlst.dongho == "")
-                                    {
-                                        visitlst.dongho = $"{Helper.NVL(item["dong"])}&{Helper.NVL(item["ho"])}";
-                                    }
-                                    // ezHeader
+                                    
                                     ResponseEzVisitListPayload.CarInfo carInfo = new ResponseEzVisitListPayload.CarInfo();
 
                                     carInfo.no = iNo++.ToString();
@@ -469,6 +564,7 @@ namespace NpmAdapter.Adapter
                                     visitlst.list.Add(carInfo);
                                 }
                             }
+                            
                             //여기서 보낸다. 즉 data가 없다면 안보낸다는 뜻....
                             string responseMsg = GetResponseMessage(ezHeader.ResponseToString() + visitlst.ToString());
                             byte[] responseData = SysConfig.Instance.HomeNet_Encoding.GetBytes(responseMsg);
@@ -481,6 +577,13 @@ namespace NpmAdapter.Adapter
                 case CmdType.visit_reg2:
                     {
                         string sData = "#mode=1";
+                        JObject sendedJson = dicBuffer.TryGetValue(CmdType.visit_reg2);
+                        dicBuffer.Remove(CmdType.visit_reg2);
+                        if (sendedJson != null && sendedJson.Count > 0)
+                        {
+                            sData += $"#dongho={Helper.NVL(sendedJson["dong"])}&{Helper.NVL(sendedJson["ho"])}";
+                        }
+
                         if (resultPayload != null)
                         {
                             sData += $"#err={resultPayload.message}";
@@ -496,6 +599,13 @@ namespace NpmAdapter.Adapter
                 case CmdType.visit_del2:
                     {
                         string sData = "#mode=2";
+                        JObject sendedJson = dicBuffer.TryGetValue(CmdType.visit_del2);
+                        dicBuffer.Remove(CmdType.visit_del2);
+                        if (sendedJson != null && sendedJson.Count > 0)
+                        {
+                            sData += $"#dongho={Helper.NVL(sendedJson["dong"])}&{Helper.NVL(sendedJson["ho"])}";
+                        }
+
                         if (resultPayload != null)
                         {
                             sData += $"#err={resultPayload.message}";

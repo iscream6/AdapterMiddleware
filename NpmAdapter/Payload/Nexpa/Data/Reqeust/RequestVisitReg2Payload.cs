@@ -28,7 +28,7 @@ namespace NpmAdapter.Payload
         /// <summary>
         /// 방문일 수(몇일동안 방문할것인지)
         /// </summary>
-        public string end_date_tiem { get; set; }
+        public string end_date_time { get; set; }
 
         public void Deserialize(JObject json)
         {
@@ -38,7 +38,7 @@ namespace NpmAdapter.Payload
             ho = Helper.NVL(json["ho"]);
             car_number = Helper.NVL(json["car_number"]);
             start_date_time = Helper.NVL(json["start_date_time"]);
-            end_date_tiem = Helper.NVL(json["end_date_tiem"]);
+            end_date_time = Helper.NVL(json["end_date_time"]);
         }
 
         public byte[] Serialize()
@@ -53,7 +53,7 @@ namespace NpmAdapter.Payload
             json["ho"] = ho;
             json["car_number"] = car_number;
             json["start_date_time"] = start_date_time;
-            json["end_date_tiem"] = end_date_tiem;
+            json["end_date_time"] = end_date_time;
             return json;
         }
     }
