@@ -17,9 +17,12 @@ namespace NexpaConnectWinApp
         private bool isRunHomeNet = false;
         private bool autoClear = false;
         private bool isShutdown = false;
-
+        private static DateTime startDate;
         public frmMain()
         {
+            //Form이 시작한 시간을 설정한다.
+            startDate = DateTime.Now;
+
             InitializeComponent();
             this.WindowState = FormWindowState.Minimized;
             this.ShowInTaskbar = false;
@@ -31,7 +34,7 @@ namespace NexpaConnectWinApp
         private void frmMain_Load(object sender, EventArgs e)
         {
             //과거 로그를 지우자..
-            if(SysConfig.Instance.LogLimit != null && SysConfig.Instance.LogLimit != "")
+            if (SysConfig.Instance.LogLimit != null && SysConfig.Instance.LogLimit != "")
             {
                 StdHelper.DeleteLogFiles(Application.StartupPath + "\\Log", int.Parse(SysConfig.Instance.LogLimit));
             }
@@ -68,7 +71,6 @@ namespace NexpaConnectWinApp
                 builder.Append($"[{adapterType.ToString()}] ");
             }
             builder.Append(statusMessage);
-            //txtSysLog.AppendText(builder.ToString() + "\r");
             SafeAppendLogText(txtSysLog, builder.ToString() + "\r");
             if (this.InvokeRequired)
             {
@@ -536,6 +538,9 @@ namespace NexpaConnectWinApp
         {
             //새벽 4시가 되면...스스로 죽는다...
             string time = DateTime.Now.ToString("yyyyMMddHHmmss");
+            string compareTime = startDate.ToString("yyyyMMddHHmmss");
+
+            if (time.Substring(0, 8) == compareTime.Substring(0, 8)) return;
 
             if (time.Substring(8, 4) == "0401")
             {

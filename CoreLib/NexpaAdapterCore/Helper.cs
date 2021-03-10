@@ -172,6 +172,8 @@ namespace NexpaAdapterStandardLib
 
         private static void RecursiveDirDelete(string dirPath, int[] compare, int compareIdx)
         {
+            if (!Directory.Exists(dirPath)) return;
+
             string[] dirs = Directory.GetDirectories(dirPath);
             int iCompare = compare[compareIdx];
 

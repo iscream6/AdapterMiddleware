@@ -456,60 +456,58 @@ namespace NpmAdapter.Adapter
                         {
                             RequestPayload<AlertInOutCarPayload> payload = new RequestPayload<AlertInOutCarPayload>();
                             payload.Deserialize(jobj);
+
+                            Uri uri = null;
+                            byte[] requestData;
+
+                            if (payload.command == CmdType.alert_incar)
                             {
-                                Uri uri = null;
-                                byte[] requestData;
+                                uri = new Uri(string.Concat(hostDomain, APT_INCAR_POST));
+                            }
+                            else
+                            {
+                                uri = new Uri(string.Concat(hostDomain, APT_OUTCAR_POST));
+                            }
 
-                                if (payload.command == CmdType.alert_incar)
+                            MvlInOutCarPayload ioPayload = new MvlInOutCarPayload(payload.command)
+                            {
+                                apt_idx = int.Parse(aptId),
+                                car_number = payload.data.car_number,
+                                date = payload.data.date_time.GetUTCMillisecond()
+                            };
+                            Log.WriteLog(LogType.Info, $"KakaoMovilAdapter | SendMessage", $"{ioPayload.ToJson()}", LogAdpType.HomeNet);
+
+                            requestData = ioPayload.Serialize();
+
+                            string responseData = string.Empty;
+                            string responseHeader = string.Empty;
+
+                            if (NetworkWebClient.Instance.SendData(uri, NetworkWebClient.RequestType.POST, ContentType.Json, requestData, ref responseData, ref responseHeader, header: dicHeader))
+                            {
+                                try
                                 {
-                                    uri = new Uri(string.Concat(hostDomain, APT_INCAR_POST));
-                                }
-                                else
-                                {
-                                    uri = new Uri(string.Concat(hostDomain, APT_OUTCAR_POST));
-                                }
+                                    ResponsePayload responsePayload = new ResponsePayload();
+                                    byte[] responseBuffer;
 
-                                RequestEzInOutCarPayload ioPayload = new RequestEzInOutCarPayload(payload.command)
-                                {
-                                    apt_idx = int.Parse(aptId),
-                                    car_number = payload.data.car_number,
-                                    date = payload.data.date_time.GetUTCMillisecond()
-                                };
-                                Log.WriteLog(LogType.Info, $"KakaoMovilAdapter | SendMessage", $"{ioPayload.ToJson()}", LogAdpType.HomeNet);
-
-                                requestData = ioPayload.Serialize();
-
-                                string responseData = string.Empty;
-                                string responseHeader = string.Empty;
-
-                                if (NetworkWebClient.Instance.SendData(uri, NetworkWebClient.RequestType.POST, ContentType.Json, requestData, ref responseData, ref responseHeader, header: dicHeader))
-                                {
-                                    try
+                                    var responseJobj = JObject.Parse(responseData);
+                                    if (responseJobj != null && Helper.NVL(responseJobj["code"]) == "0000")
                                     {
-                                        Log.WriteLog(LogType.Info, "KakaoMovilAdapter | SendMessage | WebClientResponse", $"==응답== {responseData}", LogAdpType.Nexpa);
-                                        ResponsePayload responsePayload = new ResponsePayload();
-                                        byte[] responseBuffer;
-
-                                        var responseJobj = JObject.Parse(responseData);
-                                        if (responseJobj != null && Helper.NVL(responseJobj["code"]) == "0000")
-                                        {
-                                            responsePayload.command = payload.command;
-                                            responsePayload.result = ResultType.OK;
-                                            responseBuffer = responsePayload.Serialize();
-                                        }
-                                        else
-                                        {
-                                            responsePayload.command = payload.command;
-                                            responsePayload.result = ResultType.ExceptionERROR;
-                                            responseBuffer = responsePayload.Serialize();
-                                        }
-
-                                        TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);
+                                        responsePayload.command = payload.command;
+                                        responsePayload.result = ResultType.OK;
+                                        responseBuffer = responsePayload.Serialize();
                                     }
-                                    catch (Exception ex)
+                                    else
                                     {
-                                        Log.WriteLog(LogType.Error, "NexpaTcpAdapter | RequestUDO_LocationMap", $"{ex.Message}", LogAdpType.Nexpa);
+                                        responsePayload.command = payload.command;
+                                        responsePayload.result = ResultType.ExceptionERROR;
+                                        responseBuffer = responsePayload.Serialize();
                                     }
+
+                                    TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);
+                                }
+                                catch (Exception ex)
+                                {
+                                    Log.WriteLog(LogType.Error, "NexpaTcpAdapter | RequestUDO_LocationMap", $"{ex.Message}", LogAdpType.Nexpa);
                                 }
                             }
                         }
@@ -592,7 +590,7 @@ namespace NpmAdapter.Adapter
                                     {
                                         MvlCustInfoPayload dataPayload = new MvlCustInfoPayload();
                                         dataPayload.tkNo = Helper.NVL(item["reg_no"]);
-                                        dataPayload.groupNo = ""; //Optional
+                                        dataPayload.groupNo = "1"; //Optional
                                         dataPayload.carNo = Helper.NVL(item["car_number"]);
                                         dataPayload.dong = Helper.NVL(item["dong"]);
                                         dataPayload.ho = Helper.NVL(item["ho"]);
@@ -601,7 +599,7 @@ namespace NpmAdapter.Adapter
                                         dataPayload.remark = Helper.NVL(item["remark"]);
                                         dataPayload.effStart = Helper.NVL(item["start_date"]).ConvertDateTimeFormat("yyyyMMdd", "yyyy-MM-dd");
                                         dataPayload.effEnd = Helper.NVL(item["end_date"]).ConvertDateTimeFormat("yyyyMMdd", "yyyy-MM-dd");
-                                        dataPayload.chkUse = 0;
+                                        dataPayload.chkUse = 0; //Optional
                                         payload.list.Add(dataPayload);
                                     }
                                 }

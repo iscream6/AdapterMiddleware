@@ -79,13 +79,11 @@ namespace NpmAdapter.Adapter
                 Thread.Sleep(10);
                 receiveMessageBuffer.Clear();
 
-                Log.WriteLog(LogType.Info, $"AptStAdapter | SendMessage", $"넥스파에서 받은 메시지 : {jobj}", LogAdpType.HomeNet);
+                Log.WriteLog(LogType.Info, $"AptStAdapter | SendMessage", $"넥스파에서 받은 메시지!!!! : {jobj}", LogAdpType.HomeNet);
                 JObject data = jobj["data"] as JObject; //응답 데이터
-
                 //결과 Payload 생성 =======
                 ResultPayload resultPayload = null;
                 JObject result = jobj["result"] as JObject; //응답 결과
-                
                 if (result != null && Helper.NVL(result["status"]) != "200")
                 {
                     resultPayload = new ResultPayload();
@@ -98,7 +96,7 @@ namespace NpmAdapter.Adapter
                     resultPayload.message = Helper.NVL(result["message"]);
                 }
                 //결과 Payload 생성완료 =======
-
+                
                 string cmd = jobj["command"].ToString();
                 switch ((CmdType)Enum.Parse(typeof(CmdType), cmd))
                 {
@@ -107,14 +105,13 @@ namespace NpmAdapter.Adapter
                     case CmdType.alert_outcar:
                         {
                             RequestPayload<AlertInOutCarPayload> payload = new RequestPayload<AlertInOutCarPayload>();
-
-                            if (payload.data.kind.ToLower() == "a") return; //2021-02-10 세대원 알림은 빼달라는 요구사항
-
                             payload.Deserialize(jobj);
                             {
+                                //2021-02-10 세대원 알림은 빼달라는 요구사항
+                                if (payload.data.kind.ToLower() == "a") return;
+
                                 Uri uri = null;
                                 byte[] requestData;
-
                                 if (payload.command == CmdType.alert_incar)
                                 {
                                     uri = new Uri(string.Concat(hostDomain, APT_INCAR_POST));
@@ -129,14 +126,8 @@ namespace NpmAdapter.Adapter
                                         partner_visit_id = payload.data.kind.ToLower() == "v" ? payload.data.reg_no : ""
                                     };
 
-                                    Log.WriteLog(LogType.Info, $"AptStAdapter | SendMessage", $"{inCarPayload.ToJson()}", LogAdpType.HomeNet);
-
                                     requestData = inCarPayload.Serialize();
                                     requestType = NetworkWebClient.RequestType.POST;
-
-                                    {//Test
-                                        string test = requestData.ToString(SysConfig.Instance.HomeNet_Encoding);
-                                    }
                                 }
                                 else
                                 {

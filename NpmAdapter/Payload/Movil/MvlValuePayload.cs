@@ -60,6 +60,9 @@ namespace NpmAdapter.Payload
         }
     }
 
+    /// <summary>
+    /// 일반차량 출입조회
+    /// </summary>
     class MvlIONDataPayload : IPayload
     {
         public string tkNo { get; set; }

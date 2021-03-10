@@ -206,7 +206,7 @@ namespace NpmAdapter.Adapter
                 ezHeader.Initialize();
                 ezHeader.BindData(receiveMsg);
 
-                if(ezHeader.cmd == EZV_HEAD_CMD.조회요청)
+                if (ezHeader.cmd == EZV_HEAD_CMD.조회요청)
                 {
                     if (ezHeader.target == "gateway") //AliveCheck 요청
                     {
@@ -219,6 +219,7 @@ namespace NpmAdapter.Adapter
 
                         string responseMsg = ezHeader.ResponseToString() + responsePayload.ToString();
                         byte[] responseData = SysConfig.Instance.HomeNet_Encoding.GetBytes(responseMsg);
+                        Log.WriteLog(LogType.Info, $"EzvAdapter | TcpClientNetwork_ReceiveFromPeer", $"SendToPeer : {responseMsg}", LogAdpType.HomeNet);
                         TcpClientNetwork.SendToPeer(responseData, 0, responseData.Length);
                     }
                     else if (ezHeader.target == "parking") //주차예약 조회
@@ -247,8 +248,8 @@ namespace NpmAdapter.Adapter
                         }
 
                         byte[] responseBuffer = sendPayload.Serialize();
-                        TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);
                         Log.WriteLog(LogType.Info, $"EzvAdapter | TcpClientNetwork_ReceiveFromPeer", $"SendMessage : {sendPayload.ToJson()}", LogAdpType.HomeNet);
+                        TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);
 
                         int iSec = 3 * 100; //3초
                         while (iSec > 0 && !bResponseSuccess)
@@ -271,6 +272,8 @@ namespace NpmAdapter.Adapter
                             {
                                 responseMsg = GetResponseMessage(ezHeader.ResponseToString() + "#0004&주차관제응답없음");
                             }
+
+                            Log.WriteLog(LogType.Info, $"EzvAdapter | TcpClientNetwork_ReceiveFromPeer", $"SendToPeer : {responseMsg}", LogAdpType.HomeNet);
                             byte[] responseData = SysConfig.Instance.HomeNet_Encoding.GetBytes(responseMsg);
                             TcpClientNetwork.SendToPeer(responseData, 0, responseData.Length);
                         }
@@ -320,9 +323,9 @@ namespace NpmAdapter.Adapter
                             dicBuffer.Add(sendPayload.command, data.ToJson());
                         }
 
+                        Log.WriteLog(LogType.Info, $"EzvAdapter | TcpClientNetwork_ReceiveFromPeer", $"SendMessage : {sendPayload.ToJson()}", LogAdpType.HomeNet);
                         byte[] responseBuffer = sendPayload.Serialize();
                         TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);
-                        Log.WriteLog(LogType.Info, $"EzvAdapter | TcpClientNetwork_ReceiveFromPeer", $"SendMessage : {sendPayload.ToJson()}", LogAdpType.HomeNet);
 
                         int iSec = 3 * 100; //3초
                         while (iSec > 0 && !bResponseSuccess)
@@ -345,6 +348,8 @@ namespace NpmAdapter.Adapter
                             {
                                 responseMsg = GetResponseMessage(ezHeader.ResponseToString() + "#0004&주차관제응답없음");
                             }
+
+                            Log.WriteLog(LogType.Info, $"EzvAdapter | TcpClientNetwork_ReceiveFromPeer", $"SendToPeer : {responseMsg}", LogAdpType.HomeNet);
                             byte[] responseData = SysConfig.Instance.HomeNet_Encoding.GetBytes(responseMsg);
                             TcpClientNetwork.SendToPeer(responseData, 0, responseData.Length);
                         }
@@ -387,8 +392,8 @@ namespace NpmAdapter.Adapter
                             dicBuffer.Add(sendPayload.command, data.ToJson());
                         }
 
-                        byte[] responseBuffer = sendPayload.Serialize();
                         Log.WriteLog(LogType.Info, $"EzvAdapter | TcpClientNetwork_ReceiveFromPeer", $"SendMessage : {sendPayload.ToJson()}", LogAdpType.HomeNet);
+                        byte[] responseBuffer = sendPayload.Serialize();
                         TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);
 
                         int iSec = 3 * 100; //3초
@@ -412,6 +417,8 @@ namespace NpmAdapter.Adapter
                             {
                                 responseMsg = GetResponseMessage(ezHeader.ResponseToString() + "#0004&주차관제응답없음");
                             }
+
+                            Log.WriteLog(LogType.Info, $"EzvAdapter | TcpClientNetwork_ReceiveFromPeer", $"SendToPeer : {responseMsg}", LogAdpType.HomeNet);
                             byte[] responseData = SysConfig.Instance.HomeNet_Encoding.GetBytes(responseMsg);
                             TcpClientNetwork.SendToPeer(responseData, 0, responseData.Length);
                             bResponseSuccess = true;
@@ -457,6 +464,7 @@ namespace NpmAdapter.Adapter
                     responseMsg = GetResponseMessage(ezHeader.ResponseToString() + $"#0{resultPayload.code}&{resultPayload.message}");
                 }
 
+                Log.WriteLog(LogType.Info, $"EzvAdapter | SendMessage", $"SendToPeer : {responseMsg}", LogAdpType.HomeNet);
                 byte[] responseData = SysConfig.Instance.HomeNet_Encoding.GetBytes(responseMsg);
                 TcpClientNetwork.SendToPeer(responseData, 0, responseData.Length);
                 bResponseSuccess = true;
@@ -481,9 +489,10 @@ namespace NpmAdapter.Adapter
                             ResponsePayload responsePayload = new ResponsePayload();
                             responsePayload.command = payload.command;
                             responsePayload.result = ResultType.FailFormatError;
+
+                            Log.WriteLog(LogType.Info, $"EzvAdapter | SendMessage", $"전송메시지 : {responsePayload.ToJson().ToString()}", LogAdpType.Nexpa);
                             byte[] results = responsePayload.Serialize();
                             TargetAdapter.SendMessage(results, 0, results.Length);
-                            Log.WriteLog(LogType.Info, $"EzvAdapter | SendMessage", $"전송메시지 : {responsePayload.ToJson().ToString()}", LogAdpType.Nexpa);
                         }
                         else
                         {
@@ -510,8 +519,9 @@ namespace NpmAdapter.Adapter
                             }
 
                             alertPayload.time = payload.data.date_time;
-
                             string responseMsg = GetResponseMessage(headerPayload.ToString() + alertPayload.ToString());
+
+                            Log.WriteLog(LogType.Info, $"EzvAdapter | SendMessage", $"SendToPeer : {responseMsg}", LogAdpType.HomeNet);
                             byte[] responseData = SysConfig.Instance.HomeNet_Encoding.GetBytes(responseMsg);
                             TcpClientNetwork.SendToPeer(responseData, 0, responseData.Length);
                         }
@@ -567,8 +577,9 @@ namespace NpmAdapter.Adapter
                             
                             //여기서 보낸다. 즉 data가 없다면 안보낸다는 뜻....
                             string responseMsg = GetResponseMessage(ezHeader.ResponseToString() + visitlst.ToString());
+
+                            Log.WriteLog(LogType.Info, $"EzvAdapter | SendMessage", $"SendToPeer : {responseMsg}", LogAdpType.HomeNet);
                             byte[] responseData = SysConfig.Instance.HomeNet_Encoding.GetBytes(responseMsg);
-                            //<start=0000&0> 을 붙여서 보내야 함.
                             TcpClientNetwork.SendToPeer(responseData, 0, responseData.Length);
                         }
                     }
@@ -590,8 +601,9 @@ namespace NpmAdapter.Adapter
                         }
 
                         string responseMsg = GetResponseMessage(ezHeader.ResponseToString() + sData);
+
+                        Log.WriteLog(LogType.Info, $"EzvAdapter | SendMessage", $"SendToPeer : {responseMsg}", LogAdpType.HomeNet);
                         byte[] responseData = SysConfig.Instance.HomeNet_Encoding.GetBytes(responseMsg);
-                        //<start=0000&0> 을 붙여서 보내야 함.
                         TcpClientNetwork.SendToPeer(responseData, 0, responseData.Length);
                     }
                     bResponseSuccess = true;
@@ -612,8 +624,9 @@ namespace NpmAdapter.Adapter
                         }
 
                         string responseMsg = GetResponseMessage(ezHeader.ResponseToString() + sData);
+
+                        Log.WriteLog(LogType.Info, $"EzvAdapter | SendMessage", $"SendToPeer : {responseMsg}", LogAdpType.HomeNet);
                         byte[] responseData = SysConfig.Instance.HomeNet_Encoding.GetBytes(responseMsg);
-                        //<start=0000&0> 을 붙여서 보내야 함.
                         TcpClientNetwork.SendToPeer(responseData, 0, responseData.Length);
                     }
                     bResponseSuccess = true;

@@ -13,7 +13,7 @@ namespace NpmAdapter.Payload
 
         public override string ToString()
         {
-            return $"#dongho={dong}&{ho}#ip={ip}#status={status}";
+            return $"#dongho={dong}&{ho}#ip={ip}#status={status}#curtime={DateTime.Now.ToString("yyyyMMddHHmmss")}#hwversion=1.0#swversion=1.1";
         }
     }
 }

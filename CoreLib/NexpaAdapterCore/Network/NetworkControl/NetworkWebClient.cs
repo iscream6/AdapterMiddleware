@@ -18,7 +18,8 @@ namespace NexpaAdapterStandardLib.Network
         Json,
         FormData,
         Multipart_FormData,
-        Text
+        Text,
+        Xml
     }
 
     public class NetworkWebClient : Singleton<NetworkWebClient>
@@ -31,6 +32,7 @@ namespace NexpaAdapterStandardLib.Network
         private const string ContentTypeFormData = "application/x-www-form-urlencoded;charset=UTF-8";
         private const string ContentTypeJson = "application/json;charset=UTF-8";
         private const string ContentTypeText = "text/x-json;charset=UTF-8";
+        private const string ContentTypeXml = "text/xml;charset=UTF-8";
         public enum RequestType
         {
             GET,
@@ -68,6 +70,10 @@ namespace NexpaAdapterStandardLib.Network
                 else if (contentType == ContentType.Text)
                 {
                     sContentType.Append(ContentTypeText);
+                }
+                else if(contentType == ContentType.Xml)
+                {
+                    sContentType.Append(ContentTypeXml);
                 }
                 else
                 {
