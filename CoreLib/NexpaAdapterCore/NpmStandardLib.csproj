@@ -10,8 +10,12 @@
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <DocumentationFile></DocumentationFile>
-    <OutputPath>..\..\..\output2\</OutputPath>
+    <OutputPath>..\..\..\output\</OutputPath>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <OutputPath>..\..\..\Release\</OutputPath>
   </PropertyGroup>
 
   <ItemGroup>
