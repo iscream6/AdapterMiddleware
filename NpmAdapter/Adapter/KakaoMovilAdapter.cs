@@ -122,8 +122,8 @@ namespace NpmAdapter.Adapter
                 string sMethod = e.Request.Method;
                 //Header에 Authorization을 추가하여 보낸다.
                 HeaderFactory hf = new HeaderFactory();
-                IHeader iHeader = hf.Parse("Authorization", dicHeader["token"]);
-                Log.WriteLog(LogType.Info, $"KakaoMovilAdapter | MyHttpNetwork_ReceiveFromPeer", $"METHOD : {sMethod}, URL : {urlData}", LogAdpType.Nexpa);
+                IHeader iHeader = hf.Parse("Authorization", dicHeader["Authorization"]);
+                Log.WriteLog(LogType.Info, $"KakaoMovilAdapter | MyHttpNetwork_ReceiveFromPeer", $"METHOD : {sMethod}, URL : {urlData}", LogAdpType.HomeNet);
 
                 try
                 {
@@ -139,6 +139,8 @@ namespace NpmAdapter.Adapter
                         resultPayload.resultMessage = "권한이 없습니다. 토큰을 확인 바랍니다";
                         resultPayload.responseTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
                         byte[] result = resultPayload.Serialize();
+
+                        Log.WriteLog(LogType.Info, $"KakaoMovilAdapter | 응답(권한오류)", $"{resultPayload.ToJson()}", LogAdpType.HomeNet);
 
                         e.Response.Body.Write(result, 0, result.Length);
                     }
@@ -353,6 +355,7 @@ namespace NpmAdapter.Adapter
                                     payload.resultMessage = "지원하지 않는 http 메소드 입니다";
                                     payload.responseTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
                                     byte[] result = payload.Serialize();
+                                    Log.WriteLog(LogType.Info, $"KakaoMovilAdapter | 응답(메소드오류)", $"{payload.ToJson()}", LogAdpType.HomeNet);
                                     e.Response.Add(iHeader);
                                     e.Response.Body.Write(result, 0, result.Length);
                                     return;
@@ -375,6 +378,7 @@ namespace NpmAdapter.Adapter
                             e.Response.Encoding = SysConfig.Instance.HomeNet_Encoding;
                             e.Response.ContentType = new ContentTypeHeader("application/json");
                             e.Response.Add(iHeader);
+                            Log.WriteLog(LogType.Info, $"KakaoMovilAdapter | 응답(성공)", $"{responsePayload.ToJson()}", LogAdpType.HomeNet);
                             e.Response.Body.Write(result, 0, result.Length);
                         }
                         else
@@ -387,16 +391,18 @@ namespace NpmAdapter.Adapter
                             e.Response.Encoding = SysConfig.Instance.HomeNet_Encoding;
                             e.Response.ContentType = new ContentTypeHeader("application/json");
                             e.Response.Add(iHeader);
+                            Log.WriteLog(LogType.Info, $"KakaoMovilAdapter | 응답(TimeOut)", $"{responsePayload.ToJson()}", LogAdpType.HomeNet);
                             e.Response.Body.Write(result, 0, result.Length);
                         }
                     }
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
                     MvlResponsePayload payload = new MvlResponsePayload();
                     payload.resultCode = MvlResponsePayload.SttCode.InternalServerError;
                     payload.resultMessage = MvlResponsePayload.SttCode.InternalServerError.GetDescription();
                     payload.responseTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+                    Log.WriteLog(LogType.Info, $"KakaoMovilAdapter | 응답(Exception:{ex.Message})", $"{payload.ToJson()}", LogAdpType.HomeNet);
                     byte[] result = payload.Serialize();
                     e.Response.Encoding = SysConfig.Instance.HomeNet_Encoding;
                     e.Response.ContentType = new ContentTypeHeader("application/json");
@@ -473,7 +479,8 @@ namespace NpmAdapter.Adapter
                             {
                                 apt_idx = int.Parse(aptId),
                                 car_number = payload.data.car_number,
-                                date = payload.data.date_time.GetUTCMillisecond()
+                                //date = payload.data.date_time.GetUTCMillisecond()
+                                date = Helper.GetUTCMillisecond(payload.data.date_time)
                             };
                             Log.WriteLog(LogType.Info, $"KakaoMovilAdapter | SendMessage", $"{ioPayload.ToJson()}", LogAdpType.HomeNet);
 
@@ -507,7 +514,7 @@ namespace NpmAdapter.Adapter
                                 }
                                 catch (Exception ex)
                                 {
-                                    Log.WriteLog(LogType.Error, "NexpaTcpAdapter | RequestUDO_LocationMap", $"{ex.Message}", LogAdpType.Nexpa);
+                                    Log.WriteLog(LogType.Error, "NexpaTcpAdapter | RequestUDO_LocationMap", $"{ex.Message}", LogAdpType.HomeNet);
                                 }
                             }
                         }
@@ -747,7 +754,20 @@ namespace NpmAdapter.Adapter
 
         public void TestReceive(byte[] buffer)
         {
-            
+            string json = "{\"command\": \"alert_incar\",\"data\": {\"dong\" : \"101\"," +
+                            "\"ho\" : \"101\"," +
+                            $"\"car_number\" : \"46부5989\"," +
+                            "\"date_time\" : \"20210305042525\"," +
+                            "\"kind\" : \"v\"," +
+                            "\"lprid\" : \"Lpr 식별 번호\"," +
+                            "\"car_image\" : \"차량 이미지 경로\"," +
+                            $"\"reg_no\" : \"111111\"," +
+                            "\"visit_in_date_time\" : \"yyyyMMddHHmmss\"," + //방문시작일시, kind가 v 일 경우 외 빈값
+                            "\"visit_out_date_time\" : \"yyyyMMddHHmmss\"" + //방문종료일시, kind가 v 일 경우 외 빈값
+                            "}" +
+                            "}";
+            byte[] test = SysConfig.Instance.Nexpa_Encoding.GetBytes(json);
+            SendMessage(test, 0, test.Length);
         }
 
         private string GetAccessToken()

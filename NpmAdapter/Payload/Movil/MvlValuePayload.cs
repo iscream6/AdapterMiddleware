@@ -51,6 +51,10 @@ namespace NpmAdapter.Payload
                 }
                 json["values"] = array;
             }
+            else
+            {
+                json["values"] = new JArray();
+            }
             return json;
         }
 
