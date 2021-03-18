@@ -42,6 +42,14 @@ namespace NpmAdapter
         Point
     }
 
+    public enum TimeType
+    {
+        Hour,
+        Minute,
+        Second,
+        Millisecond,
+    }
+
     public static class Helper
     {
         private static readonly DateTime unixEpoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
@@ -65,6 +73,25 @@ namespace NpmAdapter
         {
             byte[] bytes = encoding.GetBytes(str);
             return bytes;
+        }
+
+        public static int GetByteLength(this string STR)
+        {
+            char[] charobj = STR.ToCharArray();
+            int maxLEN = 0;
+
+            for (int i = 0; i < charobj.Length; i++)
+            {
+                byte oF = (byte)((charobj[i] & 0xff00) >> 7);
+                byte oB = (byte)(charobj[i] & 0x00ff);
+
+                if (oF == 0)
+                    maxLEN++;
+                else
+                    maxLEN += 2;
+            }
+
+            return maxLEN;
         }
 
         public static byte CalCheckSum(this byte[] _PacketData, int offset, int size)
@@ -439,12 +466,12 @@ namespace NpmAdapter
                     notFoundHandler(key);
         }
 
-        public static long GetUTCMillisecond(this string strTime)
+        public static long GetUTCMillisecond(string strTime)
         {
             try
             {
                 DateTime date = DateTime.ParseExact(strTime, "yyyyMMddHHmmss", null);
-                var utc = (long)date.ToUniversalTime().Subtract(new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)).TotalMilliseconds;
+                var utc = (long)date.ToUniversalTime().Subtract(new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)).TotalMinutes;
                 return utc;
             }
             catch (Exception ex)
@@ -452,6 +479,19 @@ namespace NpmAdapter
                 Log.WriteLog(LogType.Error, "Helper | GetUTCMillisecond", ex.Message);
                 return 0;
             }
+        }
+
+        public static XmlDocument MakeXmlDeclareDocument(string ver, string encoding)
+        {
+            XmlDocument doc = new XmlDocument();
+            XmlDeclaration xmlDecl;
+            xmlDecl = doc.CreateXmlDeclaration(ver, null, null);
+            xmlDecl.Encoding = encoding;
+
+            XmlElement root = doc.DocumentElement;
+            doc.InsertBefore(xmlDecl, root);
+
+            return doc;
         }
     }
 }

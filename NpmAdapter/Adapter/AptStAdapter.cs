@@ -24,10 +24,12 @@ namespace NpmAdapter.Adapter
     /// </summary>
     class AptStAdapter : IAdapter
     {
+        private const string GET_REMAINING_TIMES = "/remaining-times";
+        private const string REQ_POST_STATUS = "/nxmdl/cmx";
+        private const string APT_INCAR_POST = "/parking/enterance-vehicles";
+        private const string APT_OUTCAR_POST = "/parking/leaving-vehicles";
+
         private string hostDomain = "";
-        private static string APT_INCAR_POST = "/parking/enterance-vehicles";
-        private static string APT_OUTCAR_POST = "/parking/leaving-vehicles";
-        private static string REQ_POST_STATUS = "/nxmdl/cmx";
         private bool isRun;
         private string webport = "42141";
         private string aptId = "";
@@ -426,45 +428,43 @@ namespace NpmAdapter.Adapter
             lock (lockObj)
             {
                 responsePayload.Initialize();
-                JObject json = JObject.Parse(SysConfig.Instance.HomeNet_Encoding.GetString(buffer));
+                JObject json = null;
+                Dictionary<string, string> dicParams = null;
 
                 //DefaultURL을 만들어야 함.....
                 //http://localhost:42142/nxmdl/cmx/... 까지..
-                string urlData = e.Request.Uri.PathAndQuery;
+                string sMethod = e.Request.Method;
+                string urlData = e.Request.Uri.LocalPath;
+
                 Log.WriteLog(LogType.Info, $"AptStAdapter | MyHttpNetwork_ReceiveFromPeer", $"URL : {urlData}", LogAdpType.HomeNet);
-                if (urlData != REQ_POST_STATUS)
-                {
-                    e.Response.Connection.Type = ConnectionType.Close;
-                    e.Response.ContentType = new ContentTypeHeader("application/json;charset=UTF-8");
-                    e.Response.Status = System.Net.HttpStatusCode.BadRequest;
-                    e.Response.Reason = "Bad Request";
 
-                    //에러 메시지를 만들어 보낸다.
-                    CmdHeader responseHeader = new CmdHeader();
-                    responseHeader.Deserialize(json["header"] as JObject);
-                    responsePayload.header = responseHeader;
-                    responsePayload.data = null;
-                    responsePayload.result = CmdHelper.MakeResponseResultPayload(CmdHelper.StatusCode.bad_request);
-                    byte[] result = responsePayload.Serialize();
-
-                    e.Response.Body.Write(result, 0, result.Length);
-                }
-                else
+                if (sMethod == "GET")
                 {
-                    e.Response.Connection.Type = ConnectionType.Close;
-                    e.Response.ContentType = new ContentTypeHeader("application/json;charset=UTF-8");
-                    e.Response.Reason = "OK";
-                    
-                    string sMethod = e.Request.Method;
-                    if (sMethod == "GET")
+                    dicParams = new Dictionary<string, string>();
+                    if(e.Request.Parameters != null)
                     {
-                        Dictionary<string, string> dicParams = new Dictionary<string, string>();
                         foreach (var item in e.Request.Parameters)
                         {
                             dicParams.Add(item.Name.ToUpper(), item.Value);
                         }
+                    }
+                }
+                else
+                {
+                    json = JObject.Parse(SysConfig.Instance.HomeNet_Encoding.GetString(buffer[..(int)size]));
+                }
 
-                        if(dicParams.Count == 0)
+                if(urlData == GET_REMAINING_TIMES)
+                {
+                    if (sMethod == "GET")
+                    {
+                        bResponseSuccess = false;
+                        e.Response.Connection.Type = ConnectionType.Close;
+                        e.Response.ContentType = new ContentTypeHeader("application/json;charset=UTF-8");
+
+                        Log.WriteLog(LogType.Info, $"AptStAdapter | MyHttpNetwork_ReceiveFromPeer", $"{e.Request.Uri.PathAndQuery}", LogAdpType.HomeNet);
+
+                        if (dicParams.Count == 0)
                         {
                             //에러 메시지를 만들어 보낸다.
                             JObject jResult = new JObject();
@@ -479,10 +479,15 @@ namespace NpmAdapter.Adapter
                             jResult["error"] = jErr;
                             jResult["data"] = jData;
 
+                            Log.WriteLog(LogType.Error, $"AptStAdapter | MyHttpNetwork_ReceiveFromPeer", $"{jResult}", LogAdpType.HomeNet);
+
                             byte[] result = jResult.ToByteArray(SysConfig.Instance.HomeNet_Encoding);
+                            e.Response.Reason = "Internal Server Error";
+                            e.Response.Status = System.Net.HttpStatusCode.BadRequest;
                             e.Response.Encoding = SysConfig.Instance.HomeNet_Encoding;
                             e.Response.ContentType = new ContentTypeHeader("application/json");
                             e.Response.Body.Write(result, 0, result.Length);
+                            bResponseSuccess = true;
                         }
                         else
                         {
@@ -508,14 +513,21 @@ namespace NpmAdapter.Adapter
 
                             if (bResponseSuccess) //응답성공
                             {
+                                e.Response.Reason = "OK";
+
                                 JObject jRemain = responsePayload.data.ToJson();
+                                //응답이 왔으므로.... Data는 채워져 있을거임...
+                                if (responsePayload.result == null)
+                                {
+                                    responsePayload.result = CmdHelper.MakeResponseResultPayload(CmdHelper.StatusCode.ok);
+                                }
                                 ResultPayload objResult = responsePayload.result;
-                                
+
                                 JObject jResult = new JObject();
                                 JObject jErr = new JObject();
                                 JObject jData = new JObject();
 
-                                if(objResult.code == "200")
+                                if (objResult.code == "200")
                                 {
                                     jErr["code"] = 0;
                                     jErr["message"] = "";
@@ -536,6 +548,8 @@ namespace NpmAdapter.Adapter
                                 jResult["error"] = jErr;
                                 jResult["data"] = jData;
 
+                                Log.WriteLog(LogType.Info, $"AptStAdapter | MyHttpNetwork_ReceiveFromPeer", $"{jResult}", LogAdpType.HomeNet);
+
                                 byte[] result = jResult.ToByteArray(SysConfig.Instance.HomeNet_Encoding);
                                 e.Response.Encoding = SysConfig.Instance.HomeNet_Encoding;
                                 e.Response.ContentType = new ContentTypeHeader("application/json");
@@ -543,10 +557,13 @@ namespace NpmAdapter.Adapter
                             }
                             else
                             {
+                                e.Response.Reason = "Internal Server Error";
+                                e.Response.Status = System.Net.HttpStatusCode.NotFound;
+
                                 JObject jResult = new JObject();
                                 JObject jErr = new JObject();
                                 JObject jData = new JObject();
-                                
+
                                 jErr["code"] = 404;
                                 jErr["message"] = "주차 시스템으로 부터 응답이 없습니다";
                                 jData["remaining_time"] = -1;
@@ -555,6 +572,8 @@ namespace NpmAdapter.Adapter
                                 jResult["error"] = jErr;
                                 jResult["data"] = jData;
 
+                                Log.WriteLog(LogType.Error, $"AptStAdapter | MyHttpNetwork_ReceiveFromPeer", $"{jResult}", LogAdpType.HomeNet);
+
                                 byte[] result = jResult.ToByteArray(SysConfig.Instance.HomeNet_Encoding);
                                 e.Response.Encoding = SysConfig.Instance.HomeNet_Encoding;
                                 e.Response.ContentType = new ContentTypeHeader("application/json");
@@ -562,7 +581,7 @@ namespace NpmAdapter.Adapter
                             }
                         }
                     }
-                    else 
+                    else
                     {
                         Log.WriteLog(LogType.Info, $"AptStAdapter | MyHttpNetwork_ReceiveFromPeer", $"#=#=#=#=#=#=# \r\n Receive JSON : {json} \r\n #=#=#=#=#=#=#", LogAdpType.HomeNet);
                         RequestToNexpa(json);
@@ -572,6 +591,37 @@ namespace NpmAdapter.Adapter
                         //응답을 보낸다.
                         e.Response.Body.Write(result, 0, result.Length);
                     }
+                }
+                else if(urlData == REQ_POST_STATUS)
+                {
+                    e.Response.Connection.Type = ConnectionType.Close;
+                    e.Response.ContentType = new ContentTypeHeader("application/json;charset=UTF-8");
+                    e.Response.Reason = "OK";
+
+                    Log.WriteLog(LogType.Info, $"AptStAdapter | MyHttpNetwork_ReceiveFromPeer", $"#=#=#=#=#=#=# \r\n Receive JSON : {json} \r\n #=#=#=#=#=#=#", LogAdpType.HomeNet);
+                    RequestToNexpa(json);
+
+                    byte[] result = responsePayload.Serialize();
+                    Log.WriteLog(LogType.Info, $"AptStAdapter | MyHttpNetwork_ReceiveFromPeer", $"#=#=#=#=#=#=# \r\n Send JSON : {responsePayload.ToJson()} \r\n #=#=#=#=#=#=#", LogAdpType.HomeNet);
+                    //응답을 보낸다.
+                    e.Response.Body.Write(result, 0, result.Length);
+                }
+                else
+                {
+                    e.Response.Connection.Type = ConnectionType.Close;
+                    e.Response.ContentType = new ContentTypeHeader("application/json;charset=UTF-8");
+                    e.Response.Status = System.Net.HttpStatusCode.BadRequest;
+                    e.Response.Reason = "Bad Request";
+
+                    //에러 메시지를 만들어 보낸다.
+                    CmdHeader responseHeader = new CmdHeader();
+                    responseHeader.Deserialize(json["header"] as JObject);
+                    responsePayload.header = responseHeader;
+                    responsePayload.data = null;
+                    responsePayload.result = CmdHelper.MakeResponseResultPayload(CmdHelper.StatusCode.bad_request);
+                    byte[] result = responsePayload.Serialize();
+
+                    e.Response.Body.Write(result, 0, result.Length);
                 }
             }
         }

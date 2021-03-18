@@ -66,7 +66,7 @@ namespace NpmAdapter.Payload
             strResult.Append($"$version={version}$copy={copy}");
             if (dongho != "") strResult.Append($"$dongho={dongho}");
             else strResult.Append($"{SysConfig.Instance.HC_Id}&{SysConfig.Instance.HC_Pw}");
-            strResult.Append($"cmd={(int)cmd}");
+            strResult.Append($"$cmd={(int)cmd}");
             strResult.Append($"$target={target}");
             return strResult.ToString();
         }
