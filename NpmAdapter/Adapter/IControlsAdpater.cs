@@ -61,7 +61,7 @@ namespace NpmAdapter.Adapter
         /// <returns></returns>
         private byte[] RequestInOutCar(string io, string dong, string ho, string car_num)
         {
-            XmlDocument xDoc = GetDeclareDocument();
+            XmlDocument xDoc = Helper.MakeXmlDeclareDocument("1.0", "utf-8");
 
             //0-1 : destination
             XmlElement xDestination = xDoc.CreateElement("destination");
@@ -109,19 +109,6 @@ namespace NpmAdapter.Adapter
             }
 
             return dataBytes;
-        }
-
-        private XmlDocument GetDeclareDocument()
-        {
-            XmlDocument doc = new XmlDocument();
-            XmlDeclaration xmlDecl;
-            xmlDecl = doc.CreateXmlDeclaration("1.0", null, null);
-            xmlDecl.Encoding = "utf-8";
-
-            XmlElement root = doc.DocumentElement;
-            doc.InsertBefore(xmlDecl, root);
-
-            return doc;
         }
     }
 }

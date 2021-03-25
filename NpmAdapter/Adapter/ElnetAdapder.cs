@@ -76,16 +76,8 @@ namespace NpmAdapter.Adapter
                             RequestPayload<AlertInOutCarPayload> payload = new RequestPayload<AlertInOutCarPayload>();
                             payload.Deserialize(jobj);
 
-                            XmlDocument doc = new XmlDocument();
                             // Create an XML declaration.
-                            XmlDeclaration xmldecl;
-                            xmldecl = doc.CreateXmlDeclaration("1.0", null, null);
-                            xmldecl.Encoding = "utf-8";
-
-                            // Add the new node to the document.
-                            XmlElement root = doc.DocumentElement;
-                            doc.InsertBefore(xmldecl, root);
-
+                            XmlDocument doc = Helper.MakeXmlDeclareDocument("1.0", "utf-8");
                             XmlElement xEnvelope = doc.CreateElement("Envelope");
                             xEnvelope.SetAttribute("xmlns", "http://schemas.xmlsoap.org/soap/envelop");
 

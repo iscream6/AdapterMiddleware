@@ -29,6 +29,8 @@ namespace NpmAdapter.Payload
         /// </summary>
         [Description("Argument format is wrong")]
         FailFormatError = 402,
+        [Description("Disconnected HomenetServer")]
+        HomenetkDisconnected = 403,
         /// <summary>
         /// URL 잘못 보냄
         /// </summary>

@@ -77,7 +77,7 @@ namespace NpmAdapter.Adapter
 
                 NetworkWebClient.RequestType requestType;
                 receiveMessageBuffer.Append(buffer.ToString(SysConfig.Instance.Nexpa_Encoding, size));
-                var jobj = JObject.Parse(receiveMessageBuffer.ToString());
+                var jobj = JObject.Parse(ValidateJsonParseingData(receiveMessageBuffer.ToString()));
                 Thread.Sleep(10);
                 receiveMessageBuffer.Clear();
 
@@ -527,7 +527,7 @@ namespace NpmAdapter.Adapter
                                 JObject jErr = new JObject();
                                 JObject jData = new JObject();
 
-                                if (objResult.code == "200")
+                                if (objResult.code == "000")
                                 {
                                     jErr["code"] = 0;
                                     jErr["message"] = "";
@@ -704,6 +704,38 @@ namespace NpmAdapter.Adapter
             {
                 //에러 Payload를 만들어 보낸다.
                 responsePayload.result = CmdHelper.MakeResponseResultPayload(CmdHelper.StatusCode.notresponse);
+            }
+        }
+
+        /// <summary>
+        /// 중첩되는 Json 값이 날라오면 제일 첫번째 Json만 걸러서 리턴..
+        /// </summary>
+        /// <param name="strJson"></param>
+        /// <returns></returns>
+        private string ValidateJsonParseingData(string strJson)
+        {
+            char[] cArr = strJson.ToCharArray();
+            if (cArr != null && cArr.Length > 0)
+            {
+                int iBracket = 0;
+                int iCharCnt = 0;
+                foreach (var c in cArr)
+                {
+                    if (c.Equals('{')) iBracket++;
+                    else if (c.Equals('}')) iBracket--;
+                    iCharCnt += 1;
+
+                    if (iBracket == 0 && iCharCnt > 1)
+                    {
+                        break;
+                    }
+                }
+
+                return strJson.Substring(0, iCharCnt);
+            }
+            else
+            {
+                return "";
             }
         }
 

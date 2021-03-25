@@ -120,7 +120,8 @@ Body
   "data": {
       "car_number" : "차량번호", //빈값 허용, 빈값 일 시 검색 조건에서 제외함.
       "dong": "123",
-      "ho" : "456"
+      "ho" : "456",
+      "event_date_time":"yyyyMMddHHmmss" //조회 기준일, 빈값일 경우 전체 기간 조회
   }
 }
 

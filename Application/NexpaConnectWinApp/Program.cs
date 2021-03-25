@@ -14,8 +14,10 @@ namespace NexpaConnectWinApp
         [STAThread]
         static void Main()
         {
+#if (!DEBUG)
             Process[] procs = Process.GetProcessesByName("NexpaConnectWinApp");
             if (procs.Length > 1) return;
+#endif
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
             Application.Run(new frmMain());

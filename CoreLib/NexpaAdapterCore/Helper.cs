@@ -78,6 +78,8 @@ namespace NexpaAdapterStandardLib
         Ulsan,
         [Description("UJA")]
         UjungAir,
+        [Description("GNT")]
+        GSNeoTech,
     }
 
     public static class StdHelper

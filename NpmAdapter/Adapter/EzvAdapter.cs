@@ -236,6 +236,7 @@ namespace NpmAdapter.Adapter
                         RequestVisitList2Payload data = new RequestVisitList2Payload();
                         data.dong = requestPayload.dong;
                         data.ho = requestPayload.ho;
+                        data.event_date_time = DateTime.Now.ToString("yyyyMMdd") + "000000";
                         data.car_number = "";
 
                         sendPayload.data = data;

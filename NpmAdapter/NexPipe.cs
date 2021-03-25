@@ -123,6 +123,9 @@ namespace NpmAdapter
                     case HomeNetAdapterType.UjungAir:
                         homenet = new UJAirAdapter();
                         break;
+                    case HomeNetAdapterType.GSNeoTech:
+                        homenet = new STIAdapter();
+                        break;
                     default:
                         homenet = null;
                         break;

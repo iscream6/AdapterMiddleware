@@ -170,6 +170,28 @@ namespace NpmAdapter
             return convert;
         }
 
+        /// <summary>
+        /// 4자리수 기준 String 값을 4Byte로 변환한다.
+        /// </summary>
+        /// <param name="str"></param>
+        /// <returns></returns>
+        public static byte[] FourStringTo4Byte(this string str)
+        {
+            if (str.Length > 4) return null;
+            else if (str.Length == 1) str = "000" + str;
+            else if (str.Length == 2) str = "00" + str;
+            else if (str.Length == 3) str = "0" + str;
+
+            byte[] convert = new byte[4];
+
+            for (int i = 0; i < 4; i++)
+            {
+                convert[i] = Convert.ToByte(str.Substring(i, 1));
+            }
+
+            return convert;
+        }
+
         public static byte[] HexToBytes(this string value)
         {
             if (value == null || value.Length == 0)

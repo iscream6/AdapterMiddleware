@@ -15,11 +15,14 @@ namespace NpmAdapter.Payload
         /// </summary>
         public string ho { get; set; }
 
+        public string event_date_time { get; set; }
+
         public void Deserialize(JObject json)
         {
-            car_number = json["car_number"].ToString();
-            dong = json["dong"].ToString();
-            ho = json["ho"].ToString();
+            car_number = Helper.NVL(json["car_number"]);
+            dong = Helper.NVL(json["dong"]);
+            ho = Helper.NVL(json["ho"]);
+            event_date_time = Helper.NVL(json["event_date_time"]);
         }
 
         public byte[] Serialize()
