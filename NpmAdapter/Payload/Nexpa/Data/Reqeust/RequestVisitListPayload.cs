@@ -36,6 +36,7 @@ namespace NpmAdapter.Payload
             json["car_number"] = car_number;
             json["dong"] = dong;
             json["ho"] = ho;
+            json["event_date_time"] = event_date_time;
             return json;
         }
     }

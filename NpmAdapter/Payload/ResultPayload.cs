@@ -31,6 +31,8 @@ namespace NpmAdapter.Payload
         FailFormatError = 402,
         [Description("Disconnected HomenetServer")]
         HomenetkDisconnected = 403,
+        [Description("Failed Send Message to HomenetServer")]
+        FailSendMessage = 404,
         /// <summary>
         /// URL 잘못 보냄
         /// </summary>

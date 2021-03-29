@@ -458,11 +458,28 @@ namespace NpmAdapter
                 if(ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
                 {
                     localIP = ip.ToString();
+                    Log.WriteLog(LogType.Error, "Helper | GetLocalIP", localIP);
                     break;
                 }
             }
 
             return localIP;
+        }
+
+        public static List<string> GetLocalIPs()
+        {
+            List<string> localIPs = new List<string>();
+            IPHostEntry host = Dns.GetHostEntry(Dns.GetHostName());
+            foreach (IPAddress ip in host.AddressList)
+            {
+                if (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+                {
+                    localIPs.Add(ip.ToString());
+                    Log.WriteLog(LogType.Error, "Helper | GetLocalIP", ip.ToString());
+                }
+            }
+
+            return localIPs;
         }
 
         public static TValue TryGetValue<TKey, TValue>(this Dictionary<TKey, TValue> dictionary, TKey key)

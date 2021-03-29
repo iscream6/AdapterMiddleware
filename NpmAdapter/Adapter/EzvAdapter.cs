@@ -216,7 +216,19 @@ namespace NpmAdapter.Adapter
                         ResponseEzAliveCheckPayload responsePayload = new ResponseEzAliveCheckPayload();
                         responsePayload.dong = AuthDong;
                         responsePayload.ho = AuthHo;
-                        responsePayload.ip = "125.143.164.73";//Helper.GetLocalIP();
+                        List<string> ips = Helper.GetLocalIPs();
+                        if(ips.Count > 0)
+                        {
+                            foreach (var ip in ips)
+                            {
+                                if (ip.StartsWith("10."))
+                                {
+                                    responsePayload.ip = ip;
+                                    break;
+                                }
+                            }
+                        }
+                        //responsePayload.ip = Helper.GetLocalIP();
                         responsePayload.status = "0";
 
                         string responseMsg = GetResponseMessage(ezHeader.ResponseToString() + responsePayload.ToString());
