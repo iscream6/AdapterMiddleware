@@ -150,14 +150,14 @@ namespace NpmAdapter.Adapter
 
                                 string responseData = string.Empty;
                                 string responseHeader = string.Empty;
+                                ResponsePayload responsePayload = new ResponsePayload();
+                                byte[] responseBuffer;
 
                                 if (NetworkWebClient.Instance.SendData(uri, requestType, ContentType.Json, requestData, ref responseData, ref responseHeader, header: dicHeader))
                                 {
                                     try
                                     {
                                         Log.WriteLog(LogType.Info, "AptStAdapter | SendMessage | WebClientResponse", $"==응답== {responseData}", LogAdpType.Nexpa);
-                                        ResponsePayload responsePayload = new ResponsePayload();
-                                        byte[] responseBuffer;
 
                                         var responseJobj = JObject.Parse(responseData)["error"];
 
@@ -180,6 +180,14 @@ namespace NpmAdapter.Adapter
                                     {
                                         Log.WriteLog(LogType.Error, "NexpaTcpAdapter | RequestUDO_LocationMap", $"{ex.Message}", LogAdpType.Nexpa);
                                     }
+                                }
+                                else
+                                {
+                                    Log.WriteLog(LogType.Info, "AptStAdapter | SendMessage | WebClientResponse", $"Failed SendData", LogAdpType.Nexpa);
+                                    responsePayload.command = payload.command;
+                                    responsePayload.result = ResultType.FailSendMessage;
+                                    responseBuffer = responsePayload.Serialize();
+                                    TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);
                                 }
                             }
                         }
