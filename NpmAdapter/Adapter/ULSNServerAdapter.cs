@@ -385,7 +385,7 @@ namespace NpmAdapter.Adapter
                 JObject json = new JObject();
                 json["infoType"] = "smallCar";
                 json["vhrNo"] = carno;
-                byte[] data = Encoding.UTF8.GetBytes($"samll#{carno}#{json.ToString()}");
+                byte[] data = Encoding.UTF8.GetBytes($"small#{carno}#{json.ToString()}");
                 TcpJavaServer.SendToPeer(data, 0, data.Length);
             });
         }
@@ -424,7 +424,7 @@ namespace NpmAdapter.Adapter
                 string json = "{\"command\": \"alert_incar\",\"data\": {\"dong\" : \"123\"," +
                             "\"ho\" : \"456\"," +
                             $"\"car_number\" : \"46부5989\"," +
-                            "\"date_time\" : \"yyyyMMddHHmmss\"," +
+                            $"\"date_time\" : \"{DateTime.Now.ToString("yyyyMMddHHmmss")}\"," +
                             "\"kind\" : \"v\"," +
                             "\"lprid\" : \"Lpr 식별 번호\"," +
                             "\"car_image\" : \"차량 이미지 경로\"," +

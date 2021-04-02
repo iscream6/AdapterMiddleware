@@ -3,6 +3,7 @@ using NexpaAdapterStandardLib.DataAccess;
 using System.Data;
 using System.Text;
 using System.Collections.Generic;
+using NexpaAdapterStandardLib;
 
 namespace NpmAdapter.Model
 {
@@ -28,6 +29,9 @@ namespace NpmAdapter.Model
             oParams[3].Value = dicParam["InterfaceCode"];
             oParams[4] = DataAccessFactory.Instance.GetParameter("InterfaceData", NPDBType.Text);
             oParams[4].Value = dicParam["InterfaceData"];
+
+            Log.WriteLog(LogType.Info, $"GovInterfaceModel | Save", $"Query : INSERT INTO GovInterface(TkNo, CarNo, RequestDateTime, InterfaceCode, InterfaceData) " +
+                $"VALUES('{dicParam["TkNo"]}','{dicParam["CarNo"]}','{dicParam["RequestDateTime"]}','{dicParam["InterfaceCode"]}','{dicParam["InterfaceData"]}')", LogAdpType.HomeNet);
 
             iRet = DA.ExecuteNonQuery(sQuery.ToString(), oParams, Transaction);
 
