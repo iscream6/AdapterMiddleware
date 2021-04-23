@@ -15,7 +15,7 @@ namespace NpmAdapter.Adapter
     {
 		public IAdapter TargetAdapter { get; set; }
 
-		private string strUri = null;
+		private uint updateStemp = 0;
 		private StringBuilder receiveMessageBuffer = new StringBuilder();
 		byte[] arrKey = new byte[16];
 		
@@ -47,22 +47,16 @@ namespace NpmAdapter.Adapter
 			arrKey[15] = 0x68;
 			//----- 우정항공 Key 값 ------
 
-			strUri = SysConfig.Instance.HW_Domain;
-			if (strUri != null && strUri != "") 
-			{
-				return true;
-			}
-			else
-			{
-				return false;
-			}
+			updateStemp = DateTime.ParseExact("20210418150000", "yyyyMMddHHmmss", null).ToTimestamp();
+            
+			return true;
 		}
 
 		public void SendMessage(byte[] buffer, long offset, long size, string pid = null)
 		{
 			//Payload 없이... 바로 JSON 처리를 하자...
 			receiveMessageBuffer.Append(buffer.ToString(SysConfig.Instance.Nexpa_Encoding, size));
-			var jobj = JObject.Parse(receiveMessageBuffer.ToString());
+			var jobj = JObject.Parse(Helper.ValidateJsonParseingData(receiveMessageBuffer.ToString()));
 			Thread.Sleep(10);
 			receiveMessageBuffer.Clear();
 
@@ -74,9 +68,14 @@ namespace NpmAdapter.Adapter
 			{
 				//우정항공으로 Request를 한다.
 				string responseData = string.Empty;
-				string responseHeader = string.Empty;
-				string encMawb = AESEncrypt(arrKey, strMawb); //AES 암호화
-				Uri uri = new Uri($"{strUri}?mawb={encMawb}");
+                string responseHeader = string.Empty;
+                string encMawb = AESEncrypt(arrKey, strMawb); //AES 암호화
+
+				Uri uri = null;
+				uint iNowUtcSec = DateTime.Now.ToTimestamp();
+				if (iNowUtcSec <= updateStemp) uri = new Uri($"{SysConfig.Instance.HW_Domain}?mawb={encMawb}");
+				else uri = new Uri($"{SysConfig.Instance.HW_Domain2}?mawb={encMawb}");
+				
 				if (NetworkWebClient.Instance.SendData(uri, NetworkWebClient.RequestType.GET, ContentType.FormData, new byte[] { }, ref responseData, ref responseHeader))
 				{
 					JObject responseJson = JObject.Parse(responseData);
@@ -111,7 +110,11 @@ namespace NpmAdapter.Adapter
 			string responseData = string.Empty;
 			string responseHeader = string.Empty;
 			string encMawb = AESEncrypt(arrKey, strMawb); //AES 암호화
-			Uri uri = new Uri($"{strUri}?mawb={encMawb}");
+
+			Uri uri = null;
+			uint iNowUtcSec = DateTime.Now.ToTimestamp();
+			if (iNowUtcSec <= updateStemp) uri = new Uri($"{SysConfig.Instance.HW_Domain}?mawb={encMawb}");
+			else uri = new Uri($"{SysConfig.Instance.HW_Domain2}?mawb={encMawb}");
 
 			if (NetworkWebClient.Instance.SendData(uri, NetworkWebClient.RequestType.GET, ContentType.Text, new byte[] { },
 				ref responseData, ref responseHeader)) ;

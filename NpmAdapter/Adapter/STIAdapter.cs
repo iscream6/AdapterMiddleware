@@ -9,6 +9,12 @@ using System.Threading;
 
 namespace NpmAdapter.Adapter
 {
+    /// <summary>
+    /// 탑통신
+    /// 이상삼 대표 : 010-4738-6223
+    /// 프로그램 박용석 이사 : 010-2014-8911
+    /// 현장 : 부평 산곡 푸르지오
+    /// </summary>
     class STIAdapter : IAdapter
     {
         private bool isRun = false;
@@ -157,6 +163,7 @@ namespace NpmAdapter.Adapter
 
                             //전송~!
                             byte[] bArrSendMesssage = tempBytes.ToArray();
+                            Log.WriteLog(LogType.Info, $"STIAdapter | SendMessage", $"전송 메시지 : {bArrSendMesssage.ToHexString()}", LogAdpType.HomeNet);
                             TcpClientNetwork.SendToPeer(bArrSendMesssage, 0, bArrSendMesssage.Length);
                             
                             if(TcpClientNetwork.Status == NetStatus.Connected)

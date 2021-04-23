@@ -160,12 +160,12 @@ namespace NpmAdapter.Adapter
                 {
                     try
                     {
-                        if(isProcessRun == false && quePayload.Count > 0)
+                        //여기서 큐를 실행하자..
+                        if (isProcessRun == false && quePayload.Count > 0)
                         {
                             currentPayload = quePayload.Dequeue();
                             DiscountProcess(currentPayload.data.car_number);
                         }
-                        //여기서 큐를 실행하자..
                     }
                     catch (Exception)
                     {
@@ -252,6 +252,7 @@ namespace NpmAdapter.Adapter
                 Log.WriteLog(LogType.Error, "ULSNServerAdapter | DiscountProcess", $"{ex.Message}");
             }
             isProcessRun = false;
+
         }
 
         private void TcpServer_ReceiveFromPeer(byte[] buffer, long offset, long size, HttpServer.RequestEventArgs pEvent = null, string id = null)

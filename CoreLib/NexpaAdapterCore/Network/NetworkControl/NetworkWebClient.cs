@@ -5,6 +5,7 @@ using System.Net;
 using Newtonsoft.Json.Linq;
 using System.Text;
 using System.Threading;
+using System.Runtime;
 
 namespace NexpaAdapterStandardLib.Network
 {
@@ -162,6 +163,7 @@ namespace NexpaAdapterStandardLib.Network
                             default:
                                 //에러
                                 Log.WriteLog(LogType.Info, "NetworkWebClient| SendDataPost", $"response is null");
+                                strData = $"ERR,{(int)response.StatusCode},{response.StatusCode.ToString()}";
                                 break;
                         }
                     }
