@@ -128,6 +128,8 @@ namespace NpmAdapter.Adapter
                                         partner_visit_id = payload.data.kind.ToLower() == "v" ? payload.data.reg_no : ""
                                     };
 
+                                    Log.WriteLog(LogType.Info, $"AptStAdapter | SendMessage", $"INCAR : {inCarPayload.ToJson()}", LogAdpType.HomeNet);
+
                                     requestData = inCarPayload.Serialize();
                                     requestType = NetworkWebClient.RequestType.POST;
                                 }
@@ -142,7 +144,7 @@ namespace NpmAdapter.Adapter
                                         parking_out_datetime = payload.data.date_time.ConvertDateTimeFormat("yyyyMMddHHmmss", "yyyy-MM-dd HH:mm:ss")
                                     };
 
-                                    Log.WriteLog(LogType.Info, $"AptStAdapter | SendMessage", $"{outCarPayload.ToJson()}", LogAdpType.HomeNet);
+                                    Log.WriteLog(LogType.Info, $"AptStAdapter | SendMessage", $"OUTCAR : {outCarPayload.ToJson()}", LogAdpType.HomeNet);
 
                                     requestData = outCarPayload.Serialize();
                                     requestType = NetworkWebClient.RequestType.PUT;
