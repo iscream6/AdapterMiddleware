@@ -1,4 +1,5 @@
-﻿using NexpaAdapterStandardLib.DataAccess;
+﻿using NexpaAdapterStandardLib;
+using NexpaAdapterStandardLib.DataAccess;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -13,7 +14,18 @@ namespace NpmAdapter.Model
 
         public BaseModel()
         {
-            DA = DataAccessFactory.Instance.GetDAInstance(NPDBkind.MSSQL);
+            switch (StdHelper.GetValueFromDescription<NexpaDBType>(SysConfig.Instance.DBType))
+            {
+                case NexpaDBType.MSSQL:
+                    DA = DataAccessFactory.Instance.GetDAInstance(NPDBkind.MSSQL);
+                    break;
+                case NexpaDBType.ORACLE:
+                    DA = DataAccessFactory.Instance.GetDAInstance(NPDBkind.Oracle);
+                    break;
+                case NexpaDBType.POSTGRES:
+                    DA = DataAccessFactory.Instance.GetDAInstance(NPDBkind.Postgres);
+                    break;
+            }
         }
     }
 }
