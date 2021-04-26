@@ -1,6 +1,7 @@
 ﻿using Newtonsoft.Json.Linq;
 using NexpaAdapterStandardLib;
 using NexpaAdapterStandardLib.Network;
+using NLog.Targets;
 using NpmAdapter.Payload;
 using System;
 using System.Collections.Generic;
@@ -216,20 +217,101 @@ namespace NpmAdapter.Adapter
 
         private void SendToNexpa(Dictionary<string, string> pData)
         {
+            IPayload responsePayload = null;
             switch (pData["INOUT"])
             {
-                case "VISIT": //방문자 등록
-                    RequestPayload<RequestVisitRegPayload> payload = new RequestPayload<RequestVisitRegPayload>();
-                    payload.command = CmdType.visit_reg;
-
-                    RequestVisitRegPayload data = new RequestVisitRegPayload();
-                    data.dong = pData["DONG"];
-                    data.ho = pData["HO"];
-                    data.car_number = pData["CARNO"];
-                    data.date = pData["DATETIME"].Substring(0, 8); //yyyyMMdd
-                    data.term = pData["CARNO"];
-                    payload.data = data;
+                case "VISIT_IN":
+                case "IN":
+                    {
+                        ResponsePayload payload = new ResponsePayload();
+                        payload.command = CmdType.alert_incar;
+                        if (pData["RETURN"] == "ok") payload.result = ResultType.OK;
+                        else payload.result = ResultType.FailInterface;
+                        responsePayload = payload;
+                    }
                     break;
+                case "VISIT_OUT":
+                case "OUT":
+                    {
+                        ResponsePayload payload = new ResponsePayload();
+                        payload.command = CmdType.alert_outcar;
+                        if (pData["RETURN"] == "ok") payload.result = ResultType.OK;
+                        else payload.result = ResultType.FailInterface;
+                        responsePayload = payload;
+                    }
+                    break;
+                case "VISIT": //방문자 등록
+                    {
+                        RequestPayload<RequestVisitRegPayload> payload = new RequestPayload<RequestVisitRegPayload>();
+                        payload.command = CmdType.visit_reg;
+
+                        RequestVisitRegPayload data = new RequestVisitRegPayload();
+                        data.dong = pData["DONG"];
+                        data.ho = pData["HO"];
+                        data.car_number = pData["CARNO"];
+                        data.date = pData["DATETIME"].Substring(0, 8); //yyyyMMdd
+                        data.term = pData["CARNO"];
+                        payload.data = data;
+                        responsePayload = payload;
+                    }
+                    break;
+                case "VISIT_LIST":
+                    {
+                        RequestPayload<RequestVisitList2Payload> payload = new RequestPayload<RequestVisitList2Payload>();
+                        RequestVisitList2Payload data = new RequestVisitList2Payload();
+                        data.eventType = RequestVisitList2Payload.EventType.F;
+                        data.event_date_time = DateTime.Now.ToString("yyyyMMddHHmmss");
+                        data.car_number = pData["CARNO"];
+                        data.dong = pData["DONG"];
+                        data.ho = pData["HO"];
+                        payload.data = data;
+                        responsePayload = payload;
+                    }
+                    break;
+                case "VISIT_LIST_HISTORY":
+                    {
+                        RequestPayload<RequestVisitList2Payload> payload = new RequestPayload<RequestVisitList2Payload>();
+                        RequestVisitList2Payload data = new RequestVisitList2Payload();
+                        data.eventType = RequestVisitList2Payload.EventType.H;
+                        data.event_date_time = DateTime.Now.ToString("yyyyMMddHHmmss");
+                        data.car_number = pData["CARNO"];
+                        data.dong = pData["DONG"];
+                        data.ho = pData["HO"];
+                        payload.data = data;
+                        responsePayload = payload;
+                    }
+                    break;
+                case "VISIT_LIST_ALL":
+                    {
+                        RequestPayload<RequestVisitList2Payload> payload = new RequestPayload<RequestVisitList2Payload>();
+                        RequestVisitList2Payload data = new RequestVisitList2Payload();
+                        data.eventType = RequestVisitList2Payload.EventType.A;
+                        data.event_date_time = DateTime.Now.ToString("yyyyMMddHHmmss");
+                        data.car_number = pData["CARNO"];
+                        data.dong = pData["DONG"];
+                        data.ho = pData["HO"];
+                        payload.data = data;
+                        responsePayload = payload;
+                    }
+                    break;
+                case "VISIT_POINT":
+                    {
+                        RequestPayload<RequestCarInfoPayload> payload = new RequestPayload<RequestCarInfoPayload>();
+                        payload.command = CmdType.remain_point;
+
+                        RequestCarInfoPayload data = new RequestCarInfoPayload();
+                        data.dong = pData["DONG"];
+                        data.ho = pData["HO"];
+                        payload.data = data; 
+                        responsePayload = payload;
+                    }
+                    break;
+            }
+            
+            if(responsePayload != null)
+            {
+                byte[] sendBytes = responsePayload.Serialize();
+                TargetAdapter.SendMessage(sendBytes, 0, sendBytes.Length);
             }
         }
 
