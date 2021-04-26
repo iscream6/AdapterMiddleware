@@ -65,7 +65,7 @@ namespace NpmAdapter.Adapter
 
             //0-1 : destination
             XmlElement xDestination = xDoc.CreateElement("destination");
-            xDestination.SetAttribute("homedev", "homedev");
+            xDestination.SetAttribute("name", "homedev");
             xDestination.SetAttribute("id_high", dong);
             xDestination.SetAttribute("id_low", ho);
 
@@ -109,6 +109,48 @@ namespace NpmAdapter.Adapter
             }
 
             return dataBytes;
+        }
+
+        //private byte[] ResponseGuestInfo(string io, string dong, string ho, string car_num)
+        //{
+        //    XmlDocument xDoc = Helper.MakeXmlDeclareDocument("1.0", "utf-8");
+        //}
+    }
+
+    class GuestInfo
+    {
+        string imap_ver;
+        string imap_addr;
+        string imap_sender;
+
+        string service_type;
+        string service_name;
+
+        string req_name;
+        string req_dong;
+        string req_ho;
+        string req_type;
+
+        string action;
+
+        public void BindXml(string psXml)
+        {
+            try
+            {
+                XmlDocument xmlDoc = new XmlDocument();
+                xmlDoc.LoadXml(psXml);
+                XmlNodeList infoNodes = xmlDoc.SelectNodes("imap");
+
+                if (infoNodes != null && infoNodes.Count > 0)
+                {
+                    var imap = infoNodes[0];
+                }
+            }
+            catch (Exception)
+            {
+
+                throw;
+            }
         }
     }
 }
