@@ -221,7 +221,16 @@ namespace NpmAdapter.Adapter
                         {
                             foreach (var ip in ips)
                             {
-                                if (ip.StartsWith("10."))
+                                //마포프레스티지 자이현장
+                                if(SysConfig.Instance.ParkName == "mapoprestge")
+                                {
+                                    if (ip.StartsWith("10."))
+                                    {
+                                        responsePayload.ip = ip;
+                                        break;
+                                    }
+                                }
+                                else
                                 {
                                     responsePayload.ip = ip;
                                     break;
@@ -508,7 +517,7 @@ namespace NpmAdapter.Adapter
 
                             Log.WriteLog(LogType.Info, $"EzvAdapter | SendMessage", $"전송메시지 : {responsePayload.ToJson().ToString()}", LogAdpType.Nexpa);
                             byte[] results = responsePayload.Serialize();
-                            TargetAdapter.SendMessage(results, 0, results.Length);
+                            TargetAdapter.SendMessage(results, 0, results.Length, pid);
                         }
                         else
                         {
