@@ -164,7 +164,7 @@ namespace NpmAdapter.Adapter
                         if (isProcessRun == false && quePayload.Count > 0)
                         {
                             currentPayload = quePayload.Dequeue();
-                            DiscountProcess(currentPayload.data.car_number);
+                            DiscountProcess(currentPayload.data.car_number, currentPayload.data.reg_no);
                         }
                     }
                     catch (Exception)
@@ -177,74 +177,156 @@ namespace NpmAdapter.Adapter
             }
             while (_pauseProcessEvent.WaitOne());
         }
-        
-        private async void DiscountProcess(string carno)
+
+        private List<Fail> FailList = new List<Fail>();
+        private enum FailType
+        {
+            Normal,
+            Fail,
+            UnFail
+        }
+
+        private FailType GetFailType(string cmd, string carno, string tkno)
+        {
+            int idx = 0;
+            FailType returnType = FailType.Normal;
+            foreach (var fail in FailList)
+            {
+                if(fail.payload.data.car_number == carno && fail.payload.data.reg_no == tkno)
+                {
+                    returnType = FailType.UnFail;
+                    if (fail.cmd == cmd )
+                    {
+                        returnType = FailType.Fail;
+                        break;
+                    }
+                }
+                idx += 1;
+            }
+
+            if(returnType == FailType.Fail) FailList.RemoveAt(idx);
+
+            return returnType;
+        }
+
+        private async void DiscountProcess(string carno, string tkno)
         {
             isProcessRun = true;
+            bool isFail = false;
             try
             {
-                //친환경
-                isProcessing = true;
-                Task test = RequestEcoCarTask(carno);
-                Task waitTask = WaitTask();
-                await test;
-                await waitTask;
+                FailType failType = GetFailType("echoCar", carno, tkno);
+                if(failType == FailType.Normal || failType == FailType.Fail)
+                {
+                    //친환경
+                    isProcessing = true;
+                    Task test = RequestEcoCarTask(carno);
+                    Task waitTask = WaitTask();
+                    await test;
+                    await waitTask;
 
-                if (!isProcessing) //처리완료
-                {
-                    Log.WriteLog(LogType.Info, $"ULSNServerAdapter | DiscountProcess", $"친환경 처리완료", LogAdpType.HomeNet);
-                }
-                else //처리 실패
-                {
-                    Log.WriteLog(LogType.Info, $"ULSNServerAdapter | DiscountProcess", $"친환경 처리실패", LogAdpType.HomeNet);
-                }
-
-                //국가유공자 
-                isProcessing = true;
-                Task test2 = RequestNationalCarTask(carno);
-                waitTask = WaitTask();
-                await test2;
-                await waitTask;
-
-                if (!isProcessing) //처리완료
-                {
-                    Log.WriteLog(LogType.Info, $"ULSNServerAdapter | DiscountProcess", $"국가유공자 처리완료", LogAdpType.HomeNet);
-                }
-                else //처리 실패
-                {
-                    Log.WriteLog(LogType.Info, $"ULSNServerAdapter | DiscountProcess", $"국가유공자 처리실패", LogAdpType.HomeNet);
+                    if (!isProcessing) //처리완료
+                    {
+                        Log.WriteLog(LogType.Info, $"ULSNServerAdapter | DiscountProcess", $"친환경 처리완료", LogAdpType.HomeNet);
+                    }
+                    else //처리 실패
+                    {
+                        Log.WriteLog(LogType.Info, $"ULSNServerAdapter | DiscountProcess", $"친환경 처리실패 : {carno}", LogAdpType.HomeNet);
+                        Fail fail = new Fail()
+                        {
+                            payload = currentPayload,
+                            cmd = "echoCar"
+                        };
+                        isFail = true;
+                        FailList.Add(fail);
+                    }
                 }
 
-                //장애인
-                isProcessing = true;
-                Task test3 = RequestDisabilityCarTask(carno);
-                waitTask = WaitTask();
-                await test3;
-                await waitTask;
+                failType = GetFailType("nationalCar", carno, tkno);
+                if (failType == FailType.Normal || failType == FailType.Fail)
+                {
+                    //국가유공자 
+                    isProcessing = true;
+                    Task test2 = RequestNationalCarTask(carno);
+                    Task waitTask = WaitTask();
+                    await test2;
+                    await waitTask;
 
-                if (!isProcessing) //처리완료
-                {
-                    Log.WriteLog(LogType.Info, $"ULSNServerAdapter | DiscountProcess", $"장애인 처리완료", LogAdpType.HomeNet);
-                }
-                else //처리 실패
-                {
-                    Log.WriteLog(LogType.Info, $"ULSNServerAdapter | DiscountProcess", $"장애인 처리실패", LogAdpType.HomeNet);
+                    if (!isProcessing) //처리완료
+                    {
+                        Log.WriteLog(LogType.Info, $"ULSNServerAdapter | DiscountProcess", $"국가유공자 처리완료", LogAdpType.HomeNet);
+                    }
+                    else //처리 실패
+                    {
+                        Log.WriteLog(LogType.Info, $"ULSNServerAdapter | DiscountProcess", $"국가유공자 처리실패 : {carno}", LogAdpType.HomeNet);
+                        Fail fail = new Fail()
+                        {
+                            payload = currentPayload,
+                            cmd = "nationalCar"
+                        };
+                        isFail = true;
+                        FailList.Add(fail);
+                    }
                 }
 
-                //경차
-                isProcessing = true;
-                Task test4 = RequestSamlCarTask(carno);
-                waitTask = WaitTask();
-                await test4;
-                await waitTask;
 
-                if (!isProcessing) //처리완료
+                failType = GetFailType("disabilityCar", carno, tkno);
+                if (failType == FailType.Normal || failType == FailType.Fail)
                 {
-                    Log.WriteLog(LogType.Info, $"ULSNServerAdapter | DiscountProcess", $"경차 처리완료", LogAdpType.HomeNet);
+                    //장애인
+                    isProcessing = true;
+                    Task test3 = RequestDisabilityCarTask(carno);
+                    Task waitTask = WaitTask();
+                    await test3;
+                    await waitTask;
+
+                    if (!isProcessing) //처리완료
+                    {
+                        Log.WriteLog(LogType.Info, $"ULSNServerAdapter | DiscountProcess", $"장애인 처리완료", LogAdpType.HomeNet);
+                    }
+                    else //처리 실패
+                    {
+                        Log.WriteLog(LogType.Info, $"ULSNServerAdapter | DiscountProcess", $"장애인 처리실패 : {carno}", LogAdpType.HomeNet);
+                        Fail fail = new Fail()
+                        {
+                            payload = currentPayload,
+                            cmd = "disabilityCar"
+                        };
+                        isFail = true;
+                        FailList.Add(fail);
+                    }
                 }
-                else //처리 실패
+
+                failType = GetFailType("smallCar", carno, tkno);
+                if (failType == FailType.Normal || failType == FailType.Fail)
                 {
-                    Log.WriteLog(LogType.Info, $"ULSNServerAdapter | DiscountProcess", $"경차 처리실패", LogAdpType.HomeNet);
+                    //경차
+                    isProcessing = true;
+                    Task test4 = RequestSamlCarTask(carno);
+                    Task waitTask = WaitTask();
+                    await test4;
+                    await waitTask;
+
+                    if (!isProcessing) //처리완료
+                    {
+                        Log.WriteLog(LogType.Info, $"ULSNServerAdapter | DiscountProcess", $"경차 처리완료", LogAdpType.HomeNet);
+                    }
+                    else //처리 실패
+                    {
+                        Log.WriteLog(LogType.Info, $"ULSNServerAdapter | DiscountProcess", $"경차 처리실패 : {carno}", LogAdpType.HomeNet);
+                        Fail fail = new Fail()
+                        {
+                            payload = currentPayload,
+                            cmd = "smallCar"
+                        };
+                        isFail = true;
+                        FailList.Add(fail);
+                    }
+                }
+
+                if (isFail)
+                {
+                    quePayload.Enqueue(currentPayload);
                 }
             }
             catch (Exception ex)
@@ -335,6 +417,7 @@ namespace NpmAdapter.Adapter
                 JObject json = new JObject();
                 json["infoType"] = "echoCar";
                 json["carNumber"] = carno;
+                Log.WriteLog(LogType.Info, $"ULSNServerAdapter | RequestEcoCarTask", $"친환경차 전송 메시지 : eco#{carno}#{json.ToString()}", LogAdpType.HomeNet);
                 byte[] data = Encoding.UTF8.GetBytes($"eco#{carno}#{json.ToString()}");
                 TcpJavaServer.SendToPeer(data, 0, data.Length);
             });
@@ -352,6 +435,7 @@ namespace NpmAdapter.Adapter
                 JObject json = new JObject();
                 json["infoType"] = "nationalCar";
                 json["carNo"] = carno;
+                Log.WriteLog(LogType.Info, $"ULSNServerAdapter | RequestEcoCarTask", $"국가유공자 전송 메시지 : national#{carno}#{json.ToString()}", LogAdpType.HomeNet);
                 byte[] data = Encoding.UTF8.GetBytes($"national#{carno}#{json.ToString()}");
                 TcpJavaServer.SendToPeer(data, 0, data.Length);
             });
@@ -369,6 +453,7 @@ namespace NpmAdapter.Adapter
                 JObject json = new JObject();
                 json["infoType"] = "disabilityCar";
                 json["CAR_NO"] = carno;
+                Log.WriteLog(LogType.Info, $"ULSNServerAdapter | RequestEcoCarTask", $"장애인 전송 메시지 : disability#{carno}#{json.ToString()}", LogAdpType.HomeNet);
                 byte[] data = Encoding.UTF8.GetBytes($"disability#{carno}#{json.ToString()}");
                 TcpJavaServer.SendToPeer(data, 0, data.Length);
             });
@@ -386,6 +471,7 @@ namespace NpmAdapter.Adapter
                 JObject json = new JObject();
                 json["infoType"] = "smallCar";
                 json["vhrNo"] = carno;
+                Log.WriteLog(LogType.Info, $"ULSNServerAdapter | RequestEcoCarTask", $"경차 전송 메시지 : small#{carno}#{json.ToString()}", LogAdpType.HomeNet);
                 byte[] data = Encoding.UTF8.GetBytes($"small#{carno}#{json.ToString()}");
                 TcpJavaServer.SendToPeer(data, 0, data.Length);
             });
@@ -424,9 +510,9 @@ namespace NpmAdapter.Adapter
             {
                 string json = "{\"command\": \"alert_incar\",\"data\": {\"dong\" : \"123\"," +
                             "\"ho\" : \"456\"," +
-                            $"\"car_number\" : \"46부5989\"," +
+                            $"\"car_number\" : \"10버1119\"," +
                             $"\"date_time\" : \"{DateTime.Now.ToString("yyyyMMddHHmmss")}\"," +
-                            "\"kind\" : \"v\"," +
+                            "\"kind\" : \"n\"," +
                             "\"lprid\" : \"Lpr 식별 번호\"," +
                             "\"car_image\" : \"차량 이미지 경로\"," +
                             $"\"reg_no\" : \"{tknum++}\"," +
@@ -485,5 +571,11 @@ namespace NpmAdapter.Adapter
                 processList[0].Kill();
             }
         }
+    }
+
+    class Fail
+    {
+        public string cmd;
+        public RequestPayload<AlertInOutCarPayload> payload;
     }
 }
