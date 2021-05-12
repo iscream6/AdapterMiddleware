@@ -39,7 +39,12 @@ namespace NpmAdapter
         LprID,
         Visit_In_Date_Time,
         Visit_Out_Date_Time,
-        Point
+        Point,
+        Park_No,
+        Enable_Point,
+        Used_Point,
+        Acp_Date,
+        Exp_Date
     }
 
     public enum TimeType
@@ -170,6 +175,23 @@ namespace NpmAdapter
             return convert;
         }
 
+        public static byte[] StringToAsciiByte(this string str)
+        {
+            char[] charArr = str.ToCharArray();
+            return ASCIIEncoding.Default.GetBytes(charArr);
+        }
+
+        public static byte[] FourStringTo4ByteAscii(this string str)
+        {
+            if (str.Length > 4) return null;
+            else if (str.Length == 1) str = "000" + str;
+            else if (str.Length == 2) str = "00" + str;
+            else if (str.Length == 3) str = "0" + str;
+
+            char[] charArr = str.ToCharArray();
+            return ASCIIEncoding.Default.GetBytes(charArr);
+        }
+
         /// <summary>
         /// 4자리수 기준 String 값을 4Byte로 변환한다.
         /// </summary>
@@ -298,7 +320,26 @@ namespace NpmAdapter
             {
                 try
                 {
-                    return DateTime.ParseExact(dateTime, from, null).ToString(to);
+                    if(from == "ISO8601")
+                    {
+                        DateTime dt;
+                        if(DateTime.TryParse(dateTime, out dt))
+                        {
+                            return dt.ToString(to);
+                        }
+                        else
+                        {
+                            return "";
+                        }
+                    }
+                    else if(to == "ISO8601")
+                    {
+                        return DateTime.ParseExact(dateTime, from, null).ToString("yyyy-MM-ddTHH:mm:ss");
+                    }
+                    else
+                    {
+                        return DateTime.ParseExact(dateTime, from, null).ToString(to);
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -531,6 +572,97 @@ namespace NpmAdapter
             doc.InsertBefore(xmlDecl, root);
 
             return doc;
+        }
+        public static byte[] ConvertToLittleEndian(int value)
+        {
+            return new byte[]{
+                (byte) value,
+                (byte) (value >> 8),
+                (byte) (value >> 16),
+                (byte) (value >> 24)
+        };
+        }
+
+        public static byte[] ConvertToBigEndian(int value)
+        {
+            return new byte[]{
+                (byte) (value >> 24),
+                (byte) (value >> 16),
+                (byte) (value >> 8),
+                (byte) value
+        };
+        }
+
+        public static string ByteToStr(byte[] bytes)
+        {
+            StringBuilder builder = new StringBuilder();
+            foreach (byte b in bytes)
+            {
+                builder.Append(string.Format("%02x ", b));
+            }
+
+            return builder.ToString();
+        }
+
+        public static int BytesToInt(byte[] bytes)
+        {
+            int result = (int)bytes[3] & 0xFF;
+            result |= (int)bytes[2] << 8 & 0xFF00;
+            result |= (int)bytes[1] << 16 & 0xFF0000;
+            result |= (int)bytes[0] << 24;
+
+            return result;
+        }
+
+        public static string ValidateJsonParseingData(string strJson)
+        {
+            char[] cArr = strJson.ToCharArray();
+            if (cArr != null && cArr.Length > 0)
+            {
+                int iBracket = 0;
+                int iCharCnt = 0;
+                foreach (var c in cArr)
+                {
+                    if (c.Equals('{')) iBracket++;
+                    else if (c.Equals('}')) iBracket--;
+                    iCharCnt += 1;
+
+                    if (iBracket == 0 && iCharCnt > 1)
+                    {
+                        break;
+                    }
+                }
+
+                return strJson.Substring(0, iCharCnt);
+            }
+            else
+            {
+                return "";
+            }
+        }
+
+        /// <summary>
+        /// 문자열 안에서 몇번째 Char가 발견되는 Index를 반환한다.
+        /// </summary>
+        /// <param name="str"></param>
+        /// <param name="value">찾을 Char 값</param>
+        /// <param name="count">찾은 Char의 갯수</param>
+        /// <returns></returns>
+        public static int IndexOfChar(this string str, char value, int count)
+        {
+            int startIdx = 0;
+            int charCnt = 0;
+            foreach (var c in str.ToCharArray())
+            {
+                startIdx += 1;
+                if (c == value)
+                {
+                    charCnt += 1;
+                }
+                if (charCnt == count) break;
+            }
+
+            return startIdx;
         }
     }
 }

@@ -164,6 +164,7 @@ namespace NpmAdapter.Adapter
                         if (isProcessRun == false && quePayload.Count > 0)
                         {
                             currentPayload = quePayload.Dequeue();
+                            Log.WriteLog(LogType.Info, $"ULSNServerAdapter | ProcessAction", $"현재 처리 Payload : {currentPayload.ToJson()}", LogAdpType.HomeNet);
                             DiscountProcess(currentPayload.data.car_number, currentPayload.data.reg_no);
                         }
                     }
@@ -231,7 +232,7 @@ namespace NpmAdapter.Adapter
                     }
                     else //처리 실패
                     {
-                        Log.WriteLog(LogType.Info, $"ULSNServerAdapter | DiscountProcess", $"친환경 처리실패 : {carno}", LogAdpType.HomeNet);
+                        Log.WriteLog(LogType.Error, $"ULSNServerAdapter | DiscountProcess", $"친환경 처리실패 : {carno}", LogAdpType.HomeNet);
                         Fail fail = new Fail()
                         {
                             payload = currentPayload,
@@ -258,7 +259,7 @@ namespace NpmAdapter.Adapter
                     }
                     else //처리 실패
                     {
-                        Log.WriteLog(LogType.Info, $"ULSNServerAdapter | DiscountProcess", $"국가유공자 처리실패 : {carno}", LogAdpType.HomeNet);
+                        Log.WriteLog(LogType.Error, $"ULSNServerAdapter | DiscountProcess", $"국가유공자 처리실패 : {carno}", LogAdpType.HomeNet);
                         Fail fail = new Fail()
                         {
                             payload = currentPayload,
@@ -286,7 +287,7 @@ namespace NpmAdapter.Adapter
                     }
                     else //처리 실패
                     {
-                        Log.WriteLog(LogType.Info, $"ULSNServerAdapter | DiscountProcess", $"장애인 처리실패 : {carno}", LogAdpType.HomeNet);
+                        Log.WriteLog(LogType.Error, $"ULSNServerAdapter | DiscountProcess", $"장애인 처리실패 : {carno}", LogAdpType.HomeNet);
                         Fail fail = new Fail()
                         {
                             payload = currentPayload,
@@ -313,7 +314,7 @@ namespace NpmAdapter.Adapter
                     }
                     else //처리 실패
                     {
-                        Log.WriteLog(LogType.Info, $"ULSNServerAdapter | DiscountProcess", $"경차 처리실패 : {carno}", LogAdpType.HomeNet);
+                        Log.WriteLog(LogType.Error, $"ULSNServerAdapter | DiscountProcess", $"경차 처리실패 : {carno}", LogAdpType.HomeNet);
                         Fail fail = new Fail()
                         {
                             payload = currentPayload,
@@ -380,7 +381,7 @@ namespace NpmAdapter.Adapter
                         else
                         {
                             //DB저장실패
-                            Log.WriteLog(LogType.Info, $"ULSNServerAdapter | TcpServer_ReceiveFromPeer", $"DB저장실패", LogAdpType.HomeNet);
+                            Log.WriteLog(LogType.Error, $"ULSNServerAdapter | TcpServer_ReceiveFromPeer", $"DB저장실패", LogAdpType.HomeNet);
                         }
 
                         isProcessing = false;
@@ -389,7 +390,7 @@ namespace NpmAdapter.Adapter
                 catch (Exception ex)
                 {
                     Log.WriteLog(LogType.Error, "ULSNServerAdapter | TcpServer_ReceiveFromPeer", $"{ex.Message}");
-                    isProcessing = false;
+                    isProcessing = true;
                 }
             }
         }

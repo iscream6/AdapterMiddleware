@@ -1,0 +1,9 @@
+오픈API 문서 : https://docs.aptner.com/
+ID : pc
+Password : qwer1234
+테스트 토큰 : eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJBUFRORVIiLCJhdWQiOiJORVhQQSIsImV4cCI6MzE3NDc5NDAwNywiaWF0IjoxNjE5NTk0MDA3LCJyb2xlcyI6IlBDIn0.6bHi39oM0S2wQc26txwlaC_hBiHo-NLjAc2Oaoc2aYo
+테스트 개발url : https://devgtw.aptner.com/pc/
+테스트아파트코드 : T77777777
+테스트차량번호 : 11가1111
+실서버 토큰 : eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJORVhQQSIsInJvbGVzIjoiUEMiLCJpc3MiOiJBUFRORVIiLCJleHAiOjMxNTg2OTYzOTcsImlkeCI6IiIsImlhdCI6MTU4MDgwNTU5N30.Fq5YOC1_jCMseRl82eL0X9zPOD166uW-NH_O2TNR6Dc 
+실서버url : https://gtw.aptner.com/pc/

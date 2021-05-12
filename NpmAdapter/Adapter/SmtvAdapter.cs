@@ -1,10 +1,13 @@
-﻿using Newtonsoft.Json.Linq;
+﻿using HttpServer;
+using HttpServer.Headers;
+using Newtonsoft.Json.Linq;
 using NexpaAdapterStandardLib;
 using NexpaAdapterStandardLib.Network;
 using NpmAdapter.Payload;
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading;
 
 namespace NpmAdapter.Adapter
 {
@@ -13,12 +16,18 @@ namespace NpmAdapter.Adapter
     /// </summary>
     class SmtvAdapter : IAdapter
     {
-        private const string REQ_POST_STATUS = "/api/v1/events";
+        private const string REQ_POST_STATUS = "/nxmdl/cmx";
+        private const string REQ_POST_EVENT = "/api/v1/events";
+        private const string REQ_POST_ASSIGN = "/api/v1/assignments";
 
-        private Uri uri = null;
+        private StringBuilder receiveMessageBuffer = new StringBuilder();
+        private JObject responseJson = null;
+        private object lockObj = new object();
         private Dictionary<string, string> dicHeader;
         private bool isRun = false;
-
+        private bool bResponseSuccess = true;
+        private string carNo = "";
+        private INetwork MyHttpNetwork { get; set; }
         public IAdapter TargetAdapter { get; set; }
 
         public bool IsRuning { get => isRun; }
@@ -35,92 +44,333 @@ namespace NpmAdapter.Adapter
                 Log.WriteLog(LogType.Error, "SmtvAdapter | Initialize", $"Config Version이 다릅니다. 프로그램버전 : {SysConfig.Instance.ConfigVersion}", LogAdpType.HomeNet);
                 return false;
             }
-            dicHeader = new Dictionary<string, string>();
-            string domain = SysConfig.Instance.HW_Domain;
-            string strAuth = SysConfig.Instance.HC_Id + ":" + SysConfig.Instance.HC_Pw;
 
-            uri = new Uri(domain + REQ_POST_STATUS);
+            var webport = SysConfig.Instance.HW_Port;
+            MyHttpNetwork = NetworkFactory.GetInstance().MakeNetworkControl(NetworkFactory.Adapters.HttpServer, webport);
+
+            dicHeader = new Dictionary<string, string>();
+            string strAuth = SysConfig.Instance.HC_Id + ":" + SysConfig.Instance.HC_Pw;
             dicHeader.Add("Authorization", $"Basic {strAuth.Base64Encode()}");
             Log.WriteLog(LogType.Info, "SmtvAdapter | Initialize", $"인증토큰 : Basic {strAuth.Base64Encode()}", LogAdpType.HomeNet);
             return true;
         }
 
-        public void SendMessage(byte[] buffer, long offset, long size, string pid = null)
+        private void MyHttpNetwork_ReceiveFromPeer(byte[] buffer, long offset, long size, RequestEventArgs e, string id)
         {
-            var jobj = JObject.Parse(buffer.ToString(SysConfig.Instance.HomeNet_Encoding, size));
-            JObject data = jobj["data"] as JObject;
-            string cmd = jobj["command"].ToString();
-
-            JObject result = new JObject();
-            //SmtvLotID
-            switch ((CmdType)Enum.Parse(typeof(CmdType), cmd))
+            lock (lockObj)
             {
-                case CmdType.alert_incar:
-                case CmdType.alert_outcar:
-                    RequestPayload<AlertInOutCarPayload> payload = new RequestPayload<AlertInOutCarPayload>();
-                    payload.Deserialize(jobj);
+                bResponseSuccess = false;
+                ResponseDataPayload responsePayload = new ResponseDataPayload();
+                string urlData = e.Request.Uri.PathAndQuery;
+                Log.WriteLog(LogType.Info, $"SmtvAdapter | MyHttpNetwork_ReceiveFromPeer", $"URL : {urlData}", LogAdpType.HomeNet);
+                if (urlData != REQ_POST_STATUS)
+                {
+                    responseJson = new JObject();
+                    responseJson["command"] = "visit_reg2";
+                    JObject jData = new JObject();
+                    jData["reg_no"] = "";
+                    responseJson["data"] = jData;
+                    JObject jResult = new JObject();
+                    jResult["status"] = "-100";
+                    jResult["message"] = "OK";
+                    responseJson["result"] = jResult;
+                    responsePayload.Deserialize(responseJson);
+                    byte[] result = responsePayload.Serialize();
 
-                    result["parkingLotId"] = SysConfig.Instance.ParkId;
+                    e.Response.Connection.Type = ConnectionType.Close;
+                    e.Response.ContentType = new ContentTypeHeader("application/json;charset=UTF-8");
+                    e.Response.Status = System.Net.HttpStatusCode.BadRequest;
+                    e.Response.Reason = "Bad Request";
+                    e.Response.Body.Write(result, 0, result.Length);
+                }
+                else
+                {
+                    string receiveMsg = SysConfig.Instance.HomeNet_Encoding.GetString(buffer[..(int)size]);
+                    Log.WriteLog(LogType.Info, "SmtvAdapter | MyHttpNetwork_ReceiveFromPeer", $"받은메시지 : {receiveMsg}", LogAdpType.HomeNet);
 
-                    if((CmdType)Enum.Parse(typeof(CmdType), cmd) == CmdType.alert_incar)
+                    JObject json = JObject.Parse(Helper.ValidateJsonParseingData(receiveMsg));
+                    if (Helper.NVL(json["command"]) == "visit_reg2")
                     {
-                        result["type"] = "COME_IN";
+                        RequestPayload<RequestVisitReg2Payload> payload = new RequestPayload<RequestVisitReg2Payload>();
+                        payload.Deserialize(json);
+
+                        carNo = payload.data.car_number;
+                        byte[] sendMsg = payload.Serialize();
+                        TargetAdapter.SendMessage(sendMsg, 0, sendMsg.Length);
+
+                        int iSec = 3 * 100; //3초
+                        while (iSec > 0 && !bResponseSuccess)
+                        {
+                            Thread.Sleep(10); //0.01초씩..쉰다...
+                            iSec -= 1;
+                        }
+
+                        if (bResponseSuccess == false)
+                        {
+                            responseJson = new JObject();
+                            responseJson["command"] = "visit_reg2";
+                            JObject jData = new JObject();
+                            jData["reg_no"] = "";
+                            responseJson["data"] = jData;
+                            JObject jResult = new JObject();
+                            jResult["status"] = "-100";
+                            jResult["message"] = "OK";
+                            responseJson["result"] = jResult;
+                        }
+
+                        responsePayload.Deserialize(responseJson);
+
+                        byte[] result = responsePayload.Serialize();
+                        e.Response.Connection.Type = ConnectionType.Close;
+                        e.Response.ContentType = new ContentTypeHeader("application/json;charset=UTF-8");
+                        e.Response.Reason = "OK";
+                        e.Response.Body.Write(result, 0, result.Length);
                     }
                     else
                     {
-                        result["type"] = "GO_OUT";
+                        e.Response.Connection.Type = ConnectionType.Close;
+                        e.Response.ContentType = new ContentTypeHeader("application/json;charset=UTF-8");
+                        e.Response.Status = System.Net.HttpStatusCode.BadRequest;
+                        e.Response.Reason = "Bad Request";
+                        e.Response.Body.Write(null, 0, 0);
                     }
+                }
 
-                    result["carNo"] = payload.data.car_number;
-                    result["eventDt"] = payload.data.date_time.ConvertDateTimeFormat("yyyyMMddHHmmss", "yyyy-MM-dd HH:mm:ss");
+                bResponseSuccess = true;
+                responseJson = null;
+                carNo = "";
+            }
+        }
 
+        public void SendMessage(byte[] buffer, long offset, long size, string pid = null)
+        {
+            receiveMessageBuffer.Append(buffer.ToString(SysConfig.Instance.Nexpa_Encoding, size));
+            var jobj = JObject.Parse(Helper.ValidateJsonParseingData(receiveMessageBuffer.ToString()));
+            Thread.Sleep(10);
+            receiveMessageBuffer.Clear();
+
+            JObject data = jobj["data"] as JObject;
+            string cmd = jobj["command"].ToString();
+
+            Uri uri = null;
+            JObject result = null;
+            CmdType cmdType = (CmdType)Enum.Parse(typeof(CmdType), cmd);
+
+            try
+            {
+                //SmtvLotID
+                switch (cmdType)
+                {
+                    case CmdType.alert_incar:
+                    case CmdType.alert_outcar:
+                        {
+                            uri = new Uri(SysConfig.Instance.HW_Domain + REQ_POST_EVENT);
+                            //carNo
+                            
+                            RequestPayload<AlertInOutCarPayload> payload = new RequestPayload<AlertInOutCarPayload>();
+                            payload.Deserialize(jobj);
+
+                            if(bResponseSuccess == false && carNo == payload.data.car_number)
+                            {
+                                responseJson = new JObject();
+                                responseJson["command"] = "visit_reg2";
+                                JObject jData = new JObject();
+                                jData["reg_no"] = payload.data.reg_no;
+                                responseJson["data"] = jData;
+
+                                if (payload.data.lprID != "-1")
+                                {
+                                    //중간 예약
+                                    JObject jResult = new JObject();
+                                    jResult["status"] = "200";
+                                    jResult["message"] = "OK";
+                                    responseJson["result"] = jResult;
+                                }
+                                else
+                                {
+                                    //사전 예약
+                                    JObject jResult = new JObject();
+                                    jResult["status"] = "000";
+                                    jResult["message"] = "OK";
+                                    responseJson["result"] = jResult;
+                                }
+                                bResponseSuccess = true;
+                            }
+                            else
+                            {
+                                result = new JObject();
+                                result["parkingLotId"] = SysConfig.Instance.ParkId;
+
+                                if (cmdType == CmdType.alert_incar)
+                                {
+                                    result["type"] = "COME_IN";
+                                }
+                                else
+                                {
+                                    result["type"] = "GO_OUT";
+                                }
+
+                                result["carNo"] = payload.data.car_number;
+                                result["eventDt"] = payload.data.date_time.ConvertDateTimeFormat("yyyyMMddHHmmss", "yyyy-MM-dd HH:mm:ss");
+                            }
+                        }
+                        break;
+                    case CmdType.sync_assign:
+                        {
+                            uri = new Uri(SysConfig.Instance.HW_Domain + REQ_POST_ASSIGN);
+                            
+                            RequestPayload<AsyncAssignDataListPayload> payload = new RequestPayload<AsyncAssignDataListPayload>();
+                            payload.Deserialize(jobj);
+
+                            result = new JObject();
+                            result["parkingLotId"] = SysConfig.Instance.ParkId;
+                            JArray arr = new JArray();
+                            foreach (var asyncAssignData in payload.data.list)
+                            {
+                                JObject assignmentList = new JObject();
+                                assignmentList["parkNo"] = asyncAssignData.park_no;
+                                assignmentList["dong"] = asyncAssignData.dong;
+                                assignmentList["ho"] = asyncAssignData.ho;
+                                assignmentList["type"] = asyncAssignData.type;
+                                long point1 = 0;
+                                if (long.TryParse(asyncAssignData.enable_point, out point1)) assignmentList["dcTime"] = point1;
+                                else assignmentList["dcTime"] = 0;
+                                long point2 = 0;
+                                if (long.TryParse(asyncAssignData.used_point, out point2)) assignmentList["dcUsedTime"] = point2;
+                                else assignmentList["dcUsedTime"] = 0;
+                                assignmentList["startDate"] = asyncAssignData.acp_date.ConvertDateTimeFormat("yyyyMMdd", "yyyy-MM-dd");
+                                assignmentList["endDate"] = asyncAssignData.exp_date.ConvertDateTimeFormat("yyyyMMdd", "yyyy-MM-dd");
+                                assignmentList["delYn"] = "N";
+
+                                arr.Add(assignmentList);
+                            }
+
+                            result["assignmentList"] = arr;
+                        }
+                        break;
+                    case CmdType.visit_reg2:
+                        return;
+                    default:
+                        result = null;
+                        break;
+                }
+
+                if (result != null)
+                {
                     Log.WriteLog(LogType.Info, "SmtvAdapter | SendMessage | WebClientResponse", $"전송메시지 {result}", LogAdpType.HomeNet);
-
                     byte[] requestData = result.ToByteArray(SysConfig.Instance.HomeNet_Encoding);
                     string responseData = string.Empty;
                     string responseHeader = string.Empty;
+
                     if (NetworkWebClient.Instance.SendData(uri, NetworkWebClient.RequestType.PUT, ContentType.Json, requestData, ref responseData, ref responseHeader, dicHeader))
                     {
-                        
-                        JObject jHeader = JObject.Parse(responseHeader);
-                        string resultMesssage = string.Empty;
-                        string resultCode = Helper.NVL(jHeader["result-code"]);
-                        string hexMessage = Helper.NVL(jHeader["result-message"]).Replace("%", ""); //%로 Hex 값을 구분하고 있다.
-                        byte[] resultBytes = hexMessage.ConvertHexStringToByte();
-                        resultMesssage = Encoding.UTF8.GetString(resultBytes);
-                        
-                        Log.WriteLog(LogType.Info, "SmtvAdapter | SendMessage | WebClientResponse", 
-                            $"==응답==\r\n[Result-Code] {resultCode}\r\n[Result-Message] {resultMesssage}\r\n{responseData}", LogAdpType.HomeNet);
-
                         ResponsePayload responsePayload = new ResponsePayload();
+                        responsePayload.command = cmdType;
                         byte[] responseBuffer;
 
-                        responsePayload.command = payload.command;
-                        responsePayload.result = ResultType.OK;
-                        responseBuffer = responsePayload.Serialize();
+                        if (responseData.StartsWith("ERR"))
+                        {
+                            responsePayload.result = ResultType.server_error;
+                            int startIdx = responseData.IndexOfChar(',', 3);
+                            var resultJson = responseData.Substring(startIdx);
+                            try
+                            {
+                                JObject jError = JObject.Parse(resultJson);
+                                Log.WriteLog(LogType.Error, "SmtvAdapter | SendMessage | WebClientResponse",
+                                    $"==Error_응답==\r\n[Result-Code] {Helper.NVL(jError["result-code"])}\r\n[Result-Message] {Helper.NVL(jError["result-message"])}\r\n", LogAdpType.HomeNet);
+                            }
+                            catch (Exception ex)
+                            {
+                                Log.WriteLog(LogType.Error, "SmtvAdapter | SendMessage | WebClientResponse",
+                                    $"==Error_Exception_응답==\r\n{responseData}\r\n{ex.Message}", LogAdpType.HomeNet);
+                            }
+                        }
+                        else
+                        {
+                            JObject jHeader = JObject.Parse(responseHeader);
+                            string resultCode = Helper.NVL(jHeader["result-code"]);
+                            string hexMessage = Helper.NVL(jHeader["result-message"]).Replace("%", ""); //%로 Hex 값을 구분하고 있다.
+                            byte[] resultBytes = hexMessage.ConvertHexStringToByte();
 
+                            Log.WriteLog(LogType.Info, "SmtvAdapter | SendMessage | WebClientResponse",
+                                $"==응답==\r\n[Result-Code] {resultCode}\r\n[Result-Message] {Encoding.UTF8.GetString(resultBytes)}\r\n{responseData}", LogAdpType.HomeNet);
+                            
+                            responsePayload.result = ResultType.OK;
+                        }
+
+                        responseBuffer = responsePayload.Serialize();
                         TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);
                     }
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLog(LogType.Info, "SmtvAdapter | SendMessage", $"Exception : {ex.Message}", LogAdpType.HomeNet);
 
-                    break;
-                default:
-                    return;
+                ResponsePayload responsePayload = new ResponsePayload();
+                byte[] responseBuffer;
+
+                responsePayload.command = cmdType;
+                responsePayload.result = ResultType.ExceptionERROR;
+                responseBuffer = responsePayload.Serialize();
+
+                TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);
             }
         }
 
         public bool StartAdapter()
         {
-            return true;
+            try
+            {
+                MyHttpNetwork.ReceiveFromPeer += MyHttpNetwork_ReceiveFromPeer;
+                isRun = MyHttpNetwork.Run();
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLog(LogType.Error, "SmtvAdapter | StartAdapter", $"{ex.Message}", LogAdpType.HomeNet);
+                return false;
+            }
+            
+            return isRun;
         }
+
+        
 
         public bool StopAdapter()
         {
-            return true;
+            bool bResult = false;
+
+            try
+            {
+                MyHttpNetwork.ReceiveFromPeer -= MyHttpNetwork_ReceiveFromPeer;
+                bResult = MyHttpNetwork.Down();
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLog(LogType.Error, "SmtvAdapter | StopAdapter", $"{ex.Message}", LogAdpType.HomeNet);
+                return false;
+            }
+            isRun = !bResult;
+            return bResult;
         }
 
         public void TestReceive(byte[] buffer)
         {
-
+            string json = "\"command\": \"alert_incar\",\"data\": {\"dong\" : \"101\"," +
+                            "\"ho\" : \"501\"," +
+                            $"\"car_number\" : \"46부5989\"," +
+                            "\"date_time\" : \"20210312102525\"," +
+                            "\"kind\" : \"v\"," +
+                            "\"lprid\" : \"Lpr 식별 번호\"," +
+                            "\"car_image\" : \"차량 이미지 경로\"," +
+                            $"\"reg_no\" : \"111111\"," +
+                            "\"visit_in_date_time\" : \"yyyyMMddHHmmss\"," + //방문시작일시, kind가 v 일 경우 외 빈값
+                            "\"visit_out_date_time\" : \"yyyyMMddHHmmss\"" + //방문종료일시, kind가 v 일 경우 외 빈값
+                            "}" +
+                            "}";
+            string json2 = "{\"command\":\"sync_assign\",\"data\":{\"list\":[{\"park_no\":\"1\",\"dong\":\"9999\",\"ho\":\"1010\",\"type\":\"MINUTE\",\"enable_point\":\"10000\",\"used_point\":\"10\",\"acp_date\":\"20210501\",\"exp_date\":\"20210531\"}]}}";
+            byte[] test = SysConfig.Instance.Nexpa_Encoding.GetBytes(json2);
+            SendMessage(test, 0, test.Length);
         }
     }
 }

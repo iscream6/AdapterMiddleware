@@ -78,6 +78,10 @@ namespace NpmAdapter.Payload
         /// </summary>
         visit_favo_del,
         /// <summary>
+        /// 방문 차량 체크
+        /// </summary>
+        visit_check,
+        /// <summary>
         /// 결과 통보
         /// </summary>
         result,
@@ -133,9 +137,21 @@ namespace NpmAdapter.Payload
         /// 정기차량 조회
         /// </summary>
         ios_list,
+        /// <summary>
+        /// 정기차량 등록
+        /// </summary>
         cust_reg,
+        /// <summary>
+        /// 정기차량 삭제
+        /// </summary>
         cust_del,
+        /// <summary>
+        /// 정기차량 리스트
+        /// </summary>
         cust_list,
+        /// <summary>
+        /// 정기차량 출입내역 리스트
+        /// </summary>
         cust_io_list,
         /// <summary>
         /// 우정항공
@@ -144,7 +160,11 @@ namespace NpmAdapter.Payload
         /// <summary>
         /// 세대 포인트 조회
         /// </summary>
-        remain_point
+        remain_point,
+        /// <summary>
+        /// 스마트빌리지 전용, 할당 동기화
+        /// </summary>
+        sync_assign
     }
 
     class RequestPayload<T> : IPayload where T : IPayload, new()

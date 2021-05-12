@@ -100,7 +100,7 @@ namespace NpmAdapter
                         homenet = new CmxAdapter();
                         break;
                     case HomeNetAdapterType.Cocom: //코콤
-                        homenet = new CcmAdapter();
+                        homenet = new KcmAdapter();
                         break;
                     case HomeNetAdapterType.ApartStory: //아파트스토리
                         homenet = new AptStAdapter();
@@ -111,20 +111,29 @@ namespace NpmAdapter
                     case HomeNetAdapterType.Samul: //샘물
                         homenet = new SamulAdapter();
                         break;
-                    case HomeNetAdapterType.ezVille:
+                    case HomeNetAdapterType.ezVille: //이지빌
                         homenet = new EzvAdapter();
                         break;
-                    case HomeNetAdapterType.KakaoMovil:
+                    case HomeNetAdapterType.KakaoMovil: //카카오모빌, 직방
                         homenet = new KakaoMovilAdapter();
                         break;
-                    case HomeNetAdapterType.Ulsan:
+                    case HomeNetAdapterType.Ulsan: //울산시청 공공감면
                         homenet = new ULSNServerAdapter();
                         break;
-                    case HomeNetAdapterType.UjungAir:
+                    case HomeNetAdapterType.UjungAir: //우정항공
                         homenet = new UJAirAdapter();
                         break;
-                    case HomeNetAdapterType.GSNeoTech:
+                    case HomeNetAdapterType.GSNeoTech: //GS네오텍
                         homenet = new STIAdapter();
+                        break;
+                    case HomeNetAdapterType.Salda: //살다, 잘살아보세
+                        homenet = new SaldaAdapter();
+                        break;
+                    case HomeNetAdapterType.Beyond: //비욘드
+                        homenet = new BeyondAdapter();
+                        break;
+                    case HomeNetAdapterType.Aptner: //아파트너
+                        homenet = new AptNrAdapter();
                         break;
                     default:
                         homenet = null;

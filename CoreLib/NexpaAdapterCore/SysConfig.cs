@@ -65,11 +65,20 @@ namespace NexpaAdapterStandardLib
 
         public string LogLimit { get; private set; }
 
+        public string ParkName { get; private set; }
+
         #endregion
 
         #region Nexpa_Config
 
-
+        /// <summary>
+        /// 주차서버 TCP IP
+        /// </summary>
+        public string Nexpa_ServerTcpIP { get; private set; }
+        /// <summary>
+        /// 주차서버 TCP 포트
+        /// </summary>
+        public string Nexpa_ServerTcpPort { get; private set; }
         /// <summary>
         /// 넥스파 Tcp 포트
         /// </summary>
@@ -97,6 +106,7 @@ namespace NexpaAdapterStandardLib
         public string Nexpa_EncodCd { get; private set; }
         public string Target_TcpIP { get; private set; }
         public string Target_TcpPort { get; private set; }
+        public string DBType { get; private set; }
 
         #endregion
 
@@ -184,6 +194,13 @@ namespace NexpaAdapterStandardLib
 
         #endregion
 
+        #region NPGSQL DataBase
+
+        public string NpgHost { get; private set; }
+        public string NpgPort { get; private set; }
+
+        #endregion
+
         #endregion
 
         #region Constructor
@@ -196,7 +213,10 @@ namespace NexpaAdapterStandardLib
             ValidateConfig = ConfigVersion.Equals(ConfigManager.ReadConfig(config, Sections.SysConfig.GetDescription(), "Config_Version"));
             Version = ConfigManager.ReadConfig(config, Sections.SysConfig.GetDescription(), "PVersion");
             LogLimit = ConfigManager.ReadConfig(config, Sections.SysConfig.GetDescription(), "LogLimit");
+            ParkName = ConfigManager.ReadConfig(config, Sections.SysConfig.GetDescription(), "ParkName");
 
+            Nexpa_ServerTcpIP = ConfigManager.ReadConfig(config, Sections.NexpaConfig.GetDescription(), "TcpPort");
+            Nexpa_ServerTcpPort = ConfigManager.ReadConfig(config, Sections.NexpaConfig.GetDescription(), "WebPort");
             Nexpa_TcpPort = ConfigManager.ReadConfig(config, Sections.NexpaConfig.GetDescription(), "TcpPort");
             Nexpa_WebPort = ConfigManager.ReadConfig(config, Sections.NexpaConfig.GetDescription(), "WebPort");
             Nexpa_WebDomain = ConfigManager.ReadConfig(config, Sections.NexpaConfig.GetDescription(), "WebDomain");
@@ -204,7 +224,10 @@ namespace NexpaAdapterStandardLib
             Nexpa_UWebPort = ConfigManager.ReadConfig(config, Sections.NexpaConfig.GetDescription(), "UWebPort");
             Nexpa_EncodCd = ConfigManager.ReadConfig(config, Sections.NexpaConfig.GetDescription(), "Encoding");
             Nexpa_Encoding = GetEncoding(Nexpa_EncodCd);
+            DBType = ConfigManager.ReadConfig(config, Sections.NexpaConfig.GetDescription(), "DBType");
             DataSource = $"{ConfigManager.ReadConfig(config, Sections.NexpaConfig.GetDescription(), "DBIP")},{ConfigManager.ReadConfig(config, Sections.NexpaConfig.GetDescription(), "DBPort")}";
+            NpgHost = ConfigManager.ReadConfig(config, Sections.NexpaConfig.GetDescription(), "DBIP");
+            NpgPort = ConfigManager.ReadConfig(config, Sections.NexpaConfig.GetDescription(), "DBPort");
             InitialCatalog = ConfigManager.ReadConfig(config, Sections.NexpaConfig.GetDescription(), "DBName");
             UserID = ConfigManager.ReadConfig(config, Sections.NexpaConfig.GetDescription(), "DBID");
             Password = ConfigManager.ReadConfig(config, Sections.NexpaConfig.GetDescription(), "DBPW");

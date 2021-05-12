@@ -177,6 +177,8 @@ namespace NexpaAdapterStandardLib.Network
             catch (WebException exWeb)
             {
                 Log.WriteLog(LogType.Error, "NetworkWebClient| SendDataPost", $"{exWeb.ToString()}");
+
+                //strData
                 using (HttpWebResponse response = (HttpWebResponse)exWeb.Response)
                 {
                     if (response == null) return false;
@@ -184,7 +186,7 @@ namespace NexpaAdapterStandardLib.Network
                     using (Stream resGetStream = response.GetResponseStream())
                     using (StreamReader resGetRead = new StreamReader(resGetStream, Encoding.UTF8, true))
                     {
-                        strData = resGetRead.ReadToEnd();
+                        strData = $"ERR,{(int)response.StatusCode},{response.StatusCode.ToString()},{resGetRead.ReadToEnd()}";
                     }
 
                     if (strData != null && strData != "")

@@ -9,7 +9,7 @@ using System.Threading;
 
 namespace NpmAdapter.Adapter
 {
-    class CcmAdapter : IAdapter
+    class KcmAdapter : IAdapter
     {
         private bool isRun = false;
 
@@ -36,22 +36,19 @@ namespace NpmAdapter.Adapter
             //Config Version Check~!
             if (!SysConfig.Instance.ValidateConfig)
             {
-                Log.WriteLog(LogType.Error, "CcmAdapter | Initialize", $"Config Version이 다릅니다. 프로그램버전 : {SysConfig.Instance.ConfigVersion}", LogAdpType.Nexpa);
+                Log.WriteLog(LogType.Error, "KcmAdapter | Initialize", $"Config Version이 다릅니다. 프로그램버전 : {SysConfig.Instance.ConfigVersion}", LogAdpType.Nexpa);
                 return false;
             }
             
             MyTcpNetwork = NetworkFactory.GetInstance().MakeNetworkControl(NetworkFactory.Adapters.TcpClient, SysConfig.Instance.HT_IP, SysConfig.Instance.HT_Port);
 
             //Alive Check
-            if (SysConfig.Instance.Sys_Option.GetValueToUpper("CmxAliveCheckUse").Equals("Y"))
+            aliveCheckThread = new Thread(new ThreadStart(AliveCheck));
+            aliveCheckThread.Name = "Cmx thread for alive check";
+            if (!TimeSpan.TryParse(SysConfig.Instance.Sys_Option.GetValueToUpper("CmxAliveCheckTime"), out waitForWork))
             {
-                aliveCheckThread = new Thread(new ThreadStart(AliveCheck));
-                aliveCheckThread.Name = "Cmx thread for alive check";
-                if (!TimeSpan.TryParse(SysConfig.Instance.Sys_Option.GetValueToUpper("CmxAliveCheckTime"), out waitForWork))
-                {
-                    //Default 50초
-                    waitForWork = TimeSpan.FromSeconds(50);
-                }
+                //Default 50초
+                waitForWork = TimeSpan.FromSeconds(50);
             }
             //Alive Check
 
@@ -81,7 +78,7 @@ namespace NpmAdapter.Adapter
             }
             catch (Exception ex)
             {
-                Log.WriteLog(LogType.Error, "CcmAdapter | StartAdapter", $"{ex.Message}", LogAdpType.HomeNet);
+                Log.WriteLog(LogType.Error, "KcmAdapter | StartAdapter", $"{ex.Message}", LogAdpType.HomeNet);
                 return false;
             }
 
@@ -100,7 +97,7 @@ namespace NpmAdapter.Adapter
             }
             catch (Exception ex)
             {
-                Log.WriteLog(LogType.Error, "CcmAdapter | StopAdapter", $"{ex.Message}", LogAdpType.HomeNet);
+                Log.WriteLog(LogType.Error, "KcmAdapter | StopAdapter", $"{ex.Message}", LogAdpType.HomeNet);
                 return false;
             }
 
@@ -112,16 +109,11 @@ namespace NpmAdapter.Adapter
             
         }
 
-        public void SendMessage(IPayload payload)
-        {
-
-        }
-
         public void SendMessage(byte[] buffer, long offset, long size, string pid = null)
         {
             var jobj = JObject.Parse(buffer.ToString(SysConfig.Instance.Nexpa_Encoding, size));
 
-            Log.WriteLog(LogType.Info, $"CmxDLAdapter | SendMessage", $"넥스파에서 받은 메시지 : {jobj}", LogAdpType.HomeNet);
+            Log.WriteLog(LogType.Info, $"KcmxDLAdapter | SendMessage", $"넥스파에서 받은 메시지 : {jobj}", LogAdpType.HomeNet);
 
             JObject data = jobj["data"] as JObject;
             string cmd = jobj["command"].ToString();
@@ -148,11 +140,11 @@ namespace NpmAdapter.Adapter
 
                 {
                     //Alive Check 서버로 전달....
-                    Log.WriteLog(LogType.Info, $"CcmAdapter | AliveCheck", $"Alive Check~!");
+                    Log.WriteLog(LogType.Info, $"KcmAdapter | AliveCheck", $"Alive Check~!");
 
                     try
                     {
-                        
+                        int value = 0x12345678;
                     }
                     catch (Exception)
                     {
@@ -164,5 +156,38 @@ namespace NpmAdapter.Adapter
             }
             while (_pauseEvent.WaitOne());
         }
+
+        //private class Msg
+        //{
+        //    private const int HeaderKey = 0x12345678;
+        //    private int msgType;
+        //    private int msgLength;
+        //    private int town = 0;
+        //    private int dong;
+        //    private int ho;
+        //    private int reserved = 0;
+        //    //public Header()
+        //    //{
+        //    //    byte[] ppp = new byte[16];
+        //    //    Array.Clear(ppp, 0, ppp.Length);
+        //    //}
+
+        //    public byte[] Login(string id, string pw)
+        //    {
+        //        int homeVersion = 0; //0으로 초기화
+        //        int nKing = 0; //0으로 초기화
+        //        byte[] nVersion = new byte[16];
+        //        Array.Clear(nVersion, 0, nVersion.Length); //0으로 초기화
+        //        byte[] bId = Encoding.UTF8.GetBytes(id);
+        //        byte[] bPw = Encoding.UTF8.GetBytes(pw);
+        //        char[] sid = Array.
+        //    }
+
+        //    public byte[] AliveCheck()
+        //    {
+
+        //    }
+
+        //}
     }
 }

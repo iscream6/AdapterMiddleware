@@ -23,8 +23,8 @@ namespace NpmAdapter.Adapter
 
         private StringBuilder receiveMessageBuffer = new StringBuilder();
 
-        private const byte IN = 0x00;
-        private const byte OUT = 0x01;
+        private const byte IN = 0x30;
+        private const byte OUT = 0x31;
         private const byte COMMA = 0x2C;
 
         private INetwork TcpClientNetwork { get; set; }
@@ -140,26 +140,21 @@ namespace NpmAdapter.Adapter
                             //구분자
                             tempBytes.Add(COMMA);
                             //동
-                            tempBytes.AddRange(payload.data.dong.FourStringTo4Byte());
+                            tempBytes.AddRange(payload.data.dong.FourStringTo4ByteAscii());
                             //구분자
                             tempBytes.Add(COMMA);
                             //호
-                            tempBytes.AddRange(payload.data.ho.FourStringTo4Byte());
+                            tempBytes.AddRange(payload.data.ho.FourStringTo4ByteAscii());
                             //구분자
                             tempBytes.Add(COMMA);
                             //차량번호 뒤 4자리
                             string carno = payload.data.car_number;
-                            tempBytes.AddRange(carno.Substring(carno.Length - 4).FourStringTo4Byte());
+                            tempBytes.AddRange(carno.StringToAsciiByte());
                             //구분자
                             tempBytes.Add(COMMA);
                             //입차시간(yyyyMMddHHmmss)
                             string time = payload.data.date_time;
-                            byte[] bArr = new byte[14];
-                            for (int i = 0; i < 14; i++)
-                            {
-                                bArr[i] = Convert.ToByte(time.Substring(i, 1));
-                            }
-                            tempBytes.AddRange(bArr);
+                            tempBytes.AddRange(time.StringToAsciiByte());
 
                             //전송~!
                             byte[] bArrSendMesssage = tempBytes.ToArray();

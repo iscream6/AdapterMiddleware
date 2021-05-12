@@ -64,7 +64,7 @@ namespace NpmAdapter.Adapter
                 {
                     int.TryParse(SysConfig.Instance.Nexpa_TcpPort, out port);
                     MyTcpNetwork = NetworkFactory.GetInstance().MakeNetworkControl(NetworkFactory.Adapters.TcpServer, port.ToString());
-                    if (MyTcpNetwork != null) Log.WriteLog(LogType.Info, $"NexpaTcpAdapter | 생성자", $"TcpServer 생성", LogAdpType.Nexpa);
+                    if (MyTcpNetwork != null) Log.WriteLog(LogType.Info, $"NexpaTcpAdapter | 생성자", $"TcpServer 생성 : Port={port}", LogAdpType.Nexpa);
                     else Log.WriteLog(LogType.Info, $"NexpaAdapter | Initialize", $"TcpServer 생성실패", LogAdpType.Nexpa);
                 }
 
@@ -157,7 +157,7 @@ namespace NpmAdapter.Adapter
             }
             else
             {
-                TargetAdapter.SendMessage(buffer, offset, size);
+                TargetAdapter.SendMessage(buffer, offset, size, id);
             }
             Log.WriteLog(LogType.Info, "NexpaTcpAdapter | MyTcpNetwork_ReceiveFromPeer", "수신 완료 =====", LogAdpType.Nexpa);
         }
@@ -260,7 +260,7 @@ namespace NpmAdapter.Adapter
 
                         case Status.TcpOnly:
                             {
-                                MyTcpNetwork.SendToPeer(buffer, offset, size);
+                                MyTcpNetwork.SendToPeer(buffer, offset, size, pid);
                             }
 
                             break;
@@ -278,7 +278,7 @@ namespace NpmAdapter.Adapter
                                         Log.WriteLog(LogType.Info, "NexpaWebAdapter | SendMessage | WebClientResponse", $"==응답== {responseData}", LogAdpType.Nexpa);
                                         ResponsePayload responsePayload = new ResponsePayload();
                                         byte[] responseBuffer = SysConfig.Instance.Nexpa_Encoding.GetBytes(responseData);
-                                        TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);
+                                        TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length, pid);
                                     }
                                     catch (Exception ex)
                                     {

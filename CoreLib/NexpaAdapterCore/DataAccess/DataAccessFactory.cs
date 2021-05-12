@@ -1,4 +1,7 @@
-﻿using Oracle.ManagedDataAccess.Client;
+﻿using Npgsql;
+using NpgsqlTypes;
+using NpmStandardLib.DataAccess;
+using Oracle.ManagedDataAccess.Client;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -28,6 +31,7 @@ namespace NexpaAdapterStandardLib.DataAccess
     {
         MSSQL,
         Oracle,
+        Postgres
     }
 
     public class DataAccessFactory
@@ -65,6 +69,9 @@ namespace NexpaAdapterStandardLib.DataAccess
                         break;
                     case NPDBkind.Oracle:
                         break;
+                    case NPDBkind.Postgres:
+                        _Helper = new NpgSqlDA();
+                        break;
                 }
             }
 
@@ -85,6 +92,8 @@ namespace NexpaAdapterStandardLib.DataAccess
                     return new SqlParameter(ConvertParameterName(parameterName), ConvertMSSqlDbType(dbType));
                 case NPDBkind.Oracle:
                     return null;
+                case NPDBkind.Postgres:
+                    return new NpgsqlParameter(ConvertParameterName(parameterName), ConvertNpgSqlDbType(dbType));
                 default:
                     throw new Exception("알 수 없는 DataBase Type 입니다.");
             }
@@ -105,6 +114,8 @@ namespace NexpaAdapterStandardLib.DataAccess
                     return new SqlParameter(ConvertParameterName(parameterName), ConvertMSSqlDbType(dbType), size);
                 case NPDBkind.Oracle:
                     return null;
+                case NPDBkind.Postgres:
+                    return new NpgsqlParameter(ConvertParameterName(parameterName), ConvertNpgSqlDbType(dbType), size);
                 default:
                     throw new Exception("알 수 없는 DataBase Type 입니다.");
             }
@@ -115,6 +126,7 @@ namespace NexpaAdapterStandardLib.DataAccess
             switch (_Kind)
             {
                 case NPDBkind.MSSQL:
+                case NPDBkind.Postgres:
                     return $"@{parameterName}";
                 case NPDBkind.Oracle:
                     return $":{parameterName}";
@@ -165,6 +177,26 @@ namespace NexpaAdapterStandardLib.DataAccess
             }
         }
 
+        private NpgsqlDbType ConvertNpgSqlDbType(NPDBType dbType)
+        {
+            switch (dbType)
+            {
+                case NPDBType.Integer:
+                    return NpgsqlDbType.Integer;
+                case NPDBType.Char:
+                    return NpgsqlDbType.Char;
+                case NPDBType.VarChar:
+                    return NpgsqlDbType.Varchar;
+                case NPDBType.DateTime:
+                    return NpgsqlDbType.Date;
+                case NPDBType.Image:
+                    return NpgsqlDbType.Unknown;
+                case NPDBType.Text:
+                    return NpgsqlDbType.Text;
+                default:
+                    throw new Exception("알 수 없는 DataBase Type 입니다.");
+            }
+        }
     }
 }
  

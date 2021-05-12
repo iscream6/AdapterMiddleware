@@ -21,6 +21,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NpmAdapter", "NpmAdapter\Np
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NexpaConnectWpfApp", "Application\NexpaConnectWpfApp\NexpaConnectWpfApp.csproj", "{22BEB2E1-FAB9-4790-B8CA-637F6EB3282C}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Domain", "Domain", "{529CFC00-80CF-4423-80C2-9D820DFF3572}"
+	ProjectSection(SolutionItems) = preProject
+		아파트너.txt = 아파트너.txt
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU

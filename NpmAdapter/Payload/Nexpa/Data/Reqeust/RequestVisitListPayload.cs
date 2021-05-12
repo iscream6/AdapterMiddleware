@@ -1,10 +1,27 @@
 ﻿using Newtonsoft.Json.Linq;
 using NexpaAdapterStandardLib;
+using System;
 
 namespace NpmAdapter.Payload
 {
     class RequestVisitList2Payload : IPayload
     {
+        public enum EventType
+        {
+            /// <summary>
+            /// All(전체)
+            /// </summary>
+            A,
+            /// <summary>
+            /// Future(미래)
+            /// </summary>
+            F,
+            /// <summary>
+            /// History(과거이력)
+            /// </summary>
+            H
+        }
+
         public string car_number { get; set; }
         /// <summary>
         /// 동
@@ -16,6 +33,7 @@ namespace NpmAdapter.Payload
         public string ho { get; set; }
 
         public string event_date_time { get; set; }
+        public EventType eventType { get; set; }
 
         public void Deserialize(JObject json)
         {
@@ -23,6 +41,7 @@ namespace NpmAdapter.Payload
             dong = Helper.NVL(json["dong"]);
             ho = Helper.NVL(json["ho"]);
             event_date_time = Helper.NVL(json["event_date_time"]);
+            eventType = (EventType)Enum.Parse(typeof(EventType), Helper.NVL(json["eventType"]));
         }
 
         public byte[] Serialize()
@@ -37,6 +56,7 @@ namespace NpmAdapter.Payload
             json["dong"] = dong;
             json["ho"] = ho;
             json["event_date_time"] = event_date_time;
+            json["eventType"] = eventType.ToString();
             return json;
         }
     }

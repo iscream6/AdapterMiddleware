@@ -39,6 +39,10 @@ namespace NpmAdapter.Payload
                     payload = new ResponseAutoBoothPayload();
                     payload.Deserialize(json);
                     break;
+                case CmdType.visit_reg2:
+                    payload = new ResponsevisitReg2Payload();
+                    payload.Deserialize(json);
+                    break;
             }
 
             return payload;

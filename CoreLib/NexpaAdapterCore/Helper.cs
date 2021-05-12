@@ -10,6 +10,16 @@ using System.Xml;
 
 namespace NexpaAdapterStandardLib
 {
+    public enum NexpaDBType
+    {
+        [Description("M")]
+        MSSQL,
+        [Description("O")]
+        ORACLE,
+        [Description("P")]
+        POSTGRES,
+    }
+
     public enum EncoderType
     {
         [Description("D")]
@@ -80,6 +90,12 @@ namespace NexpaAdapterStandardLib
         UjungAir,
         [Description("GNT")]
         GSNeoTech,
+        [Description("SLD")]
+        Salda,
+        [Description("BND")]
+        Beyond,
+        [Description("APN")]
+        Aptner,
     }
 
     public static class StdHelper

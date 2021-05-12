@@ -33,6 +33,8 @@ namespace NpmAdapter.Payload
         HomenetkDisconnected = 403,
         [Description("Failed Send Message to HomenetServer")]
         FailSendMessage = 404,
+        [Description("Failed interface")]
+        FailInterface = 405,
         /// <summary>
         /// URL 잘못 보냄
         /// </summary>
