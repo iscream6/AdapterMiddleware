@@ -16,6 +16,8 @@ namespace NpmAdapter.Adapter
 
         public bool IsRuning => isRun;
 
+        public event IAdapter.ShowBallonTip ShowTip;
+
         public void Dispose()
         {
             

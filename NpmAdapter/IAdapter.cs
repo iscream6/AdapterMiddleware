@@ -5,8 +5,11 @@ using System.Text;
 
 namespace NpmAdapter
 {
-    interface IAdapter : IDisposable
+    public interface IAdapter : IDisposable
     {
+        public delegate void ShowBallonTip(int showSec, string title, string message);
+        event ShowBallonTip ShowTip;
+
         IAdapter TargetAdapter { get; set; }
 
         bool IsRuning { get; }

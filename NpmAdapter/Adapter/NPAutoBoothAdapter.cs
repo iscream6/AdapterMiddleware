@@ -47,6 +47,8 @@ namespace NpmAdapter.Adapter
         private Dictionary<string, UnitInfo> _dicLprNetwork;
         private Dictionary<string, INetwork> _dicBoothNetwork;
 
+        public event IAdapter.ShowBallonTip ShowTip;
+
         public IAdapter TargetAdapter { get; set; }
         private INetwork MyHttpNetwork { get; set; }
 

@@ -235,6 +235,8 @@ namespace NpmAdapter.Adapter
 
         private object lockObj = new object();
 
+        public event IAdapter.ShowBallonTip ShowTip;
+
         /// <summary>
         /// Target Adapter에게 받은 Message 를 Peer에 전달한다.
         /// </summary>

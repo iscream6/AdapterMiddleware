@@ -20,6 +20,8 @@ namespace NpmAdapter.Adapter
         private static string REQ_POST_STATUS = "/api/lpr";
         private StringBuilder receiveMessageBuffer = new StringBuilder();
 
+        public event IAdapter.ShowBallonTip ShowTip;
+
         public IAdapter TargetAdapter { get; set; }
 
         public bool IsRuning => true;

@@ -39,6 +39,10 @@ namespace NpmAdapter.Adapter
         private StringBuilder ErrorMessage = new StringBuilder();
         private string AuthDong = "100";
         private string AuthHo = "900";
+
+        private static Dictionary<CmdType, JObject> dicBuffer = new Dictionary<CmdType, JObject>();
+        public event IAdapter.ShowBallonTip ShowTip;
+
         #endregion
 
         #region Properties
@@ -193,7 +197,7 @@ namespace NpmAdapter.Adapter
             while (_pauseEvent.WaitOne());
         }
 
-        private static Dictionary<CmdType, JObject> dicBuffer = new Dictionary<CmdType, JObject>();
+        
 
         private void TcpClientNetwork_ReceiveFromPeer(byte[] buffer, long offset, long size, HttpServer.RequestEventArgs pEvent = null, string id = null)
         {
@@ -203,8 +207,14 @@ namespace NpmAdapter.Adapter
                 ErrorMessage.Clear();
 
                 string receiveMsg = SysConfig.Instance.HomeNet_Encoding.GetString(buffer[..(int)size]);
-                Log.WriteLog(LogType.Info, "EzvAdapter | From 자이S&D", $"받은메시지 : {receiveMsg}", LogAdpType.HomeNet);
-                
+
+                Log.WriteLog(LogType.Info, "EzvAdapter | From 자이S&D", $"받은메시지(원문) : {receiveMsg}", LogAdpType.HomeNet);
+                //<start=0399&0>
+                var dataLeng = int.Parse(receiveMsg.Substring(7, 4));
+                receiveMsg = receiveMsg.GetSubStringByteLength(0, dataLeng);
+
+                Log.WriteLog(LogType.Info, "EzvAdapter | From 자이S&D", $"받은메시지(재처리) : {receiveMsg}", LogAdpType.HomeNet);
+
                 ezHeader.Initialize();
                 ezHeader.BindData(receiveMsg);
 

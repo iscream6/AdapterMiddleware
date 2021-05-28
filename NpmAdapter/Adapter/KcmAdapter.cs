@@ -23,6 +23,9 @@ namespace NpmAdapter.Adapter
         private TimeSpan waitForWork;
         private ManualResetEventSlim shutdownEvent = new ManualResetEventSlim(false);
         ManualResetEvent _pauseEvent = new ManualResetEvent(false);
+
+        public event IAdapter.ShowBallonTip ShowTip;
+
         private delegate void SafeCallDelegate();
 
         public void Dispose()

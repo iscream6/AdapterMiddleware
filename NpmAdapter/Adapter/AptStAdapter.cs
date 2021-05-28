@@ -39,6 +39,8 @@ namespace NpmAdapter.Adapter
         private StringBuilder receiveMessageBuffer = new StringBuilder();
         private Dictionary<string, string> dicHeader = new Dictionary<string, string>();
 
+        public event IAdapter.ShowBallonTip ShowTip;
+
         private INetwork MyHttpNetwork { get; set; }
 
         public IAdapter TargetAdapter { get; set; }

@@ -44,6 +44,8 @@ namespace NpmAdapter.Adapter
         private IPayload responsePayload;
         private StringBuilder receiveMessageBuffer = new StringBuilder();
 
+        public event IAdapter.ShowBallonTip ShowTip;
+
         public IAdapter TargetAdapter { get; set; }
         private INetwork HttpNet { get; set; }
         public bool IsRuning => isRun;
@@ -473,7 +475,7 @@ namespace NpmAdapter.Adapter
                         {
                             apt_idx = int.Parse(aptId),
                             car_number = payload.data.car_number,
-                            //date = payload.data.date_time.GetUTCMillisecond()
+                            lpr_number = payload.data.lprID,
                             date = Helper.GetUTCMillisecond(payload.data.date_time)
                         };
                         Log.WriteLog(LogType.Info, $"KakaoMovilAdapter | SendMessage", $"{ioPayload.ToJson()}", LogAdpType.HomeNet);

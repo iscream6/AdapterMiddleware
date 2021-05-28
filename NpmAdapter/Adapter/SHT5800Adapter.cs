@@ -51,6 +51,9 @@ namespace NpmAdapter.Adapter
         }
 
         private string _strBaudRate, _strPortName, _strParity = "";
+
+        public event IAdapter.ShowBallonTip ShowTip;
+
         private string Section { get => "HomeNet_SerialConfig"; }
         public INetwork MyNetwork { get; set; }
         public IAdapter TargetAdapter { get; set; }

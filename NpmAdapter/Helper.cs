@@ -99,6 +99,31 @@ namespace NpmAdapter
             return maxLEN;
         }
 
+        public static string GetSubStringByteLength(this string STR,int startIdx, int length)
+        {
+            List<char> returnList = new List<char>();
+            string tempStr = STR.Substring(startIdx);
+            char[] charobj = tempStr.ToCharArray();
+            int maxLEN = 0;
+
+            for (int i = 0; i < charobj.Length; i++)
+            {
+                returnList.Add(charobj[i]);
+
+                byte oF = (byte)((charobj[i] & 0xff00) >> 7);
+                byte oB = (byte)(charobj[i] & 0x00ff);
+
+                if (oF == 0)
+                    maxLEN++;
+                else
+                    maxLEN += 2;
+
+                if (maxLEN >= length) break;
+            }
+
+            return new string(returnList.ToArray());
+        }
+
         public static byte CalCheckSum(this byte[] _PacketData, int offset, int size)
         {
             try

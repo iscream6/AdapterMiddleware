@@ -10,6 +10,8 @@ namespace NpmAdapter
     /// </summary>
     public class NexPipe : AbstractPipe, IDisposable
     {
+        public event IAdapter.ShowBallonTip ShowTip;
+
         private IAdapter nexpa, homenet;
         //====== Config =====
         //NexpaAdapter
@@ -142,6 +144,7 @@ namespace NpmAdapter
 
                 if (homenet != null)
                 {
+                    homenet.ShowTip += ShowTip;
                     isSuccess &= homenet.Initialize();
                     Log.WriteLog(LogType.Info, $"AdapterPipe | GeneratePipe", $"HomeNet Adapter({homAdapter}) 생성", LogAdpType.HomeNet);
                 }

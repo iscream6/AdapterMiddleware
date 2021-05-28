@@ -2,7 +2,9 @@
 using NpmAdapter;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
+using System.IO;
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Text;
 using System.Threading;
@@ -12,12 +14,19 @@ namespace NexpaConnectWinApp
 {
     public partial class frmMain : Form
     {
+        #region Private Fields
+
         private NexPipe pipe;
         private bool isRunNexpa = false;
         private bool isRunHomeNet = false;
         private bool autoClear = false;
         private bool isShutdown = false;
         private static DateTime startDate;
+
+        #endregion
+
+        #region Constructor
+
         public frmMain()
         {
             //Form이 시작한 시간을 설정한다.
@@ -28,8 +37,13 @@ namespace NexpaConnectWinApp
             this.ShowInTaskbar = false;
 
             pipe = new NexPipe();
+            pipe.ShowTip += Pipe_ShowTip;
             SystemStatus.Instance.StatusChanged += FrmMain_StatusChanged; ;
         }
+
+        #endregion
+
+        #region Main Controls Events
 
         private void frmMain_Load(object sender, EventArgs e)
         {
@@ -40,112 +54,6 @@ namespace NexpaConnectWinApp
             }
             Initialize();
             isShutdown = false;
-        }
-
-        delegate void AppendLogText(Control ctl, string log);
-
-        private void SafeAppendLogText(Control ctl, string log)
-        {
-            if (ctl.InvokeRequired)
-            {
-                ctl.Invoke(new AppendLogText(SafeAppendLogText), ctl, log);
-            }
-            else
-            {
-                ctl.Text += log;
-            }
-        }
-        delegate void CrossThreadSafetySetText(Control ctl, String text);
-
-        
-        private void FrmMain_StatusChanged(LogAdpType adapterType, string statusMessage)
-        {
-            StringBuilder builder = new StringBuilder();
-            builder.Append(DateTime.Now.ToString("yy-MM-dd hh:mm:ss "));
-            if (adapterType == LogAdpType.none)
-            {
-                builder.Append($"[Error] ");
-            }
-            else
-            {
-                builder.Append($"[{adapterType.ToString()}] ");
-            }
-            builder.Append(statusMessage);
-            SafeAppendLogText(txtSysLog, builder.ToString() + "\r");
-            if (this.InvokeRequired)
-            {
-                this.Invoke(new MethodInvoker(delegate () { txtSysLog.SelectionStart = txtSysLog.Text.Length; }));
-            }
-            else
-            {
-                txtSysLog.SelectionStart = txtSysLog.Text.Length;
-            }
-        }
-
-        private void CNotSafetySetText()
-        {
-            txtSysLog.SelectionStart = txtSysLog.Text.Length;
-        }
-
-        
-
-        private void Initialize()
-        {
-            HomeNetAdapterType homAdapter = StdHelper.GetValueFromDescription<HomeNetAdapterType>(SysConfig.Instance.Sys_HomeNetAdapter);
-
-            btnInit.Enabled = true;
-            btnStartHomeNet.Enabled = false;
-            btnStartNexpa.Enabled = false;
-            lblSttInit.BackColor = Color.FromArgb(224, 224, 224);
-            lblSttInit.ForeColor = Color.FromArgb(64, 64, 64);
-            lblSttInit.Text = "대기";
-            lblSttHomeNet.BackColor = Color.FromArgb(224, 224, 224);
-            lblSttHomeNet.ForeColor = Color.FromArgb(64, 64, 64);
-            lblSttHomeNet.Text = "";
-            lblSttNexpa.BackColor = Color.FromArgb(224, 224, 224);
-            lblSttNexpa.ForeColor = Color.FromArgb(64, 64, 64);
-            lblSttNexpa.Text = "";
-
-            if (homAdapter == HomeNetAdapterType.None)
-            {
-                lblSttHomeNet.Visible = false;
-                btnStartHomeNet.Visible = false;
-                label2.Visible = false; // ▶ 표시도 제거
-            }
-
-            //테스트 모드 여부
-            if (SysConfig.Instance.Sys_Option.GetValueToUpper("TestMode") == "Y")
-            {
-                grbTest.Visible = true;
-                this.Height = 650;
-            }
-            else
-            {
-                grbTest.Visible = false;
-                this.Height = 650 - 177;
-            }
-
-            //자동시작 여부
-            if (SysConfig.Instance.Sys_Option.GetValueToUpper("AutoStart") == "Y")
-            {
-                btnInit.PerformClick();
-                Thread.Sleep(1000);
-                btnStartNexpa.PerformClick();
-                Thread.Sleep(1000);
-
-                if(homAdapter != HomeNetAdapterType.None)
-                {
-                    btnStartHomeNet.PerformClick();
-                }
-                
-                txtClearSec.Text = "90";
-                btnLogAutoClear.PerformClick();
-            }
-
-            if (SysConfig.Instance.Sys_Option.GetValueToUpper("AutoDaeth") == "Y")
-            {
-                timerDeath.Start();
-            }
         }
 
         /// <summary>
@@ -177,6 +85,11 @@ namespace NexpaConnectWinApp
                 lblSttNexpa.Text = "대기";
                 lblSttHomeNet.Text = "대기";
             }
+        }
+
+        private void Pipe_ShowTip(int showSec, string title, string message)
+        {
+            notifyTray.ShowBalloonTip(showSec, title, message, ToolTipIcon.Info);
         }
 
         /// <summary>
@@ -290,6 +203,321 @@ namespace NexpaConnectWinApp
             }
 
         }
+
+        private void btnLogAutoClear_Click(object sender, EventArgs e)
+        {
+            if (autoClear)
+            {
+                autoClear = false;
+                btnLogAutoClear.Text = "시작";
+                timerLogClear.Stop();
+            }
+            else
+            {
+                autoClear = true;
+                btnLogAutoClear.Text = "중지";
+
+                int sec = 30; //30초;
+                int.TryParse(txtClearSec.Text, out sec);
+
+                timerLogClear.Interval = sec * 1000;
+                timerLogClear.Start();
+            }
+        }
+
+        private void btnLogClear_Click(object sender, EventArgs e)
+        {
+            txtSysLog.Clear();
+        }
+
+        private void timerLogClear_Tick(object sender, EventArgs e)
+        {
+            txtSysLog.Clear();
+        }
+
+        #endregion
+
+        #region 초기화
+
+        private void Initialize()
+        {
+            HomeNetAdapterType homAdapter = StdHelper.GetValueFromDescription<HomeNetAdapterType>(SysConfig.Instance.Sys_HomeNetAdapter);
+
+            btnInit.Enabled = true;
+            btnStartHomeNet.Enabled = false;
+            btnStartNexpa.Enabled = false;
+            lblSttInit.BackColor = Color.FromArgb(224, 224, 224);
+            lblSttInit.ForeColor = Color.FromArgb(64, 64, 64);
+            lblSttInit.Text = "대기";
+            lblSttHomeNet.BackColor = Color.FromArgb(224, 224, 224);
+            lblSttHomeNet.ForeColor = Color.FromArgb(64, 64, 64);
+            lblSttHomeNet.Text = "";
+            lblSttNexpa.BackColor = Color.FromArgb(224, 224, 224);
+            lblSttNexpa.ForeColor = Color.FromArgb(64, 64, 64);
+            lblSttNexpa.Text = "";
+
+            if (homAdapter == HomeNetAdapterType.None)
+            {
+                lblSttHomeNet.Visible = false;
+                btnStartHomeNet.Visible = false;
+                label2.Visible = false; // ▶ 표시도 제거
+            }
+
+            //테스트 모드 여부
+            if (SysConfig.Instance.Sys_Option.GetValueToUpper("TestMode") == "Y")
+            {
+                grbTest.Visible = true;
+                this.Height = 650;
+            }
+            else
+            {
+                grbTest.Visible = false;
+                this.Height = 650 - 177;
+            }
+
+            //자동시작 여부
+            if (SysConfig.Instance.Sys_Option.GetValueToUpper("AutoStart") == "Y")
+            {
+                btnInit.PerformClick();
+                Thread.Sleep(1000);
+                btnStartNexpa.PerformClick();
+                Thread.Sleep(1000);
+
+                if (homAdapter != HomeNetAdapterType.None)
+                {
+                    btnStartHomeNet.PerformClick();
+                }
+
+                txtClearSec.Text = "90";
+                btnLogAutoClear.PerformClick();
+            }
+
+            if (SysConfig.Instance.Sys_Option.GetValueToUpper("AutoDaeth") == "Y")
+            {
+                timerDeath.Start();
+            }
+        }
+
+        #endregion
+
+        #region Log Display 처리
+
+        delegate void AppendLogText(Control ctl, string log);
+
+        private void SafeAppendLogText(Control ctl, string log)
+        {
+            if (ctl.InvokeRequired)
+            {
+                ctl.Invoke(new AppendLogText(SafeAppendLogText), ctl, log);
+            }
+            else
+            {
+                ctl.Text += log;
+            }
+        }
+        delegate void CrossThreadSafetySetText(Control ctl, String text);
+
+
+        private void FrmMain_StatusChanged(LogAdpType adapterType, string statusMessage)
+        {
+            StringBuilder builder = new StringBuilder();
+            builder.Append(DateTime.Now.ToString("yy-MM-dd hh:mm:ss "));
+            if (adapterType == LogAdpType.none)
+            {
+                builder.Append($"[Error] ");
+            }
+            else
+            {
+                builder.Append($"[{adapterType.ToString()}] ");
+            }
+            builder.Append(statusMessage);
+            SafeAppendLogText(txtSysLog, builder.ToString() + "\r");
+            if (this.InvokeRequired)
+            {
+                this.Invoke(new MethodInvoker(delegate () { txtSysLog.SelectionStart = txtSysLog.Text.Length; }));
+            }
+            else
+            {
+                txtSysLog.SelectionStart = txtSysLog.Text.Length;
+            }
+        }
+
+        private void CNotSafetySetText()
+        {
+            txtSysLog.SelectionStart = txtSysLog.Text.Length;
+        }
+
+        #endregion
+
+        #region 창닫기, 프로그램 종료
+
+        private void frmMain_FormClosed(object sender, FormClosedEventArgs e)
+        {
+            if (isShutdown) pipe.Dispose();
+        }
+
+        private void frmMain_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            if (isShutdown)
+            {
+                e.Cancel = false;
+            }
+            else
+            {
+                e.Cancel = true;
+                this.Visible = false; //화면을 닫지 않고 숨긴다.
+            }
+        }
+
+
+
+        private void timerDeath_Tick(object sender, EventArgs e)
+        {
+            //새벽 4시가 되면...스스로 죽는다...
+            string time = DateTime.Now.ToString("yyyyMMddHHmmss");
+            string compareTime = startDate.ToString("yyyyMMddHHmmss");
+
+            if (time.Substring(0, 8) == compareTime.Substring(0, 8)) return;
+
+            if (time.Substring(8, 4) == "0401")
+            {
+                Log.WriteLog(LogType.Info, $"frmMain | timerDeath_Tick", $"프로그램 자동 종료 : {time}", LogAdpType.Nexpa);
+
+                //죽자
+                isShutdown = true;
+                this.Close();
+                this.Dispose();
+            }
+        }
+
+        #endregion
+
+        #region Form 마우스로 이동
+        //===================== Form 마우스로 이동 =====================
+
+        private bool tagMove;
+        private int valX, valY;
+
+        private void pnlTop_MouseDown(object sender, MouseEventArgs e)
+        {
+            tagMove = true;
+            valX = e.X;
+            valY = e.Y;
+        }
+
+        private void pnlTop_MouseMove(object sender, MouseEventArgs e)
+        {
+            if (tagMove)
+            {
+                this.SetDesktopLocation(MousePosition.X - valX, MousePosition.Y - valY);
+            }
+        }
+
+        private void pnlTop_MouseUp(object sender, MouseEventArgs e)
+        {
+            tagMove = false;
+        }
+
+        //===================== Form 마우스로 이동 완료 =====================
+        #endregion
+
+        #region Form 작업표시줄 이동, 닫기
+
+        //===================== Form 작업표시줄 이동, 닫기 =====================
+        private enum ImageList
+        {
+            UnderLine,
+            UnderLine_Over,
+            X,
+            X_Over
+        }
+
+        private void picBtnHide_Click(object sender, EventArgs e)
+        {
+            this.WindowState = FormWindowState.Minimized;
+        }
+
+        private void picBtnHide_MouseEnter(object sender, EventArgs e)
+        {
+            picBtnHide.Image = imgLstButton.Images[(int)ImageList.UnderLine_Over];
+        }
+
+        private void picBtnHide_MouseLeave(object sender, EventArgs e)
+        {
+            picBtnHide.Image = imgLstButton.Images[(int)ImageList.UnderLine];
+        }
+
+        private void picBtnClose_Click(object sender, EventArgs e)
+        {
+            this.Close();
+        }
+
+        private void picBtnClose_MouseEnter(object sender, EventArgs e)
+        {
+            picBtnClose.Image = imgLstButton.Images[(int)ImageList.X_Over];
+        }
+
+        private void picBtnClose_MouseLeave(object sender, EventArgs e)
+        {
+            picBtnClose.Image = imgLstButton.Images[(int)ImageList.X];
+        }
+
+        //===================== Form 작업표시줄 이동, 닫기 완료 =====================
+
+        #endregion
+
+        #region ContextMenu Events
+
+        private void 설정ToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            using (frmOption option = new frmOption())
+            {
+                if (option.ShowDialog() == DialogResult.OK)
+                {
+                    if (MessageBox.Show("You need to restart the program to apply the settings. " +
+                        "Do you want to restart?", "You neet restart!", MessageBoxButtons.YesNo) == DialogResult.Yes)
+                    {
+                        System.Diagnostics.Process.Start(Application.ExecutablePath); // to start new instance of application
+                        isShutdown = true;
+                        this.Close();
+                        this.Dispose();
+                    }
+                }
+            }
+
+        }
+
+        private void mnuOpenLogFolder_Click(object sender, EventArgs e)
+        {
+            string sLogPath = Application.StartupPath + "\\Log";
+            if (Directory.Exists(sLogPath))
+            {
+                Process.Start(sLogPath);
+            }
+        }
+
+        private void 프로그램종료XToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            isShutdown = true;
+            this.Close();
+            this.Dispose();
+        }
+
+        private void mnuShutdown_Click(object sender, EventArgs e)
+        {
+            isShutdown = true;
+            this.Close();
+            this.Dispose();
+        }
+
+        private void mnuActive_Click(object sender, EventArgs e)
+        {
+            this.ShowInTaskbar = true;
+            this.Visible = true;
+            this.WindowState = FormWindowState.Normal;
+        }
+
+        #endregion
 
         #region Test
 
@@ -434,39 +662,6 @@ namespace NexpaConnectWinApp
             pipe.TestSendMessage(AdapterType.homenet, Encoding.UTF8.GetBytes(dd));
         }
 
-        #endregion
-
-        private void btnLogAutoClear_Click(object sender, EventArgs e)
-        {
-            if (autoClear)
-            {
-                autoClear = false;
-                btnLogAutoClear.Text = "시작";
-                timerLogClear.Stop();
-            }
-            else
-            {
-                autoClear = true;
-                btnLogAutoClear.Text = "중지";
-
-                int sec = 30; //30초;
-                int.TryParse(txtClearSec.Text, out sec);
-
-                timerLogClear.Interval = sec * 1000;
-                timerLogClear.Start();
-            }
-        }
-
-        private void btnLogClear_Click(object sender, EventArgs e)
-        {
-            txtSysLog.Clear();
-        }
-
-        private void timerLogClear_Tick(object sender, EventArgs e)
-        {
-            txtSysLog.Clear();
-        }
-
         private void btnInCarAck_Click(object sender, EventArgs e)
         {
             //BB AE 51 00 0B 01 01 0B 0B 08 1F 0F 25 72
@@ -502,149 +697,7 @@ namespace NexpaConnectWinApp
             pipe.TestReceiveMessage(AdapterType.homenet, lst.ToArray());
         }
 
-        private void frmMain_FormClosed(object sender, FormClosedEventArgs e)
-        { 
-            if(isShutdown) pipe.Dispose();
-        }
+        #endregion
 
-        private void frmMain_FormClosing(object sender, FormClosingEventArgs e)
-        {
-            if (isShutdown)
-            {
-                e.Cancel = false;
-            }
-            else
-            {
-                e.Cancel = true;
-                this.Visible = false; //화면을 닫지 않고 숨긴다.
-            }
-        }
-
-        private void mnuShutdown_Click(object sender, EventArgs e)
-        {
-            isShutdown = true;
-            this.Close();
-            this.Dispose();
-        }
-
-        private void mnuActive_Click(object sender, EventArgs e)
-        {
-            this.ShowInTaskbar = true;
-            this.Visible = true;
-            this.WindowState = FormWindowState.Normal;
-        }
-
-        private void timerDeath_Tick(object sender, EventArgs e)
-        {
-            //새벽 4시가 되면...스스로 죽는다...
-            string time = DateTime.Now.ToString("yyyyMMddHHmmss");
-            string compareTime = startDate.ToString("yyyyMMddHHmmss");
-
-            if (time.Substring(0, 8) == compareTime.Substring(0, 8)) return;
-
-            if (time.Substring(8, 4) == "0401")
-            {
-                Log.WriteLog(LogType.Info, $"frmMain | timerDeath_Tick", $"프로그램 자동 종료 : {time}", LogAdpType.Nexpa);
-
-                //죽자
-                isShutdown = true;
-                this.Close();
-                this.Dispose();
-            }
-        }
-
-        //===================== Form 마우스로 이동 =====================
-
-        private bool tagMove;
-        private int valX, valY;
-
-        private void pnlTop_MouseDown(object sender, MouseEventArgs e)
-        {
-            tagMove = true;
-            valX = e.X;
-            valY = e.Y;
-        }
-
-        private void pnlTop_MouseMove(object sender, MouseEventArgs e)
-        {
-            if (tagMove)
-            {
-                this.SetDesktopLocation(MousePosition.X - valX, MousePosition.Y - valY);
-            }
-        }
-
-        private void pnlTop_MouseUp(object sender, MouseEventArgs e)
-        {
-            tagMove = false;
-        }
-
-        //===================== Form 마우스로 이동 완료 =====================
-
-        //===================== Form 작업표시줄 이동, 닫기 =====================
-        private enum ImageList
-        {
-            UnderLine,
-            UnderLine_Over,
-            X,
-            X_Over
-        }
-
-        private void picBtnHide_Click(object sender, EventArgs e)
-        {
-            this.WindowState = FormWindowState.Minimized;
-        }
-
-        private void picBtnHide_MouseEnter(object sender, EventArgs e)
-        {
-            picBtnHide.Image = imgLstButton.Images[(int)ImageList.UnderLine_Over];
-        }
-
-        private void picBtnHide_MouseLeave(object sender, EventArgs e)
-        {
-            picBtnHide.Image = imgLstButton.Images[(int)ImageList.UnderLine];
-        }
-
-        private void picBtnClose_Click(object sender, EventArgs e)
-        {
-            this.Close();
-        }
-
-        private void picBtnClose_MouseEnter(object sender, EventArgs e)
-        {
-            picBtnClose.Image = imgLstButton.Images[(int)ImageList.X_Over];
-        }
-
-        private void picBtnClose_MouseLeave(object sender, EventArgs e)
-        {
-            picBtnClose.Image = imgLstButton.Images[(int)ImageList.X];
-        }
-
-        //===================== Form 작업표시줄 이동, 닫기 완료 =====================
-
-        private void 설정ToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            using (frmOption option = new frmOption())
-            {
-                if(option.ShowDialog() == DialogResult.OK)
-                {
-                    if (MessageBox.Show("You need to restart the program to apply the settings. " +
-                        "Do you want to restart?", "You neet restart!",  MessageBoxButtons.YesNo) == DialogResult.Yes)
-                    {
-                        System.Diagnostics.Process.Start(Application.ExecutablePath); // to start new instance of application
-                        isShutdown = true;
-                        this.Close();
-                        this.Dispose();
-                    }
-                }
-            }
-            
-        }
-
-        private void 프로그램종료XToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            isShutdown = true;
-            this.Close();
-            this.Dispose();
-        }
     }
 }

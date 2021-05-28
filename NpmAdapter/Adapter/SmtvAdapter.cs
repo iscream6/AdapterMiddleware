@@ -16,6 +16,8 @@ namespace NpmAdapter.Adapter
     /// </summary>
     class SmtvAdapter : IAdapter
     {
+        public event IAdapter.ShowBallonTip ShowTip;
+
         private const string REQ_POST_STATUS = "/nxmdl/cmx";
         private const string REQ_POST_EVENT = "/api/v1/events";
         private const string REQ_POST_ASSIGN = "/api/v1/assignments";
@@ -93,6 +95,8 @@ namespace NpmAdapter.Adapter
                     {
                         RequestPayload<RequestVisitReg2Payload> payload = new RequestPayload<RequestVisitReg2Payload>();
                         payload.Deserialize(json);
+                        //MainForm으로 메시지 이벤트 전송
+                        ShowTip?.Invoke(1, "방문예약", $"{payload.data.dong}동 {payload.data.ho}호 {payload.data.car_number}");
 
                         carNo = payload.data.car_number;
                         byte[] sendMsg = payload.Serialize();
@@ -170,7 +174,19 @@ namespace NpmAdapter.Adapter
                             RequestPayload<AlertInOutCarPayload> payload = new RequestPayload<AlertInOutCarPayload>();
                             payload.Deserialize(jobj);
 
-                            if(bResponseSuccess == false && carNo == payload.data.car_number)
+                            if(payload.command == CmdType.alert_incar && payload.data.kind.ToLower() == "v")
+                            {
+                                Log.WriteLog(LogType.Info, "SmtvAdapter | SendMessage", "<<< ShowTip >>>", LogAdpType.HomeNet);
+                                string sTitle = "방문차량입차";
+                                string sMsg = $"{payload.data.dong}동 {payload.data.ho}호 {payload.data.car_number}";
+
+                                //MainForm으로 메시지 이벤트 전송
+                                if (ShowTip == null) Log.WriteLog(LogType.Info, "SmtvAdapter | SendMessage", "<<< ShowTip is null >>>", LogAdpType.HomeNet);
+                                ShowTip?.Invoke(1, sTitle, sMsg);
+                                Log.WriteLog(LogType.Info, "SmtvAdapter | SendMessage", "<<< ShowTip End >>>", LogAdpType.HomeNet);
+                            }
+
+                            if (bResponseSuccess == false && carNo == payload.data.car_number)
                             {
                                 responseJson = new JObject();
                                 responseJson["command"] = "visit_reg2";
@@ -232,12 +248,15 @@ namespace NpmAdapter.Adapter
                                 assignmentList["dong"] = asyncAssignData.dong;
                                 assignmentList["ho"] = asyncAssignData.ho;
                                 assignmentList["type"] = asyncAssignData.type;
-                                long point1 = 0;
-                                if (long.TryParse(asyncAssignData.enable_point, out point1)) assignmentList["dcTime"] = point1;
-                                else assignmentList["dcTime"] = 0;
-                                long point2 = 0;
-                                if (long.TryParse(asyncAssignData.used_point, out point2)) assignmentList["dcUsedTime"] = point2;
-                                else assignmentList["dcUsedTime"] = 0;
+                                long initPoint = 0;
+                                long.TryParse(asyncAssignData.enable_point, out initPoint);
+                                long usedPoint = 0;
+                                long.TryParse(asyncAssignData.used_point, out usedPoint);
+                                long remaintPoint = initPoint - usedPoint;
+                                assignmentList["initMount"] = initPoint;
+                                assignmentList["remainMount"] = remaintPoint;
+                                assignmentList["dcTime"] = initPoint;
+                                assignmentList["dcUsedTime"] = usedPoint;
                                 assignmentList["startDate"] = asyncAssignData.acp_date.ConvertDateTimeFormat("yyyyMMdd", "yyyy-MM-dd");
                                 assignmentList["endDate"] = asyncAssignData.exp_date.ConvertDateTimeFormat("yyyyMMdd", "yyyy-MM-dd");
                                 assignmentList["delYn"] = "N";
@@ -356,7 +375,7 @@ namespace NpmAdapter.Adapter
 
         public void TestReceive(byte[] buffer)
         {
-            string json = "\"command\": \"alert_incar\",\"data\": {\"dong\" : \"101\"," +
+            string json = "{\"command\": \"alert_incar\",\"data\": {\"dong\" : \"101\"," +
                             "\"ho\" : \"501\"," +
                             $"\"car_number\" : \"46부5989\"," +
                             "\"date_time\" : \"20210312102525\"," +
@@ -369,7 +388,7 @@ namespace NpmAdapter.Adapter
                             "}" +
                             "}";
             string json2 = "{\"command\":\"sync_assign\",\"data\":{\"list\":[{\"park_no\":\"1\",\"dong\":\"9999\",\"ho\":\"1010\",\"type\":\"MINUTE\",\"enable_point\":\"10000\",\"used_point\":\"10\",\"acp_date\":\"20210501\",\"exp_date\":\"20210531\"}]}}";
-            byte[] test = SysConfig.Instance.Nexpa_Encoding.GetBytes(json2);
+            byte[] test = SysConfig.Instance.Nexpa_Encoding.GetBytes(json);
             SendMessage(test, 0, test.Length);
         }
     }

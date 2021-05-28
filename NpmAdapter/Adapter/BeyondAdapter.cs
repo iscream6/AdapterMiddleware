@@ -172,6 +172,8 @@ namespace NpmAdapter.Adapter
 
         Dictionary<string, FailMsg> dicMsgBuffer = new Dictionary<string, FailMsg>();
 
+        public event IAdapter.ShowBallonTip ShowTip;
+
         public void SendMessage(byte[] buffer, long offset, long size, string pid = null)
         {
             try

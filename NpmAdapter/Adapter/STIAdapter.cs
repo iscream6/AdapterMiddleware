@@ -27,6 +27,8 @@ namespace NpmAdapter.Adapter
         private const byte OUT = 0x31;
         private const byte COMMA = 0x2C;
 
+        public event IAdapter.ShowBallonTip ShowTip;
+
         private INetwork TcpClientNetwork { get; set; }
         public IAdapter TargetAdapter { get; set; }
         public bool IsRuning => isRun;

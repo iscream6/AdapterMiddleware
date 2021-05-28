@@ -17,6 +17,8 @@ namespace NpmAdapter.Adapter
         private string tcpPort = "29712";
         private string myport = "42143";
 
+        public event IAdapter.ShowBallonTip ShowTip;
+
         private INetwork MyTcpClientNetwork { get; set; }
         private INetwork MyTcpServerNetwork { get; set; }
         public IAdapter TargetAdapter { get; set; }

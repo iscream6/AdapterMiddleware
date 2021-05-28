@@ -275,6 +275,8 @@ namespace NpmAdapter.Adapter
 
         private IPayload currentReqPayload;
 
+        public event IAdapter.ShowBallonTip ShowTip;
+
         private void MyHttpNetwork_ReceiveFromPeer(byte[] buffer, long offset, long size, HttpServer.RequestEventArgs e = null, string id = null)
         {
             lock (lockObj)

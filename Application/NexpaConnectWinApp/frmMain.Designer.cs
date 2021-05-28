@@ -75,6 +75,8 @@
             this.contextMenuTray = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.mnuActive = new System.Windows.Forms.ToolStripMenuItem();
             this.mnuShutdown = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
+            this.mnuOpenLogFolder = new System.Windows.Forms.ToolStripMenuItem();
             this.timerDeath = new System.Windows.Forms.Timer(this.components);
             this.picBtnHide = new System.Windows.Forms.PictureBox();
             this.picBtnClose = new System.Windows.Forms.PictureBox();
@@ -84,6 +86,8 @@
             this.프로그램종료XToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.pictureBox2 = new System.Windows.Forms.PictureBox();
             this.imgLstButton = new System.Windows.Forms.ImageList(this.components);
+            this.log폴더열기ToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripSeparator2 = new System.Windows.Forms.ToolStripSeparator();
             this.grbSystem.SuspendLayout();
             this.pnlCmdTest.SuspendLayout();
             this.pnlSendMessageTest.SuspendLayout();
@@ -557,9 +561,11 @@
             // 
             this.contextMenuTray.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.mnuActive,
-            this.mnuShutdown});
+            this.mnuShutdown,
+            this.toolStripSeparator1,
+            this.mnuOpenLogFolder});
             this.contextMenuTray.Name = "contextMenuTray";
-            this.contextMenuTray.Size = new System.Drawing.Size(151, 48);
+            this.contextMenuTray.Size = new System.Drawing.Size(151, 76);
             // 
             // mnuActive
             // 
@@ -574,6 +580,18 @@
             this.mnuShutdown.Size = new System.Drawing.Size(150, 22);
             this.mnuShutdown.Text = "프로그램 종료";
             this.mnuShutdown.Click += new System.EventHandler(this.mnuShutdown_Click);
+            // 
+            // toolStripSeparator1
+            // 
+            this.toolStripSeparator1.Name = "toolStripSeparator1";
+            this.toolStripSeparator1.Size = new System.Drawing.Size(147, 6);
+            // 
+            // mnuOpenLogFolder
+            // 
+            this.mnuOpenLogFolder.Name = "mnuOpenLogFolder";
+            this.mnuOpenLogFolder.Size = new System.Drawing.Size(150, 22);
+            this.mnuOpenLogFolder.Text = "Log폴더 열기";
+            this.mnuOpenLogFolder.Click += new System.EventHandler(this.mnuOpenLogFolder_Click);
             // 
             // timerDeath
             // 
@@ -625,22 +643,24 @@
             // contextMenu
             // 
             this.contextMenu.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.log폴더열기ToolStripMenuItem,
+            this.toolStripSeparator2,
             this.설정ToolStripMenuItem,
             this.프로그램종료XToolStripMenuItem});
             this.contextMenu.Name = "contextMenu";
-            this.contextMenu.Size = new System.Drawing.Size(162, 48);
+            this.contextMenu.Size = new System.Drawing.Size(181, 98);
             // 
             // 설정ToolStripMenuItem
             // 
             this.설정ToolStripMenuItem.Name = "설정ToolStripMenuItem";
-            this.설정ToolStripMenuItem.Size = new System.Drawing.Size(161, 22);
+            this.설정ToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             this.설정ToolStripMenuItem.Text = "설정(&O)";
             this.설정ToolStripMenuItem.Click += new System.EventHandler(this.설정ToolStripMenuItem_Click);
             // 
             // 프로그램종료XToolStripMenuItem
             // 
             this.프로그램종료XToolStripMenuItem.Name = "프로그램종료XToolStripMenuItem";
-            this.프로그램종료XToolStripMenuItem.Size = new System.Drawing.Size(161, 22);
+            this.프로그램종료XToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             this.프로그램종료XToolStripMenuItem.Text = "프로그램종료(&X)";
             this.프로그램종료XToolStripMenuItem.Click += new System.EventHandler(this.프로그램종료XToolStripMenuItem_Click);
             // 
@@ -662,6 +682,18 @@
             this.imgLstButton.Images.SetKeyName(1, "UnderLine_Over");
             this.imgLstButton.Images.SetKeyName(2, "X");
             this.imgLstButton.Images.SetKeyName(3, "X_Over");
+            // 
+            // log폴더열기ToolStripMenuItem
+            // 
+            this.log폴더열기ToolStripMenuItem.Name = "log폴더열기ToolStripMenuItem";
+            this.log폴더열기ToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.log폴더열기ToolStripMenuItem.Text = "Log폴더 열기";
+            this.log폴더열기ToolStripMenuItem.Click += new System.EventHandler(this.mnuOpenLogFolder_Click);
+            // 
+            // toolStripSeparator2
+            // 
+            this.toolStripSeparator2.Name = "toolStripSeparator2";
+            this.toolStripSeparator2.Size = new System.Drawing.Size(177, 6);
             // 
             // frmMain
             // 
@@ -752,6 +784,10 @@
         private System.Windows.Forms.ToolStripMenuItem 설정ToolStripMenuItem;
         private System.Windows.Forms.PictureBox pictureBox2;
         private System.Windows.Forms.ToolStripMenuItem 프로그램종료XToolStripMenuItem;
+        private System.Windows.Forms.ToolStripSeparator toolStripSeparator1;
+        private System.Windows.Forms.ToolStripMenuItem mnuOpenLogFolder;
+        private System.Windows.Forms.ToolStripSeparator toolStripSeparator2;
+        private System.Windows.Forms.ToolStripMenuItem log폴더열기ToolStripMenuItem;
     }
 }
 

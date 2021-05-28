@@ -33,6 +33,8 @@ namespace NpmAdapter.Adapter
         private ManualResetEventSlim shutdownEvent = new ManualResetEventSlim(false);
         ManualResetEvent _pauseEvent = new ManualResetEvent(false);
 
+        public event IAdapter.ShowBallonTip ShowTip;
+
         public IAdapter TargetAdapter { get; set; }
 
         private INetwork MyTcpNetwork { get; set; }

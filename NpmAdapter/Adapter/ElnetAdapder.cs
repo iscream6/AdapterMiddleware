@@ -17,6 +17,9 @@ namespace NpmAdapter.Adapter
     {
         private StringBuilder receiveMessageBuffer = new StringBuilder();
         private Uri uri = null;
+
+        public event IAdapter.ShowBallonTip ShowTip;
+
         public IAdapter TargetAdapter { get; set; }
 
         public bool IsRuning => throw new NotImplementedException();

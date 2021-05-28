@@ -18,7 +18,9 @@ namespace NpmAdapter.Adapter
 		private uint updateStemp = 0;
 		private StringBuilder receiveMessageBuffer = new StringBuilder();
 		byte[] arrKey = new byte[16];
-		
+
+		public event IAdapter.ShowBallonTip ShowTip;
+
 		public bool IsRuning => true;
 
 		public void Dispose()

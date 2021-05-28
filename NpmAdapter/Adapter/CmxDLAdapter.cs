@@ -46,6 +46,9 @@ namespace NpmAdapter.Adapter
         ManualResetEvent _pauseEvent = new ManualResetEvent(false);
         private delegate void SafeCallDelegate();
         private bool isRun;
+
+        public event IAdapter.ShowBallonTip ShowTip;
+
         //==== Alive Check ====
 
         private INetwork MyTcpNetwork { get; set; }

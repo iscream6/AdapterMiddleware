@@ -504,6 +504,8 @@ namespace NpmAdapter.Adapter
         int number = 11;
         int tknum = 12341234;
 
+        public event IAdapter.ShowBallonTip ShowTip;
+
         public void TestReceive(byte[] buffer)
         {
 
