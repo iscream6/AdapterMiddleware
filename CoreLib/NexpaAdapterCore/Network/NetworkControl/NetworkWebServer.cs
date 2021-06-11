@@ -53,7 +53,7 @@ namespace NexpaAdapterStandardLib.Network
         /// <param name="buffer">전달할 값</param>
         /// <param name="offset"></param>
         /// <param name="size"></param>
-        public void SendToPeer(byte[] buffer, long offset, long size, string id = null)
+        public void SendToPeer(byte[] buffer, long offset, long size, string id = null, System.Net.EndPoint ep = null)
         {
             string strJson = buffer.ToString(Encoding.UTF8);
             //string cmd = buffer.GetCommand();

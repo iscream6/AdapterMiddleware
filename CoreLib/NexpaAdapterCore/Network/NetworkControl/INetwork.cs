@@ -1,11 +1,12 @@
 ﻿using HttpServer;
 using System;
 using System.Collections.Generic;
+using System.Net;
 using System.Text;
 
 namespace NexpaAdapterStandardLib
 {
-    public delegate void SendToPeer(byte[] buffer, long offset, long size, RequestEventArgs pEvent = null, string id = null);
+    public delegate void SendToPeer(byte[] buffer, long offset, long size, RequestEventArgs pEvent = null, string id = null, EndPoint ep = null);
     public enum NetStatus
     {
         Connected,
@@ -20,7 +21,7 @@ namespace NexpaAdapterStandardLib
 
         NetStatus Status { get; set; }
 
-        void SendToPeer(byte[] buffer, long offset, long size, string id = null);
+        void SendToPeer(byte[] buffer, long offset, long size, string id = null, EndPoint ep = null);
 
         bool Run();
 

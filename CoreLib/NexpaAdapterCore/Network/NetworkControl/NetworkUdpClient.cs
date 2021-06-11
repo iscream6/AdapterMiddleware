@@ -1,13 +1,13 @@
-﻿using NetworkCore;
-using System;
+﻿using System;
 using System.Collections.Generic;
+using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 
 namespace NexpaAdapterStandardLib.Network
 {
-    class NetworkTcpClient : NetworkCore.TcpClient, INetwork
+    class NetworkUdpClient : NetworkCore.UdpClient, INetwork
     {
         public Action OnConnectionAction { get; set; }
         public NetStatus Status { get; set; }
@@ -15,8 +15,8 @@ namespace NexpaAdapterStandardLib.Network
         public event SendToPeer ReceiveFromPeer;
         private bool _stop;
         private int _stopCnt = 0;
-        
-        public NetworkTcpClient(string address, int port) : base(address, port) { }
+
+        public NetworkUdpClient(string address, int port) : base(address, port) { }
 
         public bool Down()
         {
@@ -49,25 +49,18 @@ namespace NexpaAdapterStandardLib.Network
             return stt;
         }
 
-        protected override void OnError(SocketError error)
-        {
-            base.OnError(error);
-            Log.WriteLog(LogType.Info, "TcpClientNetwork| OnError", $"Error : {error.ToString()}");
-        }
-
-        /// <summary>
-        /// Peer로 Data를 전달한다.
-        /// </summary>
-        /// <param name="buffer"></param>
-        /// <param name="offset"></param>
-        /// <param name="size"></param>
         public void SendToPeer(byte[] buffer, long offset, long size, string id = null, System.Net.EndPoint ep = null)
         {
-            //Send(buffer);
             SendAsync(buffer, offset, size);
         }
 
-        protected override void OnReceived(byte[] buffer, long offset, long size)
+        protected override void OnError(SocketError error)
+        {
+            base.OnError(error);
+            Log.WriteLog(LogType.Info, "NetworkUdpClient| OnError", $"Error : {error.ToString()}");
+        }
+
+        protected override void OnReceived(EndPoint endpoint, byte[] buffer, long offset, long size)
         {
             try
             {
@@ -83,7 +76,7 @@ namespace NexpaAdapterStandardLib.Network
         protected override void OnConnected()
         {
             Log.WriteLog(LogType.Info, "TcpClientNetwork| OnConnected", $"TCP client connected a new session with Id {Id}");
-            if(OnConnectionAction != null) OnConnectionAction();
+            if (OnConnectionAction != null) OnConnectionAction();
         }
 
         protected override void OnDisconnected()

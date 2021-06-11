@@ -18,6 +18,8 @@ namespace NexpaAdapterStandardLib.Network
         {
             TcpServer,
             TcpClient,
+            UdpServer,
+            UdpClient,
             HttpServer,
             SerialPort,
         }
@@ -48,6 +50,28 @@ namespace NexpaAdapterStandardLib.Network
                         if (int.TryParse(sPort, out iPort))
                         {
                             homeNetServer = new NetworkTcpClient(args[0], iPort);
+                        }
+                    }
+                    break;
+                case Adapters.UdpServer:
+                    if (args.Length > 0)
+                    {
+                        string sPort = args[0];
+                        int iPort = -1;
+                        if (int.TryParse(sPort, out iPort))
+                        {
+                            homeNetServer = new NetworkUdpServer(IPAddress.Any, iPort);
+                        }
+                    }
+                    break;
+                case Adapters.UdpClient:
+                    if (args.Length > 1)
+                    {
+                        string sPort = args[1];
+                        int iPort = -1;
+                        if (int.TryParse(sPort, out iPort))
+                        {
+                            homeNetServer = new NetworkUdpClient(args[0], iPort);
                         }
                     }
                     break;
