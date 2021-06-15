@@ -43,6 +43,8 @@ Body
 {
   "command": "alert_outcar",
   "data": {
+      "reg_no" : "차량 식별키", //TkNo, 2021-04-28 신규 추가
+      "kind" : "a/v", //a:세대원, v:방문객, n:일반차량 2021-04-28 신규 추가
       "dong": "123",
       "ho" : "456"
       "car_number": "차량번호",
@@ -121,7 +123,8 @@ Body
       "car_number" : "차량번호", //빈값 허용, 빈값 일 시 검색 조건에서 제외함.
       "dong": "123",
       "ho" : "456",
-      "event_date_time":"yyyyMMddHHmmss" //조회 기준일, 빈값일 경우 전체 기간 조회
+      "event_date_time":"yyyyMMddHHmmss", //조회 기준일, 빈값일 경우 전체 기간 조회
+      "eventType":"A/F/H" //A:전체, F:event_date_time을 포함한 미래, H:event_date_time을 제외한 과거이력
   }
 }
 
@@ -158,6 +161,8 @@ Body
           {
               "reg_no" : "방문차량식별키",
               "car_number" : "차량번호",
+              "dong" : "101",
+              "ho" : "101",
               "start_date_time": "yyyyMMddHHmmss", //등록(방문) 입차 예약 일시, 빈값 허용
               "end_date_time" : "yyyyMMddHHmmss", //등록(방문) 입차 예약 종료, 빈값 허용
               "visit_flag" : "y/n" //y:방문, n:미방문
@@ -424,6 +429,34 @@ Body
               "out_date_time" : "yyyyMMddHHmmss",
           }
       ]
+  },
+  "result": {
+      "status": "응답상태코드",
+      "message": "메시지"
+  }
+}
+
+=====================================
+
+1.2.19	방문차량 체크 요청
+Body
+{
+  "command" : "visit_check",
+  "data": {
+      "park_no" : "주차장번호"
+      "car_number": "차량번호"
+  }
+}
+
+1.2.20 방문차량 체크 응답
+Body
+{
+  "command" : "visit_check",
+  "data": {
+      "check_yon" : "방문여부 Y/N",
+      "dong": "동",
+      "ho": "호",
+      "remark" : "사유"
   },
   "result": {
       "status": "응답상태코드",
@@ -983,10 +1016,92 @@ Body
 {
   "command" : "remain_point",
   "data": {
-      "point" : "6000",
+      "point" : "6000", //남은 포인트
+      "used_point" : "0", //사용한 포인트
+      "point_unit" : "H/M" //포인트 단위(H:시, M:분, 기타 현장 요구에 따라 추가 협의 필요)
   },
   "result": {
       "status": "응답상태코드", 
+      "message": "메시지"
+  }
+}
+
+9.1.5 주차차량 리스트 조회 요청
+Body
+{
+    "command": "car_list",
+    "data": {
+        "kind" : "a/v" //a : 정기차량, v : 방문차량
+        "page": "1", //0 : 전체, 0보다 클 경우 : count수만큼 가져올 첫 row index 
+        "count": "10", //0 : 전체, 0보다 클 경우 : 가져올 row count 
+        "reg_no" : "차량 식별키", //TkNo, where 조건, 빈값 허용
+        "start_date_time" : "조회시작일시", //where 조건, 빈값 허옹
+        "end_date_time" : "조회종료일시", //where 조건, 빈값 허용
+        "car_number" : "차량번호", //where 조건, 빈값 허용
+        "tel_number" : "전화번호" //where 조건, 빈값 허용
+  }    
+}
+
+9.1.6 주차차량 리스트 조회 응답
+Body
+{
+    "command" : "car_list",
+    "data" : {
+        "list" : [
+        {
+            "reg_no" : "차량 식별키", //TkNo
+            "car_number" : "차량번호",
+            "kind" : "a/v", "a : 입주민, v : 방문객"
+            "start_date_time": "yyyyMMddHHmmss", //등록(방문) 일시
+            "end_date_time" : "yyyyMMddHHmmss", //등록(방문) 종료 일시
+            "dong" : "123",
+            "ho" : "456",
+            "name" : "성명",
+            "tel_number" : "전화번호",
+            "remark" : "비고",
+            "created_date_time" : "yyyyMMddHHmmss", //DB 등록일시
+        },
+        .
+        .
+        .
+        ]
+    },
+    "result": {
+        "status": "응답상태코드", 
+        "message": "메시지"
+  }
+}
+
+9.1.7 할당동기화 요청 (넥스파 -> 미들웨어)
+Body
+{
+  "command": "sync_assign",
+  "data": {
+      "list" : [
+        {
+            "park_no" : "주차장번호",
+            "dong" : "123",
+            "ho" : "456",
+            "type" : "MINUTE",
+            "enable_point" : "가용 포인트",
+            "used_point" : "사용 포인트", 
+            "acp_date" : "yyyyMMdd",
+            "exp_date" : "yyyyMMdd"
+        },
+        {
+            ...
+        }
+      ]
+      
+  }
+}
+
+9.1.8	할당동기화 응답 (미들웨어 -> 넥스파)
+Body
+{
+  "command": "sync_assign",
+  "result": {
+      "status": "응답상태코드",
       "message": "메시지"
   }
 }

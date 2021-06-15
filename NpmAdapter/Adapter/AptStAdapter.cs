@@ -10,6 +10,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
+using System.Net;
 using System.Net.NetworkInformation;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
@@ -382,7 +383,7 @@ namespace NpmAdapter.Adapter
                             }
 
                             bResponseSuccess = true;
-                            Log.WriteLog(LogType.Info, $"AptStAdapter | MyHttpNetwork_ReceiveFromPeer", $"{responsePayload.ToJson()}", LogAdpType.HomeNet);
+                            Log.WriteLog(LogType.Info, $"AptStAdapter | SendMessage", $"{responsePayload.ToJson()}", LogAdpType.HomeNet);
                         }
                         break;
                     case CmdType.remain_point:
@@ -398,7 +399,7 @@ namespace NpmAdapter.Adapter
                             }
 
                             bResponseSuccess = true;
-                            Log.WriteLog(LogType.Info, $"AptStAdapter | MyHttpNetwork_ReceiveFromPeer", $"{responsePayload.ToJson()}", LogAdpType.HomeNet);
+                            Log.WriteLog(LogType.Info, $"AptStAdapter | SendMessage", $"{responsePayload.ToJson()}", LogAdpType.HomeNet);
                         }
                         break;
                 }
@@ -435,7 +436,7 @@ namespace NpmAdapter.Adapter
             return bResult;
         }
 
-        private void MyHttpNetwork_ReceiveFromPeer(byte[] buffer, long offset, long size, RequestEventArgs e, string id = null)
+        private void MyHttpNetwork_ReceiveFromPeer(byte[] buffer, long offset, long size, RequestEventArgs e, string id = null, EndPoint ep = null)
         {
             lock (lockObj)
             {

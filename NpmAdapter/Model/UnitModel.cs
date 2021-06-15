@@ -17,7 +17,7 @@ namespace NpmAdapter.Model
             sQuery.Append("SELECT \r");
             sQuery.Append(" ParkNo, UnitNo, UnitName, UnitKind, MyNo, IPNo, PortNo \r");
             sQuery.Append("FROM UnitInfo A \r");
-            sQuery.Append("WHERE UnitKind = 9 \r");
+            sQuery.Append("WHERE UnitKind IN (8, 9) \r");
             sQuery.Append("AND MyNo NOT IN (SELECT UnitNo \r");
             sQuery.Append("                 FROM UnitInfo B \r");
             sQuery.Append("				    WHERE B.UnitKind = 20 \r");

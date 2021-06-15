@@ -57,7 +57,7 @@ namespace NpmAdapter.Adapter
             return true;
         }
 
-        private void MyHttpNetwork_ReceiveFromPeer(byte[] buffer, long offset, long size, RequestEventArgs e, string id)
+        private void MyHttpNetwork_ReceiveFromPeer(byte[] buffer, long offset, long size, RequestEventArgs e, string id, System.Net.EndPoint ep = null)
         {
             lock (lockObj)
             {
@@ -174,7 +174,9 @@ namespace NpmAdapter.Adapter
                             RequestPayload<AlertInOutCarPayload> payload = new RequestPayload<AlertInOutCarPayload>();
                             payload.Deserialize(jobj);
 
-                            if(payload.command == CmdType.alert_incar && payload.data.kind.ToLower() == "v")
+                            if (payload.data.kind.ToLower() == "n") return;
+
+                            if (payload.command == CmdType.alert_incar && payload.data.kind.ToLower() == "v")
                             {
                                 Log.WriteLog(LogType.Info, "SmtvAdapter | SendMessage", "<<< ShowTip >>>", LogAdpType.HomeNet);
                                 string sTitle = "방문차량입차";
@@ -196,21 +198,41 @@ namespace NpmAdapter.Adapter
 
                                 if (payload.data.lprID != "-1")
                                 {
+                                    Log.WriteLog(LogType.Info, "SmtvAdapter | SendMessage", "중간 예약", LogAdpType.HomeNet);
                                     //중간 예약
                                     JObject jResult = new JObject();
                                     jResult["status"] = "200";
                                     jResult["message"] = "OK";
                                     responseJson["result"] = jResult;
+                                    bResponseSuccess = true;
+
+                                    result = new JObject();
+                                    result["parkingLotId"] = SysConfig.Instance.ParkId;
+
+                                    if (cmdType == CmdType.alert_incar)
+                                    {
+                                        result["type"] = "COME_IN";
+                                    }
+                                    else
+                                    {
+                                        result["type"] = "GO_OUT";
+                                    }
+
+                                    result["carNo"] = payload.data.car_number;
+                                    result["eventDt"] = payload.data.date_time.ConvertDateTimeFormat("yyyyMMddHHmmss", "yyyy-MM-dd HH:mm:ss");
                                 }
                                 else
                                 {
+                                    Log.WriteLog(LogType.Info, "SmtvAdapter | SendMessage", "사전 예약", LogAdpType.HomeNet);
                                     //사전 예약
                                     JObject jResult = new JObject();
                                     jResult["status"] = "000";
                                     jResult["message"] = "OK";
                                     responseJson["result"] = jResult;
+                                    bResponseSuccess = true;
+                                    //-1 은 보낼 통보가 없다는 뜻...
+                                    return;
                                 }
-                                bResponseSuccess = true;
                             }
                             else
                             {
@@ -375,18 +397,11 @@ namespace NpmAdapter.Adapter
 
         public void TestReceive(byte[] buffer)
         {
-            string json = "{\"command\": \"alert_incar\",\"data\": {\"dong\" : \"101\"," +
-                            "\"ho\" : \"501\"," +
-                            $"\"car_number\" : \"46부5989\"," +
-                            "\"date_time\" : \"20210312102525\"," +
-                            "\"kind\" : \"v\"," +
-                            "\"lprid\" : \"Lpr 식별 번호\"," +
-                            "\"car_image\" : \"차량 이미지 경로\"," +
-                            $"\"reg_no\" : \"111111\"," +
-                            "\"visit_in_date_time\" : \"yyyyMMddHHmmss\"," + //방문시작일시, kind가 v 일 경우 외 빈값
-                            "\"visit_out_date_time\" : \"yyyyMMddHHmmss\"" + //방문종료일시, kind가 v 일 경우 외 빈값
-                            "}" +
-                            "}";
+            string json = "{\"command\": \"visit_reg2\",\"data\": {\"end_date_time\" : \"20210604203000\"," +
+                            "\"ho\" : \"1701\"," +
+                            $"\"car_number\" : \"170어8166\"," +
+                            "\"dong\" : \"0502\"," +
+                            "\"start_date_time\" : \"20210531083000\"}}";
             string json2 = "{\"command\":\"sync_assign\",\"data\":{\"list\":[{\"park_no\":\"1\",\"dong\":\"9999\",\"ho\":\"1010\",\"type\":\"MINUTE\",\"enable_point\":\"10000\",\"used_point\":\"10\",\"acp_date\":\"20210501\",\"exp_date\":\"20210531\"}]}}";
             byte[] test = SysConfig.Instance.Nexpa_Encoding.GetBytes(json);
             SendMessage(test, 0, test.Length);

@@ -7,6 +7,7 @@ using NpmAdapter.Payload.CommaxDaelim.Response;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Net;
 using System.Net.NetworkInformation;
 using System.Text;
 using System.Threading;
@@ -246,7 +247,7 @@ namespace NpmAdapter.Adapter
         /// <param name="offset"></param>
         /// <param name="size"></param>
         /// <param name="pEvent"></param>
-        private void MyTcpNetwork_ReceiveFromPeer(byte[] buffer, long offset, long size, HttpServer.RequestEventArgs pEvent = null, string id = null)
+        private void MyTcpNetwork_ReceiveFromPeer(byte[] buffer, long offset, long size, HttpServer.RequestEventArgs pEvent = null, string id = null, EndPoint ep = null)
         {
             //Client 연결을 끊어줘야 하나?? 응답 메시지가 뭐가 날라올지 모르겠다....
             //일단 연결을 끊는다.
@@ -261,7 +262,7 @@ namespace NpmAdapter.Adapter
         /// <param name="offset"></param>
         /// <param name="size"></param>
         /// <param name="e"></param>
-        private void MyHttpNetwork_ReceiveFromPeer(byte[] buffer, long offset, long size, HttpServer.RequestEventArgs e = null, string id = null)
+        private void MyHttpNetwork_ReceiveFromPeer(byte[] buffer, long offset, long size, HttpServer.RequestEventArgs e = null, string id = null, EndPoint ep = null)
         {
             lock (lockObj)
             {

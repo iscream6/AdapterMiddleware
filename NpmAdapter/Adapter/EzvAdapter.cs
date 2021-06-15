@@ -199,7 +199,7 @@ namespace NpmAdapter.Adapter
 
         
 
-        private void TcpClientNetwork_ReceiveFromPeer(byte[] buffer, long offset, long size, HttpServer.RequestEventArgs pEvent = null, string id = null)
+        private void TcpClientNetwork_ReceiveFromPeer(byte[] buffer, long offset, long size, HttpServer.RequestEventArgs pEvent = null, string id = null, System.Net.EndPoint ep = null)
         {
             lock (lockObj)
             {

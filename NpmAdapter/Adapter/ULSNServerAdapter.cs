@@ -338,7 +338,7 @@ namespace NpmAdapter.Adapter
 
         }
 
-        private void TcpServer_ReceiveFromPeer(byte[] buffer, long offset, long size, HttpServer.RequestEventArgs pEvent = null, string id = null)
+        private void TcpServer_ReceiveFromPeer(byte[] buffer, long offset, long size, HttpServer.RequestEventArgs pEvent = null, string id = null, System.Net.EndPoint ep = null)
         {
             string receiveMessage = Encoding.UTF8.GetString(buffer, (int)offset, (int)size);
             Log.WriteLog(LogType.Info, $"ULSNServerAdapter | TcpServer_ReceiveFromPeer", $"{receiveMessage}", LogAdpType.HomeNet);

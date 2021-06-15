@@ -35,7 +35,9 @@ namespace NexpaAdapterStandardLib
             [Description("HomeNet_Config")]
             HomeNetConfig,
             [Description("Etc_Config")]
-            EtcConfig
+            EtcConfig,
+            [Description("Device_Config")]
+            DivConfig
         }
 
         #region Config Values
@@ -253,6 +255,19 @@ namespace NexpaAdapterStandardLib
         #endregion
 
         #region Methods
+
+        public string GetDeviceName(string unitNo)
+        {
+            try
+            {
+                return ConfigManager.ReadConfig(config, Sections.DivConfig.GetDescription(), unitNo);
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLog(LogType.Error, $"SysConfig | GetDeviceName({unitNo})", ex.Message);
+                return "";
+            }
+        }
 
         public void WriteConfig(Sections section, string key, string value)
         {

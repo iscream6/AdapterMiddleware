@@ -14,6 +14,8 @@ namespace NpmAdapter.Payload
         /// </summary>
         [Description("OK")]
         OK = 200,
+        [Description("Fail")]
+        Fail = 201,
         /// <summary>
         /// 잘못된 인수
         /// </summary>

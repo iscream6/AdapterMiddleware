@@ -14,8 +14,6 @@ namespace NexpaAdapterStandardLib
     {
         [Description("M")]
         MSSQL,
-        [Description("O")]
-        ORACLE,
         [Description("P")]
         POSTGRES,
     }
@@ -96,6 +94,11 @@ namespace NexpaAdapterStandardLib
         Beyond,
         [Description("APN")]
         Aptner,
+        [Description("CHM")]
+        ChamsleTech,
+        [Description("SHI")]
+        HyundaeSanup
+
     }
 
     public static class StdHelper

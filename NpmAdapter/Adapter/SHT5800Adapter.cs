@@ -268,7 +268,7 @@ namespace NpmAdapter.Adapter
         /// <param name="buffer"></param>
         /// <param name="offset"></param>
         /// <param name="size"></param>
-        private void MyNetwork_ReceiveFromPeer(byte[] buffer, long offset, long size , RequestEventArgs pEvent = null, string id = null)
+        private void MyNetwork_ReceiveFromPeer(byte[] buffer, long offset, long size , RequestEventArgs pEvent = null, string id = null, System.Net.EndPoint ep = null)
         {
             try
             {

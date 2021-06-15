@@ -26,7 +26,7 @@ namespace NpmAdapter.Adapter
         private const string SET_REGISTRATION = "/parking/whitelist/registration";
         private const string SET_UPDATE = "/parking/whitelist/update";
         private const string DEL_REMOVE = "/parking/whitelist/remove";
-        private const string CON_DEVICE = "/parking/device/control";
+        private const string CON_DEVICE = "/parking/devices/control";
         private const string SND_ALERT = "/ext/parking/event";
         private const string SND_PING = "/ext/parking/ping";
 
@@ -52,6 +52,14 @@ namespace NpmAdapter.Adapter
         private INetwork MyHttpNetwork { get; set; }
         public bool IsRuning { get => isRun; }
 
+        #region Model
+        private ParkInfoModel PrkInf = new ParkInfoModel();
+        private DataTable parkInfoDt;
+
+        private UnitModel UitInf = new UnitModel();
+        private DataTable unitInfoDt;
+
+        #endregion
         public void Dispose()
         {
             
@@ -66,10 +74,8 @@ namespace NpmAdapter.Adapter
             responseSdPayload.Initialize();
             //ParkInfo DB Load =========
             parkInfoPayload = new ReponseSdParkInfoPayload();
-            DataTable parkInfoDt;
-            ParkInfoModel mdl = new ParkInfoModel();
-
-            parkInfoDt = mdl.GetParkInfo();
+            
+            parkInfoDt = PrkInf.GetParkInfo();
             if (parkInfoDt == null || parkInfoDt.Rows.Count == 0)
             {
                 Log.WriteLog(LogType.Error, "SaldaAdapter | Initialize", "ParkInfo 가져오기 오류");
@@ -85,6 +91,10 @@ namespace NpmAdapter.Adapter
             }
             //ParkInfo DB Load 완료 =====
 
+            //UnitInfo DB Load =========
+            unitInfoDt = UitInf.GetLprInfo();
+            //UnitInfo DB Load 완료 =====
+
             webport = SysConfig.Instance.HW_Port;
             MyHttpNetwork = NetworkFactory.GetInstance().MakeNetworkControl(NetworkFactory.Adapters.HttpServer, webport);
 
@@ -93,6 +103,14 @@ namespace NpmAdapter.Adapter
             waitForWork = TimeSpan.FromMinutes(40); //40분마다 Alive Check~!
 
             return true;
+        }
+
+        private byte[] ParseDataEncoding(string Data)
+        {
+            string strEncrypt = AESEncrypt.Encrypt(Data, aeskey);
+            byte[] resultData = SysConfig.Instance.HomeNet_Encoding.GetBytes(strEncrypt);
+
+            return resultData;
         }
 
         private void AliveCheck()
@@ -111,8 +129,7 @@ namespace NpmAdapter.Adapter
                         JObject json = new JObject();
                         json["zoneId"] = aptId;
                         json["ip"] = Helper.GetLocalIP();
-                        string strRequest = AESEncrypt.Encrypt(json.ToString(), aeskey);
-                        byte[] requestData = SysConfig.Instance.HomeNet_Encoding.GetBytes(strRequest);
+                        byte[] requestData = ParseDataEncoding(json.ToString());
                         string responseData = string.Empty;
                         string responseHeader = string.Empty;
 
@@ -277,7 +294,7 @@ namespace NpmAdapter.Adapter
 
         public event IAdapter.ShowBallonTip ShowTip;
 
-        private void MyHttpNetwork_ReceiveFromPeer(byte[] buffer, long offset, long size, HttpServer.RequestEventArgs e = null, string id = null)
+        private void MyHttpNetwork_ReceiveFromPeer(byte[] buffer, long offset, long size, HttpServer.RequestEventArgs e = null, string id = null, System.Net.EndPoint ep = null)
         {
             lock (lockObj)
             {
@@ -293,6 +310,10 @@ namespace NpmAdapter.Adapter
 
                 switch (urlData)
                 {
+                    case GET_DEVICES:
+                        //ParkNo, UnitNo, UnitName, UnitKind, MyNo, IPNo, PortNo
+                        //deviceId, deviceName, deviceType(장치구분)
+                        break;
                     case GET_PARKINGZONE:
                         currentReqPayload = null;
                         responseSdPayload.resultCode = "OK";
@@ -413,7 +434,7 @@ namespace NpmAdapter.Adapter
 
                 if (bResponseSuccess) //응답성공
                 {
-                    byte[] result = responseSdPayload.Serialize();
+                    byte[] result = ParseDataEncoding(responseSdPayload.ToJson().ToString());
                     e.Response.Status = System.Net.HttpStatusCode.OK;
                     e.Response.Encoding = SysConfig.Instance.HomeNet_Encoding;
                     e.Response.ContentType = new ContentTypeHeader("application/json");

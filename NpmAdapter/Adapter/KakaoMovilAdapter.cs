@@ -111,7 +111,7 @@ namespace NpmAdapter.Adapter
         /// <param name="offset"></param>
         /// <param name="size"></param>
         /// <param name="e"></param>
-        private void HttpServer_ReceiveFromPeer(byte[] buffer, long offset, long size, HttpServer.RequestEventArgs e = null, string id = null)
+        private void HttpServer_ReceiveFromPeer(byte[] buffer, long offset, long size, HttpServer.RequestEventArgs e = null, string id = null, System.Net.EndPoint ep = null)
         {
             lock (lockObj)
             {

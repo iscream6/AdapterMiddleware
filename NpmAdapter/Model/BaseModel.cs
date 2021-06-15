@@ -9,6 +9,7 @@ namespace NpmAdapter.Model
 {
     class BaseModel
     {
+        protected AbstractDA ConfigDA;
         protected AbstractDA DA;
         protected IDbTransaction Transaction;
 
@@ -19,13 +20,12 @@ namespace NpmAdapter.Model
                 case NexpaDBType.MSSQL:
                     DA = DataAccessFactory.Instance.GetDAInstance(NPDBkind.MSSQL);
                     break;
-                case NexpaDBType.ORACLE:
-                    DA = DataAccessFactory.Instance.GetDAInstance(NPDBkind.Oracle);
-                    break;
                 case NexpaDBType.POSTGRES:
                     DA = DataAccessFactory.Instance.GetDAInstance(NPDBkind.Postgres);
                     break;
             }
+
+            ConfigDA = DataAccessFactory.Instance.GetConfigDA();
         }
     }
 }

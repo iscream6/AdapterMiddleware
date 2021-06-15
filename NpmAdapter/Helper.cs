@@ -143,6 +143,26 @@ namespace NpmAdapter
             }
         }
 
+        public static byte CalCheckSum(this byte[] data)
+        {
+            Byte _CheckSumByte = 0x00;
+            for (int i = 0; i < data.Length; i++)
+            {
+                _CheckSumByte ^= data[i];
+            }
+            return _CheckSumByte;
+        }
+
+        public static byte CalCheckSum(List<byte> data)
+        {
+            Byte _CheckSumByte = 0x00;
+            for (int i = 0; i < data.Count; i++)
+            {
+                _CheckSumByte ^= data[i];
+            }
+            return _CheckSumByte;
+        }
+
         public static CmdType GetCommand(this byte[] buffer, Encoding encoding = null)
         {
             try

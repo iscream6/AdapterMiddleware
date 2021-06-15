@@ -189,13 +189,13 @@ namespace NpmAdapter.Adapter
             if(bResponseSuccess == false) MyTcpNetwork.Down();
         }
 
-        private void MyTcpNetwork_ReceiveFromPeer(byte[] buffer, long offset, long size, HttpServer.RequestEventArgs pEvent = null, string id = null)
+        private void MyTcpNetwork_ReceiveFromPeer(byte[] buffer, long offset, long size, HttpServer.RequestEventArgs pEvent = null, string id = null, System.Net.EndPoint ep = null)
         {
             //응답 처리...
             bResponseSuccess = true;
         }
 
-        private void MyTcpServer_ReceiveFromPeer(byte[] buffer, long offset, long size, HttpServer.RequestEventArgs pEvent = null, string id = null)
+        private void MyTcpServer_ReceiveFromPeer(byte[] buffer, long offset, long size, HttpServer.RequestEventArgs pEvent = null, string id = null, System.Net.EndPoint ep = null)
         {
             //세대 방문자 리스트(단지서버 -> 주차서버)
             //세대 방문자 등록(단지서버 -> 주차서버)

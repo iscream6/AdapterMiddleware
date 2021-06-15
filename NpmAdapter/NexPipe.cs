@@ -137,6 +137,12 @@ namespace NpmAdapter
                     case HomeNetAdapterType.Aptner: //아파트너
                         homenet = new AptNrAdapter();
                         break;
+                    case HomeNetAdapterType.HyundaeSanup: //현대산업개발
+                        homenet = new ShiAdapter();
+                        break;
+                    case HomeNetAdapterType.ChamsleTech: //참슬테크
+                        homenet = new ChamAdapter();
+                        break;
                     default:
                         homenet = null;
                         break;

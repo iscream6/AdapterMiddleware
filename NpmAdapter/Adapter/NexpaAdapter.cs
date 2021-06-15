@@ -147,7 +147,7 @@ namespace NpmAdapter.Adapter
         /// <param name="buffer"></param>
         /// <param name="offset"></param>
         /// <param name="size"></param>
-        private void MyTcpNetwork_ReceiveFromPeer(byte[] buffer, long offset, long size, RequestEventArgs pEvent = null, string id = null)
+        private void MyTcpNetwork_ReceiveFromPeer(byte[] buffer, long offset, long size, RequestEventArgs pEvent = null, string id = null, System.Net.EndPoint ep = null)
         {
             Log.WriteLog(LogType.Info, "NexpaTcpAdapter | MyTcpNetwork_ReceiveFromPeer", $"[수신] {(id == null ? "" : id)} ==========", LogAdpType.Nexpa);
             if (!bResponseSuccess)
@@ -169,7 +169,7 @@ namespace NpmAdapter.Adapter
         /// <param name="offset"></param>
         /// <param name="size"></param>
         /// <param name="pEvent"></param>
-        private void MyHttpNetwork_ReceiveFromPeer(byte[] buffer, long offset, long size, RequestEventArgs e = null, string id = null)
+        private void MyHttpNetwork_ReceiveFromPeer(byte[] buffer, long offset, long size, RequestEventArgs e = null, string id = null, System.Net.EndPoint ep = null)
         {
             string sJson = Encoding.UTF8.GetString(buffer[..(int)size]);
             JObject json = JObject.Parse(sJson);
