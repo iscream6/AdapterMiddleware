@@ -9,6 +9,9 @@ using System.Threading;
 
 namespace NpmAdapter.Adapter
 {
+    /// <summary>
+    /// 코콤
+    /// </summary>
     class KcmAdapter : IAdapter
     {
         private bool isRun = false;

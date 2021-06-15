@@ -4,7 +4,7 @@ using System.Text;
 
 namespace NpmAdapter.Payload
 {
-    class CcmHeader
+    class KcmHeader
     {
         //0x12345678
         private const int HeaderKey = 305419896;
