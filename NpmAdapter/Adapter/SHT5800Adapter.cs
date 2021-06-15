@@ -13,6 +13,9 @@ using System.Text;
 
 namespace NpmAdapter.Adapter
 {
+    /// <summary>
+    /// 이지온
+    /// </summary>
     class SHT5800Adapter : IAdapter
     {
         private bool hasReceiveEvent = false;
