@@ -10,6 +10,10 @@ namespace NpmAdapter.Payload
     {
         none,
         /// <summary>
+        /// 핸드쉐이크
+        /// </summary>
+        hello,
+        /// <summary>
         /// 상태 체크
         /// </summary>
         status_check,

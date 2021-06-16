@@ -35,6 +35,7 @@ namespace NpmAdapter.Adapter
         private string webport = "42141";
         private string aptId = "";
         private string hostDomain = "";
+        private string reqPid = null;
 
         Dictionary<string, string> dicHeader = new Dictionary<string, string>();
 
@@ -191,7 +192,7 @@ namespace NpmAdapter.Adapter
                                     Log.WriteLog(LogType.Info, $"KakaoMovilAdapter | HttpServer_ReceiveFromPeer", $"{GET_IONDATA}: {payload.ToJson()}", LogAdpType.HomeNet);
 
                                     byte[] responseBuffer = payload.Serialize();
-                                    TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);
+                                    TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length, reqPid);
                                 }
                                 break;
                             case SET_CUSTINFO: //정기차량 등록
@@ -212,7 +213,7 @@ namespace NpmAdapter.Adapter
                                     Log.WriteLog(LogType.Info, $"KakaoMovilAdapter | HttpServer_ReceiveFromPeer", $"{SET_CUSTINFO}: {payload.ToJson()}", LogAdpType.HomeNet);
 
                                     byte[] responseBuffer = payload.Serialize();
-                                    TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);
+                                    TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length, reqPid);
                                 }
                                 break;
                             case DEL_CUSTINFO: //정기차량 삭제
@@ -229,7 +230,7 @@ namespace NpmAdapter.Adapter
                                     Log.WriteLog(LogType.Info, $"KakaoMovilAdapter | HttpServer_ReceiveFromPeer", $"{DEL_CUSTINFO}: {payload.ToJson()}", LogAdpType.HomeNet);
 
                                     byte[] responseBuffer = payload.Serialize();
-                                    TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);
+                                    TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length, reqPid);
                                 }
                                 break;
                             case GET_CUSTINFO: //정기차량 세대 목록(GET)
@@ -245,7 +246,7 @@ namespace NpmAdapter.Adapter
                                     Log.WriteLog(LogType.Info, $"KakaoMovilAdapter | HttpServer_ReceiveFromPeer", $"{GET_CUSTINFO}: {payload.ToJson()}", LogAdpType.HomeNet);
 
                                     byte[] responseBuffer = payload.Serialize();
-                                    TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);
+                                    TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length, reqPid);
                                 }
                                 break;
                             case GET_ALL_CUSTINFO: //정기차량 전체 목록(GET)
@@ -255,7 +256,7 @@ namespace NpmAdapter.Adapter
                                     Log.WriteLog(LogType.Info, $"KakaoMovilAdapter | HttpServer_ReceiveFromPeer", $"{GET_ALL_CUSTINFO}: {payload.ToJson()}", LogAdpType.HomeNet);
 
                                     byte[] responseBuffer = payload.Serialize();
-                                    TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);
+                                    TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length, reqPid);
                                 }
                                 break;
                             case GET_IOSDATA: //정기차량 출입조회(GET)
@@ -271,7 +272,7 @@ namespace NpmAdapter.Adapter
                                     Log.WriteLog(LogType.Info, $"KakaoMovilAdapter | HttpServer_ReceiveFromPeer", $"{GET_IOSDATA}: {payload.ToJson()}", LogAdpType.HomeNet);
 
                                     byte[] responseBuffer = payload.Serialize();
-                                    TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);
+                                    TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length, reqPid);
                                 }
                                 break;
                             case SET_RESERVECAR: //방문신청차량 등록
@@ -293,7 +294,7 @@ namespace NpmAdapter.Adapter
                                     Log.WriteLog(LogType.Info, $"KakaoMovilAdapter | HttpServer_ReceiveFromPeer", $"{SET_RESERVECAR}: {payload.ToJson()}", LogAdpType.HomeNet);
 
                                     byte[] responseBuffer = payload.Serialize();
-                                    TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);
+                                    TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length, reqPid);
                                 }
                                 break;
                             case GET_RESERVECAR: //방문신청차량 목록(GET)
@@ -309,7 +310,7 @@ namespace NpmAdapter.Adapter
                                     Log.WriteLog(LogType.Info, $"KakaoMovilAdapter | HttpServer_ReceiveFromPeer", $"{GET_RESERVECAR}: {payload.ToJson()}", LogAdpType.HomeNet);
 
                                     byte[] responseBuffer = payload.Serialize();
-                                    TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);
+                                    TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length, reqPid);
                                 }
                                 break;
                             case DEL_RESERVECAR: //방문신청차량 삭제
@@ -326,7 +327,7 @@ namespace NpmAdapter.Adapter
                                     Log.WriteLog(LogType.Info, $"KakaoMovilAdapter | HttpServer_ReceiveFromPeer", $"{DEL_RESERVECAR}: {payload.ToJson()}", LogAdpType.HomeNet);
 
                                     byte[] responseBuffer = payload.Serialize();
-                                    TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);
+                                    TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length, reqPid);
                                 }
                                 break;
                             case GET_IORESERVE: //방문신청차량 출입 조회(GET)
@@ -342,7 +343,7 @@ namespace NpmAdapter.Adapter
                                     Log.WriteLog(LogType.Info, $"KakaoMovilAdapter | HttpServer_ReceiveFromPeer", $"{GET_IORESERVE}: {payload.ToJson()}", LogAdpType.HomeNet);
 
                                     byte[] responseBuffer = payload.Serialize();
-                                    TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);
+                                    TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length, reqPid);
                                 }
                                 break;
                             default:
@@ -453,6 +454,9 @@ namespace NpmAdapter.Adapter
             string cmd = jobj["command"].ToString();
             switch ((CmdType)Enum.Parse(typeof(CmdType), cmd))
             {
+                case CmdType.hello:
+                    if (Helper.NVL(data) == "biz") reqPid = pid;
+                    break;
                 case CmdType.alert_incar:
                 case CmdType.alert_outcar:
                     {
@@ -506,7 +510,7 @@ namespace NpmAdapter.Adapter
                                     responseBuffer = responsePayload.Serialize();
                                 }
 
-                                TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);
+                                TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length, pid);
                             }
                             catch (Exception ex)
                             {

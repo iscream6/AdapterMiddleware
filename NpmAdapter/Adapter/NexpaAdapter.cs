@@ -31,6 +31,7 @@ namespace NpmAdapter.Adapter
         private bool isRun = false;
         private byte[] arrSelfResponseData = null;
         private bool bResponseSuccess = true;
+        private StringBuilder receiveMessageBuffer;
 
         public const string REQ_POST_STATUS = "/nexpa/mdl/";
         public const string RSP_POST_STATUS = "/nxpms/v2.0/mdl";
@@ -47,6 +48,7 @@ namespace NpmAdapter.Adapter
         public bool Initialize()
         {
             int port = 30542;
+            receiveMessageBuffer = new StringBuilder();
 
             try
             {
@@ -157,6 +159,35 @@ namespace NpmAdapter.Adapter
             }
             else
             {
+                try
+                {
+                    receiveMessageBuffer.Append(buffer.ToString(SysConfig.Instance.Nexpa_Encoding, size));
+                    var jobj = JObject.Parse(Helper.ValidateJsonParseingData(receiveMessageBuffer.ToString()));
+                    Thread.Sleep(10);
+                    receiveMessageBuffer.Clear();
+
+                    JObject data = jobj["data"] as JObject;
+                    string cmd = jobj["command"].ToString();
+                    CmdType command = (CmdType)Enum.Parse(typeof(CmdType), cmd);
+
+                    if(command == CmdType.hello)
+                    {
+                        //바로 응답~! 
+                        ResponsePayload responsePayload = new ResponsePayload();
+                        byte[] responseBuffer;
+                        responsePayload.command = command;
+                        responsePayload.result = ResultType.OK;
+                        responseBuffer = responsePayload.Serialize();
+                        MyTcpNetwork.SendToPeer(responseBuffer, 0, responseBuffer.Length, id);
+
+                        if (Helper.NVL(data) == "alert") return;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Log.WriteLog(LogType.Error, "NexpaTcpAdapter | MyTcpNetwork_ReceiveFromPeer", $"JSON 처리 오류 : {ex.Message}", LogAdpType.Nexpa);
+                }
+
                 TargetAdapter.SendMessage(buffer, offset, size, id);
             }
             Log.WriteLog(LogType.Info, "NexpaTcpAdapter | MyTcpNetwork_ReceiveFromPeer", "수신 완료 =====", LogAdpType.Nexpa);

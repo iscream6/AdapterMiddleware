@@ -1105,3 +1105,20 @@ Body
       "message": "메시지"
   }
 }
+
+9.1.9  핸드쉐이크 (주차 -> 미들웨어)
+Body
+{
+    "command" : "hello",
+    "data" : "[구분값]" //현장 구성에 따라 가변(alert : 통보전용, biz : 요청처리전용)
+}
+
+9.1.10 핸드쉐이크 ACK (미들웨어 -> 주차)
+Body
+{
+  "command": "hello",
+  "result": {
+      "status": "응답상태코드",
+      "message": "메시지"
+  }
+}
