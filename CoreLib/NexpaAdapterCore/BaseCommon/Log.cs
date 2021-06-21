@@ -14,13 +14,19 @@ namespace NexpaAdapterStandardLib
 
         public static void WriteLog(LogType type, string pathName, string message, LogAdpType adapterType = LogAdpType.none)
         {
+            string preAdpType = string.Empty;
+            if(adapterType != LogAdpType.none)
+            {
+                preAdpType = "[" + adapterType.ToString().Substring(0, 1) + "]";
+            }
+
             switch(type)
             {
                 case LogType.Info:
-                    logger.Info(pathName + " | " + message);
+                    logger.Info(preAdpType + pathName + " | " + message);
                     break;
                 case LogType.Error:
-                    logger.Error(pathName + " | " + message);
+                    logger.Error(preAdpType + pathName + " | " + message);
                     break;
             }
 

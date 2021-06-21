@@ -50,7 +50,11 @@ namespace NexpaAdapterStandardLib.Network
 
             try
             {
-                Log.WriteLog(LogType.Info, "NetworkWebClient| SendData", $"Request Type : {requestType}, Request URI : {uri}");
+                Log.WriteLog(LogType.Info, "NetworkWebClient| SendData", $"\n" +
+                    $"   Request Type : {requestType}\n" +
+                    $"   Request URI : {uri}\n" +
+                    $"   Content Type : {contentType}");
+
                 HttpWebRequest request = (HttpWebRequest)WebRequest.Create(uri);
                 request.Method = requestType.ToString();
 
@@ -150,7 +154,7 @@ namespace NexpaAdapterStandardLib.Network
                                     if (bResult)
                                     {
                                         //성공                            
-                                        Log.WriteLog(LogType.Info, "NetworkWebClient| SendData", $"응답성공 : {strData}", LogAdpType.Nexpa);
+                                        Log.WriteLog(LogType.Info, "NetworkWebClient| SendData", $"응답성공 : {strData}");
                                     }
                                     else
                                     {
@@ -286,7 +290,7 @@ namespace NexpaAdapterStandardLib.Network
                         if (bResult)
                         {
                             //성공                            
-                            Log.WriteLog(LogType.Info, "NetworkWebClient| SendDataPost", $"응답성공 : {strJsonData}", LogAdpType.Nexpa);
+                            Log.WriteLog(LogType.Info, "NetworkWebClient| SendDataPost", $"응답성공 : {strJsonData}");
                         }
                         else
                         {
@@ -306,7 +310,7 @@ namespace NexpaAdapterStandardLib.Network
                         while (strJsonData == string.Empty)
                         {
                             strJsonData = resPostReader.ReadToEnd();
-                            Log.WriteLog(LogType.Info, "NetworkWebClient| SendDataPost", $"응답성공 : {strJsonData}", LogAdpType.Nexpa);
+                            Log.WriteLog(LogType.Info, "NetworkWebClient| SendDataPost", $"응답성공 : {strJsonData}");
                             if (nCount > 20)
                             {
                                 bResult = false;

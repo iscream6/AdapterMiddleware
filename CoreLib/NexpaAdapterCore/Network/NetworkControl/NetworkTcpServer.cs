@@ -53,17 +53,17 @@ namespace NexpaAdapterStandardLib.Network
                     int cntCast = 0;
                     foreach (var item in _dicClientSession.Values)
                     {
-                        Log.WriteLog(LogType.Info, $"TcpServerNetwork | SendToPeer", $"{item.Id}", LogAdpType.Nexpa);
+                        Log.WriteLog(LogType.Info, $"TcpServerNetwork | SendToPeer", $"{item.Id}");
                         item.SendAsync(buffer, offset, size);
                         cntCast += 1;
                     }
-                    Log.WriteLog(LogType.Info, $"TcpServerNetwork | SendToPeer", $"Broad Cast {cntCast}개 완료", LogAdpType.Nexpa);
+                    Log.WriteLog(LogType.Info, $"TcpServerNetwork | SendToPeer", $"Broad Cast {cntCast}개 완료");
                 }
                 else //특정 Target에 Cast
                 {
                     Guid guid = Guid.Parse(id);
                     _dicClientSession[guid].SendAsync(buffer, offset, size);
-                    Log.WriteLog(LogType.Info, $"TcpServerNetwork | SendToPeer", $"{guid}", LogAdpType.Nexpa);
+                    Log.WriteLog(LogType.Info, $"TcpServerNetwork | SendToPeer", $"{guid}");
                 }
             }
             catch (Exception ex)
@@ -104,7 +104,7 @@ namespace NexpaAdapterStandardLib.Network
 
             _dicClientSession.Add(session.Id, session);
 
-            Log.WriteLog(LogType.Info, $"TcpServerNetwork | CreateSession", $"Client 접속 ID : {session.Id}", LogAdpType.Nexpa);
+            Log.WriteLog(LogType.Info, $"TcpServerNetwork | CreateSession", $"Client 접속 ID : {session.Id}");
             if (OnConnectionAction != null) OnConnectionAction();
             return session;
         }
@@ -139,7 +139,7 @@ namespace NexpaAdapterStandardLib.Network
                 ((TcpNetworkSession)_dicClientSession[id]).Session_Disconnected -= Session_Session_Disconnected;
                 ((TcpNetworkSession)_dicClientSession[id]).receiveAction -= Session_receiveAction;
                 _dicClientSession.Remove(id);
-                Log.WriteLog(LogType.Info, $"TcpServerNetwork | Session_Session_Disconnected", $"Client 접속 종료 ID : {id}", LogAdpType.Nexpa);
+                Log.WriteLog(LogType.Info, $"TcpServerNetwork | Session_Session_Disconnected", $"Client 접속 종료 ID : {id}");
             }
         }
 

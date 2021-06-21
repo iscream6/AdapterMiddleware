@@ -448,31 +448,31 @@ namespace NpmAdapter.Adapter
             Thread.Sleep(10);
             receiveMessageBuffer.Clear();
 
-            Log.WriteLog(LogType.Info, $"KakaoMovilAdapter | SendMessage", $"넥스파에서 받은 메시지 : {jobj}", LogAdpType.HomeNet);
-            JObject data = jobj["data"] as JObject; //응답 데이터
-
+            Log.WriteLog(LogType.Info, $"KakaoMovilAdapter | SendMessage", $"Adapter 수신\n{jobj}", LogAdpType.HomeNet);
+            
             string cmd = jobj["command"].ToString();
+            JObject data = jobj["data"] as JObject;
             switch ((CmdType)Enum.Parse(typeof(CmdType), cmd))
             {
                 case CmdType.hello:
-                    if (Helper.NVL(data) == "biz") reqPid = pid;
+                    string handShakeData = jobj["data"].ToString();
+                    if (Helper.NVL(handShakeData) == "biz") reqPid = pid;
                     break;
                 case CmdType.alert_incar:
                 case CmdType.alert_outcar:
                     {
+                        ResponsePayload responsePayload = new ResponsePayload();
+                        byte[] responseBuffer;
                         RequestPayload<AlertInOutCarPayload> payload = new RequestPayload<AlertInOutCarPayload>();
                         payload.Deserialize(jobj);
 
-                        Uri uri = null;
-                        byte[] requestData;
-
-                        if (payload.command == CmdType.alert_incar)
+                        if (payload.data.kind.Equals("n"))
                         {
-                            uri = new Uri(string.Concat(hostDomain, APT_INCAR_POST));
-                        }
-                        else
-                        {
-                            uri = new Uri(string.Concat(hostDomain, APT_OUTCAR_POST));
+                            responsePayload.result = ResultType.NonContent; //처리할게 없음.
+                            responsePayload.command = payload.command;
+                            responseBuffer = responsePayload.Serialize();
+                            TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length, pid);
+                            break;
                         }
 
                         MvlInOutCarPayload ioPayload = new MvlInOutCarPayload(payload.command)
@@ -482,25 +482,51 @@ namespace NpmAdapter.Adapter
                             lpr_number = payload.data.lprID,
                             date = Helper.GetUTCMillisecond(payload.data.date_time)
                         };
-                        Log.WriteLog(LogType.Info, $"KakaoMovilAdapter | SendMessage", $"{ioPayload.ToJson()}", LogAdpType.HomeNet);
-
-                        requestData = ioPayload.Serialize();
-
+                        
+                        byte[] requestData = ioPayload.Serialize();
+                        Uri uri = payload.command == CmdType.alert_incar ? new Uri(string.Concat(hostDomain, APT_INCAR_POST)) : new Uri(string.Concat(hostDomain, APT_OUTCAR_POST));
                         string responseData = string.Empty;
                         string responseHeader = string.Empty;
+
+                        Log.WriteLog(LogType.Info, "KakaoMovilAdapter | SendMessage", $"Web 송신\n{ioPayload.ToJson()}", LogAdpType.HomeNet);
 
                         if (NetworkWebClient.Instance.SendData(uri, NetworkWebClient.RequestType.POST, ContentType.Json, requestData, ref responseData, ref responseHeader, header: dicHeader))
                         {
                             try
                             {
-                                ResponsePayload responsePayload = new ResponsePayload();
-                                byte[] responseBuffer;
+                                if (responseData.StartsWith("ERR"))
+                                {
+                                    Log.WriteLog(LogType.Error, $"KakaoMovilAdapter | SendMessage", $"Web 수신\n{responseData}", LogAdpType.HomeNet);
+                                    string[] errMsgs = responseData.Split(',');
+                                    //Error 처리...
+                                    switch (errMsgs[1])
+                                    {
+                                        case "400":
+                                            responsePayload.result = ResultType.BadRequest;
+                                            break;
+                                        case "401":
+                                            responsePayload.result = ResultType.Unauthorized;
+                                            break;
+                                        case "404":
+                                            responsePayload.result = ResultType.NotFound;
+                                            break;
+                                        case "405":
+                                            responsePayload.result = ResultType.MethodNotAllowed;
+                                            break;
+                                        default:
+                                            responsePayload.result = ResultType.Fail;
+                                            break;
+                                    }
+                                }
+                                else
+                                {
+                                    responsePayload.result = ResultType.OK;
+                                }
 
                                 var responseJobj = JObject.Parse(responseData);
                                 if (responseJobj != null && Helper.NVL(responseJobj["code"]) == "0000")
                                 {
                                     responsePayload.command = payload.command;
-                                    responsePayload.result = ResultType.OK;
                                     responseBuffer = responsePayload.Serialize();
                                 }
                                 else
@@ -514,7 +540,7 @@ namespace NpmAdapter.Adapter
                             }
                             catch (Exception ex)
                             {
-                                Log.WriteLog(LogType.Error, "NexpaTcpAdapter | RequestUDO_LocationMap", $"{ex.Message}", LogAdpType.HomeNet);
+                                Log.WriteLog(LogType.Error, "KakaoMovilAdapter | SendMessage", $"{ex.Message}", LogAdpType.HomeNet);
                             }
                         }
                     }

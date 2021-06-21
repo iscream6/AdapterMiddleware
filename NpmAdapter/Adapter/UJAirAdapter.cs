@@ -119,7 +119,7 @@ namespace NpmAdapter.Adapter
 			else uri = new Uri($"{SysConfig.Instance.HW_Domain2}?mawb={encMawb}");
 
 			if (NetworkWebClient.Instance.SendData(uri, NetworkWebClient.RequestType.GET, ContentType.Text, new byte[] { },
-				ref responseData, ref responseHeader)) ;
+				ref responseData, ref responseHeader))
 			{
 				Log.WriteLog(LogType.Error, $"UJAirAdapter | TestReceive", $"{responseData}", LogAdpType.HomeNet);
 			}

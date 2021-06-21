@@ -156,6 +156,7 @@ namespace NpmAdapter.Adapter
             {
                 arrSelfResponseData = buffer[..(int)size];
                 bResponseSuccess = true;
+                Log.WriteLog(LogType.Error, "NexpaTcpAdapter | MyTcpNetwork_ReceiveFromPeer", $"???", LogAdpType.Nexpa);
             }
             else
             {
@@ -172,6 +173,7 @@ namespace NpmAdapter.Adapter
 
                     if(command == CmdType.hello)
                     {
+                        Log.WriteLog(LogType.Info, "NexpaTcpAdapter | MyTcpNetwork_ReceiveFromPeer", $"JSON 수신 : {jobj.ToString()}", LogAdpType.Nexpa);
                         //바로 응답~! 
                         ResponsePayload responsePayload = new ResponsePayload();
                         byte[] responseBuffer;
@@ -280,7 +282,9 @@ namespace NpmAdapter.Adapter
             {
                 
                 CmdType cmd = buffer[..(int)size].GetCommand(SysConfig.Instance.Nexpa_Encoding);
-                Log.WriteLog(LogType.Info, "NexpaTcpAdapter | SendMessage", $"Target Adapter에게 받은 Command : {cmd}", LogAdpType.Nexpa);
+                //Log.WriteLog(LogType.Info, "NexpaTcpAdapter | SendMessage", $"Target Adapter에게 받은 Command : {cmd}", LogAdpType.Nexpa);
+                Log.WriteLog(LogType.Info, "NexpaTcpAdapter | SendMessage", $"{buffer.ToString(SysConfig.Instance.Nexpa_Encoding)}", LogAdpType.Nexpa);
+                
                 if ((cmd == CmdType.location_map || cmd == CmdType.location_list) && SysConfig.Instance.Sys_Option.GetValueToUpper("UseLocationSearch") == "Y")
                 {
                     //TODO : location map은 alias를 관제에서 관리한다..ㅠㅠ 관제를 통해 alias를 가져오는 로직이 추가되어야 한다.
