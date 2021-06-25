@@ -165,11 +165,16 @@ namespace NpmAdapter.Adapter
                                         Log.WriteLog(LogType.Info, "AptStAdapter | SendMessage | WebClientResponse", $"==응답== {responseData}", LogAdpType.Nexpa);
 
                                         var responseJobj = JObject.Parse(responseData)["error"];
-
-                                        if (responseJobj != null && Helper.NVL(responseJobj["code"]) == "0")
+                                        if (responseJobj != null)
                                         {
                                             responsePayload.command = payload.command;
                                             responsePayload.result = ResultType.OK;
+
+                                            if (Helper.NVL(responseJobj["code"]) != "0")
+                                            {
+                                                responsePayload.SetCustomResult(message: Helper.NVL(responseJobj["message"]));
+                                            }
+
                                             responseBuffer = responsePayload.Serialize();
                                         }
                                         else
