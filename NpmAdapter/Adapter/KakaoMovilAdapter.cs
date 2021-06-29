@@ -47,6 +47,16 @@ namespace NpmAdapter.Adapter
 
         public event IAdapter.ShowBallonTip ShowTip;
 
+        //==== Access Token Thread ====
+        private int _AccesExpireSec = 0; //Access Token 만료 시간(초)
+
+        private Thread AccessTokenThread;
+        private TimeSpan waitForAccessTokenProcess;
+        private ManualResetEventSlim shutdownAccessTokenEvent = new ManualResetEventSlim(false);
+        ManualResetEvent _pauseFailAccessTokenEvent = new ManualResetEvent(false);
+        private delegate void AccessTokenSafeCallDelegate();
+        //==== Fail Process Thread ====
+
         public IAdapter TargetAdapter { get; set; }
         private INetwork HttpNet { get; set; }
         public bool IsRuning => isRun;
@@ -64,6 +74,10 @@ namespace NpmAdapter.Adapter
             webport = SysConfig.Instance.HW_Port;
             HttpNet = NetworkFactory.GetInstance().MakeNetworkControl(NetworkFactory.Adapters.HttpServer, webport);
 
+            AccessTokenThread = new Thread(new ThreadStart(AccessTokenAction));
+            AccessTokenThread.Name = "access token";
+            waitForAccessTokenProcess = TimeSpan.FromSeconds(1); //1초
+
             return true;
         }
 
@@ -77,7 +91,17 @@ namespace NpmAdapter.Adapter
                 //Access Token을 가져온다. 실패 시 서버가 죽었다고 판단함.
                 try
                 {
-                    dicHeader.Add("Authorization","bearer " + GetAccessToken());
+                    dicHeader.Add("Authorization",GetAccessToken());
+
+                    if (AccessTokenThread.IsAlive)
+                    {
+                        _pauseFailAccessTokenEvent.Set();
+                    }
+                    else
+                    {
+                        AccessTokenThread.Start();
+                        _pauseFailAccessTokenEvent.Set();
+                    }
                 }
                 catch (Exception)
                 {
@@ -93,6 +117,9 @@ namespace NpmAdapter.Adapter
             bool bResult = false;
             try
             {
+                _pauseFailAccessTokenEvent.Reset();
+                _AccesExpireSec = 0;
+
                 HttpNet.ReceiveFromPeer -= HttpServer_ReceiveFromPeer;
                 bResult = HttpNet.Down();
             }
@@ -808,6 +835,45 @@ namespace NpmAdapter.Adapter
             SendMessage(test, 0, test.Length);
         }
 
+        private void AccessTokenAction()
+        {
+            do
+            {
+                if (shutdownAccessTokenEvent.IsSet) return;
+                {
+                    try
+                    {
+                        if (_AccesExpireSec < 1) //새 Access Token 을 발급 받는다.
+                        {
+                            //Access Token 발급
+                            string accessToken = GetAccessToken();
+                            if (dicHeader.ContainsKey("Authorization"))
+                            {
+                                dicHeader["Authorization"] = accessToken;
+                            }
+                            else
+                            {
+                                dicHeader.Add("Authorization", accessToken);
+                            }
+                            //Alive Check 서버로 전달....
+                            Log.WriteLog(LogType.Info, $"KakaoMovilAdapter | AccessTokenAction", $"AccessToken : {accessToken}, AcceptSecond : {_AccesExpireSec}");
+                        }
+                        else
+                        {
+                            _AccesExpireSec -= 1;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.WriteLog(LogType.Error, $"KakaoMovilAdapter | AccessTokenAction", $"{ex.Message}");
+                    }
+                }
+
+                shutdownAccessTokenEvent.Wait(waitForAccessTokenProcess);
+            }
+            while (_pauseFailAccessTokenEvent.WaitOne());
+        }
+
         private string GetAccessToken()
         {
             //개발 - https://dev-openapi.themovill.com/facility/parking/oauth2/token
@@ -835,7 +901,10 @@ namespace NpmAdapter.Adapter
                 if (NetworkWebClient.Instance.SendData(uri, NetworkWebClient.RequestType.POST, ContentType.FormData, SysConfig.Instance.HomeNet_Encoding.GetBytes(postMessage), ref responseData, ref responseHeader, header: dicAccHeader))
                 {
                     JObject jobj = JObject.Parse(responseData);
-                    accessToken = Helper.NVL(jobj["access_token"]);
+                    accessToken = $"{Helper.NVL(jobj["token_type"])} {Helper.NVL(jobj["access_token"])}";
+                    //Token 만료 시간 설정
+                    int.TryParse(Helper.NVL(jobj["expires_in"]), out _AccesExpireSec);
+                    _AccesExpireSec -= 10; //10초전 Access Token 재발급...
                 }
 
             }
