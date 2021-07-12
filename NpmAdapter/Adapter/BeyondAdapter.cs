@@ -55,6 +55,7 @@ namespace NpmAdapter.Adapter
             }
         }
 
+        private const string RCV_ALIVE_CHECK = "/parking-control/instance-message";
         /// <summary>
         /// 기기 상태 조회 URL
         /// </summary>
@@ -73,10 +74,17 @@ namespace NpmAdapter.Adapter
         private const string SYNC_DATA = "/car/omissionDataSync";
 
         private bool isRun = false;
+        private bool bResponseSuccess = false;
         private string _Domain = string.Empty;
+        private int _AccesExpireSec = 0; //Access Token 만료 시간(초)
+        private object lockObj;
         private Dictionary<string, string> dicHeader = new Dictionary<string, string>();
         private StringBuilder receiveMessageBuffer = new StringBuilder();
         private List<FailMsg> failSendList = new List<FailMsg>();
+        private Dictionary<string, FailMsg> dicMsgBuffer = new Dictionary<string, FailMsg>();
+
+        public event IAdapter.ShowBallonTip ShowTip;
+
         //==== Alive Check ====
         private Thread aliveCheckThread;
         private TimeSpan waitForWork;
@@ -93,6 +101,15 @@ namespace NpmAdapter.Adapter
         private delegate void ProcessSafeCallDelegate();
         //==== Fail Process Thread ====
 
+        //==== Access Token Thread ====
+        private Thread AccessTokenThread;
+        private TimeSpan waitForAccessTokenProcess;
+        private ManualResetEventSlim shutdownAccessTokenEvent = new ManualResetEventSlim(false);
+        ManualResetEvent _pauseFailAccessTokenEvent = new ManualResetEvent(false);
+        private delegate void AccessTokenSafeCallDelegate();
+        //==== Fail Process Thread ====
+
+        private INetwork MyHttpNetwork { get; set; }
         public IAdapter TargetAdapter { get; set; }
 
         public bool IsRuning => isRun;
@@ -104,6 +121,9 @@ namespace NpmAdapter.Adapter
 
             _pauseFailProcessEvent.Set();
             shutdownProcessEvent.Set();
+
+            _pauseFailAccessTokenEvent.Set();
+            shutdownAccessTokenEvent.Set();
         }
 
         public bool Initialize()
@@ -116,14 +136,24 @@ namespace NpmAdapter.Adapter
 
             try
             {
+                lockObj = new object();
                 _Domain = SysConfig.Instance.HW_Domain;
+                
                 aliveCheckThread = new Thread(new ThreadStart(AliveCheckAction));
                 aliveCheckThread.Name = "alive check";
-                waitForWork = TimeSpan.FromSeconds(10);
+                waitForWork = TimeSpan.FromSeconds(10); //10초
 
                 failProcessThread = new Thread(new ThreadStart(FailProcessAction));
                 failProcessThread.Name = "process";
-                waitForFailProcess = TimeSpan.FromSeconds(15); //1초
+                waitForFailProcess = TimeSpan.FromSeconds(15); //15초
+
+                AccessTokenThread = new Thread(new ThreadStart(AccessTokenAction));
+                AccessTokenThread.Name = "access token";
+                waitForAccessTokenProcess = TimeSpan.FromSeconds(1); //1초
+
+                var webport = SysConfig.Instance.HW_Port;
+                MyHttpNetwork = NetworkFactory.GetInstance().MakeNetworkControl(NetworkFactory.Adapters.HttpServer, webport);
+
                 Log.WriteLog(LogType.Info, $"BeyondAdapter | Initialize", $"==초기화==", LogAdpType.HomeNet);
             }
             catch (Exception ex)
@@ -137,42 +167,99 @@ namespace NpmAdapter.Adapter
 
         public bool StartAdapter()
         {
-            isRun = true;
-            dicHeader.Add("Authorization", "bearer " + GetAccessToken(_Domain));
-            if (aliveCheckThread.IsAlive)
+            try
             {
-                _pauseEvent.Set();
+                MyHttpNetwork.ReceiveFromPeer += MyHttpNetwork_ReceiveFromPeer;
+                isRun = MyHttpNetwork.Run();
+
+                if (aliveCheckThread.IsAlive)
+                {
+                    _pauseEvent.Set();
+                }
+                else
+                {
+                    aliveCheckThread.Start();
+                    _pauseEvent.Set();
+                }
+
+                if (failProcessThread.IsAlive)
+                {
+                    _pauseFailProcessEvent.Set();
+                }
+                else
+                {
+                    failProcessThread.Start();
+                    _pauseFailProcessEvent.Set();
+                }
+
+                if (AccessTokenThread.IsAlive)
+                {
+                    _pauseFailAccessTokenEvent.Set();
+                }
+                else
+                {
+                    AccessTokenThread.Start();
+                    _pauseFailAccessTokenEvent.Set();
+                }
             }
-            else
+            catch (Exception ex)
             {
-                aliveCheckThread.Start();
-                _pauseEvent.Set();
+                Log.WriteLog(LogType.Error, "BeyondAdapter | StartAdapter", $"{ex.Message}", LogAdpType.HomeNet);
             }
 
-            if (failProcessThread.IsAlive)
-            {
-                _pauseFailProcessEvent.Set();
-            }
-            else
-            {
-                failProcessThread.Start();
-                _pauseFailProcessEvent.Set();
-            }
+            return isRun;
+        }
 
-            return true;
+        private void MyHttpNetwork_ReceiveFromPeer(byte[] buffer, long offset, long size, HttpServer.RequestEventArgs e = null, string id = null, System.Net.EndPoint ep = null)
+        {
+            lock (lockObj)
+            {
+                bResponseSuccess = false;
+
+                string urlData = e.Request.Uri.LocalPath;
+                string sMethod = e.Request.Method;
+
+                try
+                {
+                    if(urlData == RCV_ALIVE_CHECK)
+                    {
+                        var json = JObject.Parse(SysConfig.Instance.HomeNet_Encoding.GetString(buffer[..(int)size]));
+                        var serverTime = Helper.NVL(json["serverTime"]);
+                        var jShadow = json["shadow"];
+                        var name = Helper.NVL(jShadow["name"]);
+
+                        JObject jSend = new JObject();
+                        jSend.Add("serverTime", serverTime);
+                        jSend.Add("name", name);
+                        jSend.Add("RESULT_CODE", "200");
+                        jSend.Add("RESULT_MESSAGE", "SUCCESS");
+
+                        byte[] result = SysConfig.Instance.HomeNet_Encoding.GetBytes(jSend.ToString());
+                        e.Response.Body.Write(result, 0, result.Length);
+                    }
+                }
+                catch (Exception)
+                {
+
+                    throw;
+                }
+            }
         }
 
         public bool StopAdapter()
         {
-            isRun = false;
+            bool bResult = false;
+            
             _pauseEvent.Reset();
             _pauseFailProcessEvent.Reset();
-            return true;
+            MyHttpNetwork.ReceiveFromPeer -= MyHttpNetwork_ReceiveFromPeer;
+            bResult = MyHttpNetwork.Down();
+            isRun = !bResult;
+
+            return bResult;
         }
 
-        Dictionary<string, FailMsg> dicMsgBuffer = new Dictionary<string, FailMsg>();
-
-        public event IAdapter.ShowBallonTip ShowTip;
+        
 
         public void SendMessage(byte[] buffer, long offset, long size, string pid = null)
         {
@@ -358,7 +445,7 @@ namespace NpmAdapter.Adapter
             string accessToken = string.Empty;
             string responseData = string.Empty;
             string responseHeader = string.Empty;
-
+            
             try
             {
                 //Request
@@ -370,6 +457,8 @@ namespace NpmAdapter.Adapter
                 {
                     JObject json = JObject.Parse(responseData);
                     accessToken = Helper.NVL(json["access_token"]);
+                    //Token 만료 시간 설정
+                    int.TryParse(Helper.NVL(json["expires_in"]), out _AccesExpireSec);
                 }
 
             }
@@ -379,6 +468,48 @@ namespace NpmAdapter.Adapter
             }
 
             return accessToken;
+        }
+
+        /// <summary>
+        /// 1초마다 AccessToken 만료시간을 Check 함.
+        /// </summary>
+        private void AccessTokenAction()
+        {
+            do
+            {
+                if (shutdownAccessTokenEvent.IsSet) return;
+                {
+                    try
+                    {
+                        if(_AccesExpireSec < 1) //새 Access Token 을 발급 받는다.
+                        {
+                            //Access Token 발급
+                            string accessToken = "bearer " + GetAccessToken(_Domain);
+                            if (dicHeader.ContainsKey("Authorization"))
+                            {
+                                dicHeader["Authorization"] = accessToken;
+                            }
+                            else
+                            {
+                                dicHeader.Add("Authorization", accessToken);
+                            }
+                            //Alive Check 서버로 전달....
+                            Log.WriteLog(LogType.Info, $"BeyondAdapter | AccessTokenAction", $"AccessToken : {accessToken}, AcceptSecond : {_AccesExpireSec}");
+                        }
+                        else
+                        {
+                            _AccesExpireSec -= 1;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.WriteLog(LogType.Error, $"BeyondAdapter | AccessTokenAction", $"{ex.Message}");
+                    }
+                }
+
+                shutdownAccessTokenEvent.Wait(waitForAccessTokenProcess);
+            }
+            while (_pauseFailAccessTokenEvent.WaitOne());
         }
 
         private void FailProcessAction()
