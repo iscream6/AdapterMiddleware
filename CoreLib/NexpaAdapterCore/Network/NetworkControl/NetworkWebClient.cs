@@ -105,6 +105,16 @@ namespace NexpaAdapterStandardLib.Network
                 request.ContentType = sContentType.ToString();
                 request.ContentLength = (long)sendData.Length;
 
+                if (uri.Scheme.ToLower() == "https")
+                {
+                    request.Proxy = null;
+                    request.Credentials = CredentialCache.DefaultCredentials;
+                    request.ServerCertificateValidationCallback += (sender, certificate, chain, errors) =>
+                    {
+                        return true;
+                    };
+                }
+
                 if (request.ContentLength != 0)
                 {
                     using (Stream requestStream = request.GetRequestStream())

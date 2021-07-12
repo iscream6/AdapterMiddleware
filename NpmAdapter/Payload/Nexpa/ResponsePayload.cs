@@ -30,6 +30,22 @@ namespace NpmAdapter.Payload
             }
         }
 
+        public void SetCustomResult(string code = null, string message = null)
+        {
+            if(resultPayload == null) resultPayload = new ResultPayload();
+
+            if(code != null)
+            {
+                resultPayload.code = code;
+            }
+
+            if(message != null)
+            {
+                resultPayload.message = message;
+            }
+            
+        }
+
         public virtual void Deserialize(JObject json)
         {
             command = (CmdType)Enum.Parse(typeof(CmdType), json["command"].ToString());
