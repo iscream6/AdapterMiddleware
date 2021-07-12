@@ -119,7 +119,7 @@ namespace NpmAdapter.Adapter
                                 uri = new Uri(string.Concat(_Domain, ALERT_INCAR));
                                 sendMessage.Append($"&dong={Helper.NVL(data["dong"])}");
                                 sendMessage.Append($"&ho={Helper.NVL(data["ho"])}");
-                                string kind = Helper.NVL(data["kind"]) == "v" ? "Y" : "N";
+                                string kind = Helper.NVL(data["kind"]) == "a" ? "Y" : "N";
                                 sendMessage.Append($"&isResident={kind}"); 
                             }
                             else
