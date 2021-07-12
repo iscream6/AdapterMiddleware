@@ -471,7 +471,8 @@ namespace NpmAdapter.Adapter
         public void SendMessage(byte[] buffer, long offset, long size, string pid = null)
         {
             receiveMessageBuffer.Append(buffer.ToString(SysConfig.Instance.Nexpa_Encoding, size));
-            var jobj = JObject.Parse(receiveMessageBuffer.ToString());
+            var jobj = JObject.Parse(Helper.ValidateJsonParseingData(receiveMessageBuffer.ToString()));
+
             Thread.Sleep(10);
             receiveMessageBuffer.Clear();
 
@@ -493,14 +494,14 @@ namespace NpmAdapter.Adapter
                         RequestPayload<AlertInOutCarPayload> payload = new RequestPayload<AlertInOutCarPayload>();
                         payload.Deserialize(jobj);
 
-                        if (payload.data.kind.Equals("n"))
-                        {
-                            responsePayload.result = ResultType.NonContent; //처리할게 없음.
-                            responsePayload.command = payload.command;
-                            responseBuffer = responsePayload.Serialize();
-                            TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length, pid);
-                            break;
-                        }
+                        //if (payload.data.kind.Equals("n"))
+                        //{
+                        //    responsePayload.result = ResultType.NonContent; //처리할게 없음.
+                        //    responsePayload.command = payload.command;
+                        //    responseBuffer = responsePayload.Serialize();
+                        //    TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length, pid);
+                        //    break;
+                        //}
 
                         MvlInOutCarPayload ioPayload = new MvlInOutCarPayload(payload.command)
                         {
