@@ -905,7 +905,7 @@ namespace NpmAdapter.Adapter
                     accessToken = $"{Helper.NVL(jobj["token_type"])} {Helper.NVL(jobj["access_token"])}";
                     //Token 만료 시간 설정
                     int.TryParse(Helper.NVL(jobj["expires_in"]), out _AccesExpireSec);
-                    _AccesExpireSec -= 10; //10초전 Access Token 재발급...
+                    _AccesExpireSec -= 300; //5분전 Access Token 재발급...
                 }
 
             }
