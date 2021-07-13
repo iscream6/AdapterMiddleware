@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json.Linq;
+
+using Newtonsoft.Json.Linq;
 using NexpaAdapterStandardLib;
 using NpmAdapter.Payload;
 using System;
