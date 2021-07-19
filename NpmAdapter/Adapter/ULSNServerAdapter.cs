@@ -136,7 +136,7 @@ namespace NpmAdapter.Adapter
                 Thread.Sleep(10);
                 receiveMessageBuffer.Clear();
 
-                Log.WriteLog(LogType.Info, $"ULSNServerAdapter | SendMessage", $"넥스파에서 받은 메시지 : {jobj}", LogAdpType.HomeNet);
+                //Log.WriteLog(LogType.Info, $"ULSNServerAdapter | SendMessage", $"넥스파에서 받은 메시지 : {jobj}", LogAdpType.HomeNet);
                 RequestPayload<AlertInOutCarPayload> alertPayload = new RequestPayload<AlertInOutCarPayload>();
                 alertPayload.Deserialize(jobj);
                 //미인식 차량은 거르고 일반차량만 적용...
@@ -151,6 +151,7 @@ namespace NpmAdapter.Adapter
         /// DiscountProcess가 돌고 있는지 여부
         /// </summary>
         private bool isProcessRun = false;
+        private List<Car> lstCar = new List<Car>();
 
         private void ProcessAction()
         {
@@ -164,8 +165,19 @@ namespace NpmAdapter.Adapter
                         if (isProcessRun == false && quePayload.Count > 0)
                         {
                             currentPayload = quePayload.Dequeue();
-                            Log.WriteLog(LogType.Info, $"ULSNServerAdapter | ProcessAction", $"현재 처리 Payload : {currentPayload.ToJson()}", LogAdpType.HomeNet);
-                            DiscountProcess(currentPayload.data.car_number, currentPayload.data.reg_no);
+                            Log.WriteLog(LogType.Info, $"ULSNServerAdapter | ProcessAction", $"Discount 처리할 Payload : {currentPayload.ToJson()}", LogAdpType.HomeNet);
+
+                            Car car = new Car();
+                            car.carNo = currentPayload.data.car_number;
+
+                            if (!lstCar.Contains(car))
+                            {
+                                car.tkNo = currentPayload.data.reg_no;
+                                car.DateTime = currentPayload.data.date_time;
+                                lstCar.Add(car);
+                            }
+
+                            DiscountProcess(currentPayload);
                         }
                     }
                     catch (Exception)
@@ -179,45 +191,67 @@ namespace NpmAdapter.Adapter
             while (_pauseProcessEvent.WaitOne());
         }
 
-        private List<Fail> FailList = new List<Fail>();
-        private enum FailType
+        private enum DiscountSuccess
         {
-            Normal,
-            Fail,
-            UnFail
+            yes,
+            no,
+            pass
         }
 
-        private FailType GetFailType(string cmd, string carno, string tkno)
+        private DiscountSuccess GetVaildCar(string cmd, string carno, string tkno)
         {
-            int idx = 0;
-            FailType returnType = FailType.Normal;
-            foreach (var fail in FailList)
+            foreach (var item in lstCar)
             {
-                if(fail.payload.data.car_number == carno && fail.payload.data.reg_no == tkno)
+                if(item.tkNo == tkno && item.carNo == carno)
                 {
-                    returnType = FailType.UnFail;
-                    if (fail.cmd == cmd )
+                    if(cmd == "disabilityCar")
                     {
-                        returnType = FailType.Fail;
-                        break;
+                        if (!item.disability)
+                        {
+                            return DiscountSuccess.no;
+                        }
+                        else return DiscountSuccess.yes;
+                    }
+                    else if(cmd == "nationalCar")
+                    {
+                        if (!item.national)
+                        {
+                            return DiscountSuccess.no;
+                        }
+                        else return DiscountSuccess.yes;
+                    }
+                    else if (cmd == "echoCar")
+                    {
+                        if (!item.eco)
+                        {
+                            return DiscountSuccess.no;
+                        }
+                        else return DiscountSuccess.yes;
+                    }
+                    else if (cmd == "smallCar")
+                    {
+                        if (!item.small)
+                        {
+                            return DiscountSuccess.no;
+                        }
+                        else return DiscountSuccess.yes;
                     }
                 }
-                idx += 1;
             }
 
-            if(returnType == FailType.Fail) FailList.RemoveAt(idx);
-
-            return returnType;
+            return DiscountSuccess.pass;
         }
 
-        private async void DiscountProcess(string carno, string tkno)
+        private async void DiscountProcess(RequestPayload<AlertInOutCarPayload> requestPayload)
         {
             isProcessRun = true;
-            bool isFail = false;
             try
             {
-                FailType failType = GetFailType("echoCar", carno, tkno);
-                if(failType == FailType.Normal || failType == FailType.Fail)
+                var carno = requestPayload.data.car_number;
+                var tkno = requestPayload.data.reg_no;
+
+                DiscountSuccess succType = GetVaildCar("echoCar", carno, tkno);
+                if(succType == DiscountSuccess.no)
                 {
                     //친환경
                     isProcessing = true;
@@ -232,19 +266,12 @@ namespace NpmAdapter.Adapter
                     }
                     else //처리 실패
                     {
-                        Log.WriteLog(LogType.Error, $"ULSNServerAdapter | DiscountProcess", $"친환경 처리실패 : {carno}", LogAdpType.HomeNet);
-                        Fail fail = new Fail()
-                        {
-                            payload = currentPayload,
-                            cmd = "echoCar"
-                        };
-                        isFail = true;
-                        FailList.Add(fail);
+                        Log.WriteLog(LogType.Error, $"ULSNServerAdapter | DiscountProcess", $"친환경 처리 타임오버 : {carno}", LogAdpType.HomeNet);
                     }
                 }
 
-                failType = GetFailType("nationalCar", carno, tkno);
-                if (failType == FailType.Normal || failType == FailType.Fail)
+                succType = GetVaildCar("nationalCar", carno, tkno);
+                if (succType == DiscountSuccess.no)
                 {
                     //국가유공자 
                     isProcessing = true;
@@ -259,20 +286,12 @@ namespace NpmAdapter.Adapter
                     }
                     else //처리 실패
                     {
-                        Log.WriteLog(LogType.Error, $"ULSNServerAdapter | DiscountProcess", $"국가유공자 처리실패 : {carno}", LogAdpType.HomeNet);
-                        Fail fail = new Fail()
-                        {
-                            payload = currentPayload,
-                            cmd = "nationalCar"
-                        };
-                        isFail = true;
-                        FailList.Add(fail);
+                        Log.WriteLog(LogType.Error, $"ULSNServerAdapter | DiscountProcess", $"국가유공자 처리 타임오버 : {carno}", LogAdpType.HomeNet);
                     }
                 }
 
-
-                failType = GetFailType("disabilityCar", carno, tkno);
-                if (failType == FailType.Normal || failType == FailType.Fail)
+                succType = GetVaildCar("disabilityCar", carno, tkno);
+                if (succType == DiscountSuccess.no)
                 {
                     //장애인
                     isProcessing = true;
@@ -287,19 +306,12 @@ namespace NpmAdapter.Adapter
                     }
                     else //처리 실패
                     {
-                        Log.WriteLog(LogType.Error, $"ULSNServerAdapter | DiscountProcess", $"장애인 처리실패 : {carno}", LogAdpType.HomeNet);
-                        Fail fail = new Fail()
-                        {
-                            payload = currentPayload,
-                            cmd = "disabilityCar"
-                        };
-                        isFail = true;
-                        FailList.Add(fail);
+                        Log.WriteLog(LogType.Error, $"ULSNServerAdapter | DiscountProcess", $"장애인 처리 타임오버 : {carno}", LogAdpType.HomeNet);
                     }
                 }
 
-                failType = GetFailType("smallCar", carno, tkno);
-                if (failType == FailType.Normal || failType == FailType.Fail)
+                succType = GetVaildCar("smallCar", carno, tkno);
+                if (succType == DiscountSuccess.no)
                 {
                     //경차
                     isProcessing = true;
@@ -314,26 +326,39 @@ namespace NpmAdapter.Adapter
                     }
                     else //처리 실패
                     {
-                        Log.WriteLog(LogType.Error, $"ULSNServerAdapter | DiscountProcess", $"경차 처리실패 : {carno}", LogAdpType.HomeNet);
-                        Fail fail = new Fail()
-                        {
-                            payload = currentPayload,
-                            cmd = "smallCar"
-                        };
-                        isFail = true;
-                        FailList.Add(fail);
+                        Log.WriteLog(LogType.Error, $"ULSNServerAdapter | DiscountProcess", $"경차 처리 타임오버 : {carno}", LogAdpType.HomeNet);
                     }
                 }
 
-                if (isFail)
+                foreach (var car in lstCar)
                 {
-                    quePayload.Enqueue(currentPayload);
+                    if (car.carNo == carno && car.tkNo == tkno)
+                    {
+                        try
+                        {
+                            if (car.eco && car.disability && car.national && car.small)
+                            {
+                                lstCar.Remove(car);
+                            }
+                            else
+                            {
+                                quePayload.Enqueue(requestPayload);
+                            }
+                        }
+                        catch (Exception)
+                        {
+                            //Do Nothing...
+                        }
+                        
+                        break;
+                    }
                 }
             }
             catch (Exception ex)
             {
                 Log.WriteLog(LogType.Error, "ULSNServerAdapter | DiscountProcess", $"{ex.Message}");
             }
+
             isProcessRun = false;
 
         }
@@ -350,48 +375,91 @@ namespace NpmAdapter.Adapter
                 return;
             }
 
-            if (isProcessing) //작업 진행중
+            try
             {
-                try
+                string xmlData = string.Empty;
+                string command = string.Empty;
+                string carNo = string.Empty;
+                string tkNo = string.Empty;
+                string dateTime = string.Empty;
+
+                JObject obj = JObject.Parse(receiveMessage);
+                var jResult = obj["result"];
+
+                if (Helper.NVL(jResult["status"]) == "200")
                 {
-                    string xmlData = string.Empty;
-                    string command = string.Empty;
+                    command = Helper.NVL(obj["command"]);
+                    carNo = Helper.NVL(obj["carno"]);
+                    xmlData = Helper.NVL(obj["data"]).Replace("\\n", "").Replace(" ", ""); //\n과 공백을 제거
 
-                    JObject obj = JObject.Parse(receiveMessage);
-                    var jResult = obj["result"];
+                    List<Car> tempRemove = new List<Car>();
 
-                    if (Helper.NVL(jResult["status"]) == "200")
+                    foreach (var car in lstCar)
                     {
-                        command = Helper.NVL(obj["command"]);
-                        xmlData = Helper.NVL(obj["data"]).Replace("\\n", "").Replace(" ", ""); //\n과 공백을 제거
-                                                                                               //DB 저장
-                        if (gov == null) gov = new GovInterfaceModel();
-                        Dictionary<string, object> param = new Dictionary<string, object>();
-                        param.Add("TkNo", currentPayload.data.reg_no);
-                        param.Add("CarNo", currentPayload.data.car_number);
-                        param.Add("RequestDateTime", $"{currentPayload.data.date_time}");
-                        param.Add("InterfaceCode", command); //command
-                        param.Add("InterfaceData", xmlData);
-
-                        if (gov.Save(param))
+                        if (car.carNo == carNo)
                         {
-                            //DB저장성공
-                            Log.WriteLog(LogType.Info, $"ULSNServerAdapter | TcpServer_ReceiveFromPeer", $"DB저장성공", LogAdpType.HomeNet);
-                        }
-                        else
-                        {
-                            //DB저장실패
-                            Log.WriteLog(LogType.Error, $"ULSNServerAdapter | TcpServer_ReceiveFromPeer", $"DB저장실패", LogAdpType.HomeNet);
-                        }
+                            tkNo = car.tkNo;
+                            dateTime = car.DateTime;
 
-                        isProcessing = false;
+                            switch (command)
+                            {
+                                case "disability":
+                                    car.disability = true;
+                                    break;
+                                case "national":
+                                    car.national = true;
+                                    break;
+                                case "eco":
+                                    car.eco = true;
+                                    break;
+                                default: //small
+                                    car.small = true;
+                                    break;
+                            }
+
+                            if (car.eco && car.disability && car.national && car.small) tempRemove.Add(car);
+
+                            break;
+                        }
                     }
+
+                    foreach (var item in tempRemove)
+                    {
+                        lstCar.Remove(item);
+                    }
+
+                    if (tkNo == string.Empty)
+                    {
+                        tkNo = currentPayload.data.reg_no;
+                        dateTime = currentPayload.data.date_time;
+                    }
+
+                    if (gov == null) gov = new GovInterfaceModel();
+                    Dictionary<string, object> param = new Dictionary<string, object>();
+                    param.Add("TkNo", tkNo);
+                    param.Add("CarNo", carNo);
+                    param.Add("RequestDateTime", dateTime);
+                    param.Add("InterfaceCode", command); //command
+                    param.Add("InterfaceData", xmlData);
+
+                    if (gov.Save(param))
+                    {
+                        //DB저장성공
+                        Log.WriteLog(LogType.Info, $"ULSNServerAdapter | TcpServer_ReceiveFromPeer", $"DB저장성공", LogAdpType.HomeNet);
+                    }
+                    else
+                    {
+                        //DB저장실패
+                        Log.WriteLog(LogType.Error, $"ULSNServerAdapter | TcpServer_ReceiveFromPeer", $"DB저장실패", LogAdpType.HomeNet);
+                    }
+
+                    isProcessing = false;
                 }
-                catch (Exception ex)
-                {
-                    Log.WriteLog(LogType.Error, "ULSNServerAdapter | TcpServer_ReceiveFromPeer", $"{ex.Message}");
-                    isProcessing = true;
-                }
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLog(LogType.Error, "ULSNServerAdapter | TcpServer_ReceiveFromPeer", $"{ex.Message}");
+                isProcessing = true;
             }
         }
 
@@ -580,5 +648,35 @@ namespace NpmAdapter.Adapter
     {
         public string cmd;
         public RequestPayload<AlertInOutCarPayload> payload;
+    }
+
+    class Car : IComparable<Car>, IEquatable<Car>
+    {
+        public string tkNo;
+        public string DateTime;
+        public string carNo;
+        public bool eco;
+        public bool small;
+        public bool disability;
+        public bool national;
+
+        public Car()
+        {
+            eco = false;
+            small = false;
+            disability = false;
+            national = false;
+        }
+
+        public int CompareTo(Car other)
+        {
+            if (this.carNo == other.carNo) return 0;
+            else return -1;
+        }
+
+        public bool Equals(Car other)
+        {
+            return this.carNo == other.carNo;
+        }
     }
 }
