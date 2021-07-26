@@ -125,7 +125,7 @@ namespace NpmAdapter.Adapter
             }
             catch (Exception ex)
             {
-                Log.WriteLog(LogType.Error, "KakaoMovilAdapter | StopAdapter", $"{ex.Message}", LogAdpType.HomeNet);
+                Log.WriteLog(LogType.Error, "KakaoMovilAdapter | StopAdapter", $"{ex.StackTrace}", LogAdpType.HomeNet);
                 return false;
             }
             isRun = !bResult;
@@ -569,7 +569,7 @@ namespace NpmAdapter.Adapter
                             }
                             catch (Exception ex)
                             {
-                                Log.WriteLog(LogType.Error, "KakaoMovilAdapter | SendMessage", $"{ex.Message}", LogAdpType.HomeNet);
+                                Log.WriteLog(LogType.Error, "KakaoMovilAdapter | SendMessage", $"{ex.StackTrace}", LogAdpType.HomeNet);
                             }
                         }
                     }
@@ -867,7 +867,7 @@ namespace NpmAdapter.Adapter
                     }
                     catch (Exception ex)
                     {
-                        Log.WriteLog(LogType.Error, $"KakaoMovilAdapter | AccessTokenAction", $"{ex.Message}");
+                        Log.WriteLog(LogType.Error, $"KakaoMovilAdapter | AccessTokenAction", $"{ex.StackTrace}");
                     }
                 }
 
@@ -912,7 +912,7 @@ namespace NpmAdapter.Adapter
             }
             catch (Exception ex)
             {
-                Log.WriteLog(LogType.Error, "KakaoMovilAdapter | GetAccessToken", $"Exception Message : {ex.Message}", LogAdpType.HomeNet);
+                Log.WriteLog(LogType.Error, "KakaoMovilAdapter | GetAccessToken", $"Exception Message : {ex.StackTrace}", LogAdpType.HomeNet);
             }
 
             return accessToken;
