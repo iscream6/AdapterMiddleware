@@ -22,7 +22,6 @@ namespace NpmAdapter.Adapter
         private StringBuilder receiveMessageBuffer = new StringBuilder();
 
         public IAdapter TargetAdapter { get; set; }
-
         public bool IsRuning => isRun;
 
         public event IAdapter.ShowBallonTip ShowTip;
