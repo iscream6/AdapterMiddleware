@@ -421,7 +421,8 @@ namespace NpmAdapter.Adapter
                             e.Response.Encoding = SysConfig.Instance.HomeNet_Encoding;
                             e.Response.ContentType = new ContentTypeHeader("application/json");
                             e.Response.Add(iHeader);
-                            Log.WriteLog(LogType.Info, $"KakaoMovilAdapter | 응답(TimeOut)", $"{responsePayload.ToJson()}", LogAdpType.HomeNet);
+                            //응답시간이 초과되었다면 responsePayload 는 값이 없는 상태이므로 Null Reference Exception이 발생함.
+                            Log.WriteLog(LogType.Info, $"KakaoMovilAdapter | 응답(TimeOut)", $"응답시간 초과", LogAdpType.HomeNet);
                             e.Response.Body.Write(result, 0, result.Length);
                         }
                     }
@@ -432,7 +433,7 @@ namespace NpmAdapter.Adapter
                     payload.resultCode = MvlResponsePayload.SttCode.InternalServerError;
                     payload.resultMessage = MvlResponsePayload.SttCode.InternalServerError.GetDescription();
                     payload.responseTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-                    Log.WriteLog(LogType.Info, $"KakaoMovilAdapter | 응답(Exception:{ex.Message})", $"{payload.ToJson()}", LogAdpType.HomeNet);
+                    Log.WriteLog(LogType.Info, $"KakaoMovilAdapter | 응답(Exception:{ex.StackTrace})", $"{payload.ToJson()}", LogAdpType.HomeNet);
                     byte[] result = payload.Serialize();
                     e.Response.Encoding = SysConfig.Instance.HomeNet_Encoding;
                     e.Response.ContentType = new ContentTypeHeader("application/json");
