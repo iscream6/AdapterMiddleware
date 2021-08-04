@@ -504,6 +504,23 @@ namespace NpmAdapter.Adapter
                         //    break;
                         //}
 
+                        //car_imgae 의 car_number 와 car_number 간 비교를 통해 두 차량번호가 다르다면
+                        //car_image 의 car_number 로 car_number 필드를 update 한다.
+                        string car_img = payload.data.car_image;
+                        var imgIdx = car_img.LastIndexOf('_') + 1;
+                        if(imgIdx != 0)
+                        {
+                            var jpg = car_img.Substring(imgIdx);
+                            var jIdx = jpg.LastIndexOf('.');
+                            var valid_Car_number = jpg.Substring(0, jIdx);
+
+                            if(payload.data.car_number != valid_Car_number)
+                            {
+                                Log.WriteLog(LogType.Info, "KakaoMovilAdapter | SendMessage", $"== 차량 번호 보정 : {payload.data.car_number} -> {valid_Car_number}", LogAdpType.HomeNet);
+                                payload.data.car_number = valid_Car_number;
+                            }
+                        }
+
                         MvlInOutCarPayload ioPayload = new MvlInOutCarPayload(payload.command)
                         {
                             apt_idx = int.Parse(aptId),
