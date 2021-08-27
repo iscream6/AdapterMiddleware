@@ -48,6 +48,8 @@ namespace NpmAdapter.Adapter
         private Queue<RequestPayload<AlertInOutCarPayload>> quePayload = new Queue<RequestPayload<AlertInOutCarPayload>>();
 
         public bool IsRuning => isRun;
+
+        public string reqPid { get; set; }
         public IAdapter TargetAdapter { get; set; }
         private INetwork TcpJavaServer { get; set; }
 

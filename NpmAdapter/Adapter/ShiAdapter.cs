@@ -38,6 +38,9 @@ namespace NpmAdapter.Adapter
         
         public bool IsRuning => isRun;
 
+        public string reqPid { get; set; }
+
+
         public event IAdapter.ShowBallonTip ShowTip;
 
         Dictionary<byte, CmdType> _DicAlertBuffer;

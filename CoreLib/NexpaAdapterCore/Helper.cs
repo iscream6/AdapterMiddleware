@@ -53,7 +53,9 @@ namespace NexpaAdapterStandardLib
         [Description("WEB")]
         Web,
         [Description("AB")]
-        NPAutoBooth
+        NPAutoBooth,
+        [Description("HIP")]
+        Hipass,
     }
 
     public enum HomeNetAdapterType
@@ -97,8 +99,13 @@ namespace NexpaAdapterStandardLib
         [Description("CHM")]
         ChamsleTech,
         [Description("SHI")]
-        HyundaeSanup
-
+        HyundaeSanup,
+        [Description("IHP")]
+        ITronHighPass,
+        [Description("APHDMLT")]
+        AptHdnMulti,
+        [Description("MIL")]
+        Militaray,
     }
 
     public static class StdHelper

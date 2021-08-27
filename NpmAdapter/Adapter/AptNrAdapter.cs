@@ -24,6 +24,8 @@ namespace NpmAdapter.Adapter
         public IAdapter TargetAdapter { get; set; }
         public bool IsRuning => isRun;
 
+        public string reqPid { get; set; }
+
         public event IAdapter.ShowBallonTip ShowTip;
 
         public void Dispose()
@@ -48,6 +50,8 @@ namespace NpmAdapter.Adapter
         {
             try
             {
+                if (dicHeader.Count == 0) return;
+
                 receiveMessageBuffer.Append(buffer.ToString(SysConfig.Instance.Nexpa_Encoding, size));
                 var jobj = JObject.Parse(receiveMessageBuffer.ToString());
                 Thread.Sleep(10);
@@ -101,7 +105,7 @@ namespace NpmAdapter.Adapter
                                 }
                                 finally
                                 {
-                                    TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);
+                                    TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length, pid);
                                 }
                             }
                         }
@@ -113,20 +117,27 @@ namespace NpmAdapter.Adapter
                             string responseData = string.Empty;
                             StringBuilder sendMessage = new StringBuilder($"kaptCode={SysConfig.Instance.ParkId}&carNo={Helper.NVL(data["car_number"])}");
                             Uri uri;
+
+                            if(Helper.NVL(data["kind"]) == "n" && Helper.NVL(data["dong"]) == "" && Helper.NVL(data["ho"]) == "")
+                            {
+                                return;
+                            }
+
                             if (command == CmdType.alert_incar)
                             {
                                 uri = new Uri(string.Concat(_Domain, ALERT_INCAR));
                                 sendMessage.Append($"&dong={Helper.NVL(data["dong"])}");
                                 sendMessage.Append($"&ho={Helper.NVL(data["ho"])}");
                                 string kind = Helper.NVL(data["kind"]) == "a" ? "Y" : "N";
-                                sendMessage.Append($"&isResident={kind}"); 
+                                sendMessage.Append($"&isResident={kind}");
+                                sendMessage.Append($"&isHomenet={(Helper.NVL(data["kind"]) == "v" ? "Y" : "N")}");
                             }
                             else
                             {
                                 uri = new Uri(string.Concat(_Domain, ALERT_OUTCAR));
                             }
-
-                            sendMessage.Append($"&visitDate={Helper.NVL(data["date_time"]).ConvertDateTimeFormat("yyyy-MM-dd HH:mm:ss", "yyyyMMddHHmmss")}");
+                            
+                            sendMessage.Append($"&visitDate={Helper.NVL(data["date_time"]).ConvertDateTimeFormat("yyyyMMddHHmmss", "yyyy-MM-dd HH:mm:ss")}");
 
                             if (NetworkWebClient.Instance.SendData(uri, NetworkWebClient.RequestType.POST, ContentType.FormData, SysConfig.Instance.HomeNet_Encoding.GetBytes(sendMessage.ToString()), ref responseData, ref responseHeader, header: dicHeader))
                             {
@@ -144,7 +155,7 @@ namespace NpmAdapter.Adapter
                                 }
 
                                 byte[] responseBuffer = responsePayload.Serialize();
-                                TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);
+                                TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length, pid);
                             }
                         }
                         break;
@@ -158,13 +169,16 @@ namespace NpmAdapter.Adapter
             }
             catch (Exception ex)
             {
-                Log.WriteLog(LogType.Error, "AptNrAdapter | SendMessage", $"Exception Message : {ex.Message}", LogAdpType.HomeNet);
+                Log.WriteLog(LogType.Error, "AptNrAdapter | SendMessage", $"Exception Message : {ex.StackTrace}", LogAdpType.HomeNet);
             }
         }
 
         public bool StartAdapter()
         {
-            dicHeader.Add("Authorization", SysConfig.Instance.AuthToken);
+            if(SysConfig.Instance.AuthToken != "")
+            {
+                dicHeader.Add("Authorization", SysConfig.Instance.AuthToken);
+            }
             return true;
         }
 

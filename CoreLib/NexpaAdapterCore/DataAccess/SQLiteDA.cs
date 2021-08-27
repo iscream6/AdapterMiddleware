@@ -1,7 +1,6 @@
 ﻿using NexpaAdapterStandardLib;
 using NexpaAdapterStandardLib.DataAccess;
 using System;
-using System.Collections.Generic;
 using System.Data;
 using System.Data.SQLite;
 using System.IO;
@@ -438,7 +437,7 @@ namespace NpmStandardLib.DataAccess
             return OpenConnection();
         }
 
-        private bool OpenConnection()
+        public bool OpenConnection()
         {
             Disconnect();
 
@@ -447,14 +446,14 @@ namespace NpmStandardLib.DataAccess
             if (_Connection.State == ConnectionState.Closed)
             {
                 StringBuilder sConnection = new StringBuilder();
-                sConnection.Append("Data Source=mw_config.db3; ");
+                sConnection.Append($"Data Source={System.Environment.CurrentDirectory}\\config\\mw_config.db3; ");
 
-                if (!string.IsNullOrEmpty(SysConfig.Instance.Password))
-                {
-                    sConnection.Append("Password=");
-                    sConnection.Append(SysConfig.Instance.Password);
-                    sConnection.Append("; ");
-                }
+                //if (!string.IsNullOrEmpty(SysConfig.Instance.Password))
+                //{
+                //    sConnection.Append("Password=");
+                //    sConnection.Append(SysConfig.Instance.Password);
+                //    sConnection.Append("; ");
+                //}
 
                 sConnection.Append("FailIfMissing=False; Pooling=False;");
 
@@ -463,9 +462,9 @@ namespace NpmStandardLib.DataAccess
 
             try
             {
-                if (!File.Exists(System.Environment.CurrentDirectory + @"\mw_config.db3"))
+                if (!File.Exists(System.Environment.CurrentDirectory + @"\config\mw_config.db3"))
                 {
-                    SQLiteConnection.CreateFile(System.Environment.CurrentDirectory + @"\mw_config.db3");
+                    SQLiteConnection.CreateFile(System.Environment.CurrentDirectory + @"\config\mw_config.db3");
                 }
                 _Connection.Open();
             }

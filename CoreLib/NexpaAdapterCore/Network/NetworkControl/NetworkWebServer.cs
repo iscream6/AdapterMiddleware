@@ -121,7 +121,7 @@ namespace NexpaAdapterStandardLib.Network
             }
             catch (Exception ex)
             {
-                Log.WriteLog(LogType.Error, "HttpServerNetwork | OnRequestReceive", ex.Message);
+                Log.WriteLog(LogType.Error, "HttpServerNetwork | OnRequestReceive", ex.StackTrace);
             }
         }
     }

@@ -10,7 +10,7 @@ namespace NpmAdapter.Payload
         public string location_type { get; set; }
         public string dong { get; set; }
         public string ho { get; set; }
-        public void Deserialize(JObject json)
+        public void Deserialize(JToken json)
         {
             location_type = json["location_type"].ToString();
             dong = json["dong"].ToString();
@@ -24,7 +24,7 @@ namespace NpmAdapter.Payload
             return ToJson().ToByteArray();
         }
 
-        public JObject ToJson()
+        public JToken ToJson()
         {
             JObject json = new JObject();
             json["location_type"] = location_type;

@@ -19,7 +19,7 @@ namespace NpmAdapter.Payload
 
         public CmdHelper.Command command { get; set; }
 
-        public void Deserialize(JObject json)
+        public void Deserialize(JToken json)
         {
             category = Helper.NVL(json["category"]);
             type = (CmdHelper.Type)Enum.Parse(typeof(CmdHelper.Type), json["type"].ToString()); 
@@ -39,7 +39,7 @@ namespace NpmAdapter.Payload
             return ToJson().ToByteArray();
         }
 
-        public JObject ToJson()
+        public JToken ToJson()
         {
             JObject json = new JObject();
             json["category"] = category;

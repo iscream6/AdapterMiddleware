@@ -40,6 +40,9 @@ namespace NpmAdapter.Adapter
         private INetwork MyHttpNetwork { get; set; }
         public IAdapter TargetAdapter { get; set; }
         public bool IsRuning { get => isRun; }
+
+        public string reqPid { get; set; }
+
         public NexpaAdapter(Status status)
         {
             runStatus = status;
@@ -183,14 +186,17 @@ namespace NpmAdapter.Adapter
                         MyTcpNetwork.SendToPeer(responseBuffer, 0, responseBuffer.Length, id);
 
                         if (Helper.NVL(data) == "alert") return;
+                        else TargetAdapter.reqPid = id;
+                    }
+                    else
+                    {
+                        TargetAdapter.SendMessage(buffer, offset, size, id);
                     }
                 }
                 catch (Exception ex)
                 {
                     Log.WriteLog(LogType.Error, "NexpaTcpAdapter | MyTcpNetwork_ReceiveFromPeer", $"JSON 처리 오류 : {ex.Message}", LogAdpType.Nexpa);
                 }
-
-                TargetAdapter.SendMessage(buffer, offset, size, id);
             }
             Log.WriteLog(LogType.Info, "NexpaTcpAdapter | MyTcpNetwork_ReceiveFromPeer", "수신 완료 =====", LogAdpType.Nexpa);
         }

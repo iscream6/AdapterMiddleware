@@ -14,7 +14,7 @@ namespace NpmAdapter.Payload
         CmdHeader header { get; set; }
         T data { get; set; }
 
-        public void Deserialize(JObject json)
+        public void Deserialize(JToken json)
         {
             var headerJson = json["header"];
             var dataJson = json["data"];
@@ -28,7 +28,7 @@ namespace NpmAdapter.Payload
             return ToJson().ToByteArray();
         }
 
-        public JObject ToJson()
+        public JToken ToJson()
         {
             JObject json = new JObject();
             json["header"] = header.ToJson();

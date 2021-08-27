@@ -9,10 +9,10 @@ namespace NpmAdapter.Payload
 {
     public interface IPayload
     {
-        void Deserialize(JObject json);
+        void Deserialize(JToken json);
 
         byte[] Serialize();
 
-        JObject ToJson();
+        JToken ToJson();
     }
 }

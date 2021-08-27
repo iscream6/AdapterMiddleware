@@ -471,7 +471,7 @@ namespace NpmAdapter.Payload
             return payload;
         }
 
-        public static IPayload MakeResponseDataPayload(Type type, JObject json)
+        public static IPayload MakeResponseDataPayload(Type type, JToken json)
         {
             IPayload payload = null;
             switch (type)

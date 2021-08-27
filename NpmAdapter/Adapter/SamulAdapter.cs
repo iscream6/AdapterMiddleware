@@ -26,6 +26,8 @@ namespace NpmAdapter.Adapter
 
         public bool IsRuning => true;
 
+        public string reqPid { get; set; }
+
         public void Dispose()
         {
             //Do nothing...

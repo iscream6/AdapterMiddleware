@@ -56,6 +56,7 @@ namespace NpmAdapter.Adapter
         private INetwork MyHttpNetwork { get; set; }
         public IAdapter TargetAdapter { get; set; }
         public bool IsRuning { get => isRun; }
+        public string reqPid { get; set; }
 
         public CmxDLAdapter(Status status)
         {

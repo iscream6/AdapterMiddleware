@@ -24,7 +24,7 @@ namespace NpmAdapter.Payload
             list = new List<T>();
         }
 
-        public void Deserialize(JObject json)
+        public void Deserialize(JToken json)
         {
             page = json["page"].ToString();
             count = json["count"].ToString();
@@ -51,7 +51,7 @@ namespace NpmAdapter.Payload
             return ToJson().ToByteArray(SysConfig.Instance.HomeNet_Encoding);
         }
 
-        public JObject ToJson()
+        public JToken ToJson()
         {
             JObject json = new JObject();
             json["page"] = page;
@@ -79,7 +79,7 @@ namespace NpmAdapter.Payload
         public string car_type { get; set; }
         public string datetime { get; set; }
 
-        public void Deserialize(JObject json)
+        public void Deserialize(JToken json)
         {
             car_num = json["car_num"].ToString();
             car_type = json["car_type"].ToString();
@@ -91,7 +91,7 @@ namespace NpmAdapter.Payload
             return ToJson().ToByteArray(SysConfig.Instance.HomeNet_Encoding);
         }
 
-        public JObject ToJson()
+        public JToken ToJson()
         {
             JObject json = new JObject();
             json["car_num"] = car_num;
@@ -111,7 +111,7 @@ namespace NpmAdapter.Payload
         public string term { get; set; }
         public string status { get; set; }
 
-        public void Deserialize(JObject json)
+        public void Deserialize(JToken json)
         {
             dong = json["dong"]?.ToString();
             ho = json["ho"]?.ToString();
@@ -127,7 +127,7 @@ namespace NpmAdapter.Payload
             return ToJson().ToByteArray(SysConfig.Instance.HomeNet_Encoding);
         }
 
-        public JObject ToJson()
+        public JToken ToJson()
         {
             JObject json = new JObject();
             if(dong != null && dong != string.Empty)
@@ -155,7 +155,7 @@ namespace NpmAdapter.Payload
         public string reg_date { get; set; }
         public string reason { get; set; }
 
-        public void Deserialize(JObject json)
+        public void Deserialize(JToken json)
         {
             code = Helper.NVL(json["reg_num"], "y");
             reg_num = Helper.NVL(json["reg_num"]);
@@ -169,7 +169,7 @@ namespace NpmAdapter.Payload
             return ToJson().ToByteArray(SysConfig.Instance.HomeNet_Encoding);
         }
 
-        public JObject ToJson()
+        public JToken ToJson()
         {
             JObject json = new JObject();
             json["code"] = Helper.NVL(code);

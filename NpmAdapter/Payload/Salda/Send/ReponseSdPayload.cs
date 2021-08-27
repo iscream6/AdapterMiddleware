@@ -11,7 +11,7 @@ namespace NpmAdapter.Payload
         public string resultCode { get; set; }
         public string resultMsg { get; set; }
         public IPayload content { get; set; }
-
+        
         public void Initialize()
         {
             resultCode = "";
@@ -19,9 +19,9 @@ namespace NpmAdapter.Payload
             content = null;
         }
 
-        public void Deserialize(JObject json)
+        public void Deserialize(JToken json)
         {
-            //Do nothgin
+            //Do nothing
         }
 
         public byte[] Serialize()
@@ -29,7 +29,7 @@ namespace NpmAdapter.Payload
             return ToJson().ToByteArray(SysConfig.Instance.HomeNet_Encoding);
         }
 
-        public JObject ToJson()
+        public JToken ToJson()
         {
             JObject json = new JObject();
             json["resultCode"] = resultCode;

@@ -15,7 +15,7 @@ namespace NpmAdapter.Payload
             list = new List<T>();
         }
 
-        public override void Deserialize(JObject json)
+        public override void Deserialize(JToken json)
         {
             base.Deserialize(json);
             JArray array = json["values"] as JArray;
@@ -39,9 +39,9 @@ namespace NpmAdapter.Payload
             return ToJson().ToByteArray(SysConfig.Instance.HomeNet_Encoding);
         }
 
-        public override JObject ToJson()
+        public override JToken ToJson()
         {
-            JObject json = base.ToJson();
+            JToken json = base.ToJson();
             if (list != null && list.Count > 0)
             {
                 JArray array = new JArray();
@@ -75,7 +75,7 @@ namespace NpmAdapter.Payload
         public string indatetime { get; set; }
         public string outdatetime { get; set; }
 
-        public void Deserialize(JObject json)
+        public void Deserialize(JToken json)
         {
             tkNo = Helper.NVL(json["tkNo"]);
             parkNo = Helper.NVL(json["parkNo"]);
@@ -89,7 +89,7 @@ namespace NpmAdapter.Payload
             return ToJson().ToByteArray(SysConfig.Instance.HomeNet_Encoding);
         }
 
-        public JObject ToJson()
+        public JToken ToJson()
         {
             JObject json = new JObject();
             json["tkNo"] = tkNo;
@@ -115,7 +115,7 @@ namespace NpmAdapter.Payload
         public string effEnd { get; set; }
         public int chkUse;
 
-        public void Deserialize(JObject json)
+        public void Deserialize(JToken json)
         {
             tkNo = Helper.NVL(json["tkNo"]);
             groupNo = Helper.NVL(json["groupNo"]);
@@ -135,7 +135,7 @@ namespace NpmAdapter.Payload
             return ToJson().ToByteArray(SysConfig.Instance.HomeNet_Encoding);
         }
 
-        public JObject ToJson()
+        public JToken ToJson()
         {
             JObject json = new JObject();
             json["tkNo"] = tkNo;
@@ -165,7 +165,7 @@ namespace NpmAdapter.Payload
         public int instatusno { get => 0; } //default value return only
         public int outstatusno { get => 0; } //default value return only
 
-        public void Deserialize(JObject json)
+        public void Deserialize(JToken json)
         {
             tkNo = Helper.NVL(json["tkNo"]);
             parkNo = Helper.NVL(json["parkNo"]);
@@ -181,7 +181,7 @@ namespace NpmAdapter.Payload
             return ToJson().ToByteArray(SysConfig.Instance.HomeNet_Encoding);
         }
 
-        public JObject ToJson()
+        public JToken ToJson()
         {
             JObject json = new JObject();
             json["tkNo"] = tkNo;
@@ -207,7 +207,7 @@ namespace NpmAdapter.Payload
         public string reserveEnd { get; set; }
         public string remark { get; set; }
 
-        public void Deserialize(JObject json)
+        public void Deserialize(JToken json)
         {
             Belong = Helper.NVL(json["Belong"]);
             carNo = Helper.NVL(json["carNo"]);
@@ -223,7 +223,7 @@ namespace NpmAdapter.Payload
             return ToJson().ToByteArray(SysConfig.Instance.HomeNet_Encoding);
         }
 
-        public JObject ToJson()
+        public JToken ToJson()
         {
             JObject json = new JObject();
             json["Belong"] = Belong;
@@ -246,7 +246,7 @@ namespace NpmAdapter.Payload
         public string indatetime { get; set; }
         public string outdatetime { get; set; }
 
-        public void Deserialize(JObject json)
+        public void Deserialize(JToken json)
         {
             parkNo = Helper.NVL(json["parkNo"]);
             carNo = Helper.NVL(json["carNo"]);
@@ -261,7 +261,7 @@ namespace NpmAdapter.Payload
             return ToJson().ToByteArray(SysConfig.Instance.HomeNet_Encoding);
         }
 
-        public JObject ToJson()
+        public JToken ToJson()
         {
             JObject json = new JObject();
             json["parkNo"] = parkNo;

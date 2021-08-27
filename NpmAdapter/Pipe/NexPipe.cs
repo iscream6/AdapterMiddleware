@@ -55,6 +55,10 @@ namespace NpmAdapter
                         nexpa = new NPAutoBoothAdapter();
                         Log.WriteLog(LogType.Info, $"AdapterPipe | GeneratePipe", $"Nexpa WebAdapter 생성", LogAdpType.Nexpa);
                         break;
+                    case NexpaAdapterType.Hipass:
+                        nexpa = new NexpaHipassAdapter();
+                        Log.WriteLog(LogType.Info, $"AdapterPipe | GeneratePipe", $"Nexpa Local Adapter 생성", LogAdpType.Nexpa);
+                        break;
                     default:
                         nexpa = null;
                         break;
@@ -142,6 +146,15 @@ namespace NpmAdapter
                         break;
                     case HomeNetAdapterType.ChamsleTech: //참슬테크
                         homenet = new ChamAdapter();
+                        break;
+                    case HomeNetAdapterType.ITronHighPass: //아이트론 하이패스
+                        //homenet = new ITronHighPassAdapter();
+                        break;
+                    case HomeNetAdapterType.AptHdnMulti: //아파트너 현대통신 멀티
+                        homenet = new AptHdnMultier();
+                        break;
+                    case HomeNetAdapterType.Militaray:
+                        homenet = new MilitaryAdapter();
                         break;
                     default:
                         homenet = null;

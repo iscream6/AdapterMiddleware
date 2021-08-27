@@ -22,7 +22,7 @@ namespace NpmAdapter.Adapter
 
         public IAdapter TargetAdapter { get; set; }
         public bool IsRuning => isRun;
-
+        public string reqPid { get; set; }
         public void Dispose()
         {
 
@@ -129,6 +129,13 @@ namespace NpmAdapter.Adapter
 
                         Log.WriteLog(LogType.Info, "MilitaryAdapter | SendMessage", $"Web 송신\n{ioPayload.ToJson()}", LogAdpType.HomeNet);
 
+#if (DEBUG)
+                        //디버깅 모드에서는 Web Server 통신 없음.
+                        responsePayload.result = ResultType.OK;
+                        responsePayload.command = payload.command;
+                        responseBuffer = responsePayload.Serialize();
+                        TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length, pid);
+#elif (!DEBUG)
                         if (NetworkWebClient.Instance.SendData(smtUri, NetworkWebClient.RequestType.POST, ContentType.Json, requestData, ref responseData, ref responseHeader, header: dicHeader))
                         {
                             try
@@ -163,7 +170,8 @@ namespace NpmAdapter.Adapter
                                 }
 
                                 var responseJobj = JObject.Parse(responseData);
-                                if (responseJobj != null && Helper.NVL(responseJobj["code"]) == "0000")
+
+                                if (responseJobj != null && Helper.NVL(responseJobj["responseCode"]) == "2000")
                                 {
                                     responsePayload.command = payload.command;
                                     responseBuffer = responsePayload.Serialize();
@@ -182,6 +190,8 @@ namespace NpmAdapter.Adapter
                                 Log.WriteLog(LogType.Error, "MilitaryAdapter | SendMessage", $"{ex.StackTrace}", LogAdpType.HomeNet);
                             }
                         }
+#endif
+
                     }
                     break;
             }

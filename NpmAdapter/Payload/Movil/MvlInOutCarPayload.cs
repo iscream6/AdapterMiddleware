@@ -21,7 +21,7 @@ namespace NpmAdapter.Payload
 
         private string dateName = "";
 
-        public void Deserialize(JObject json)
+        public void Deserialize(JToken json)
         {
             int aptid = 0; 
             int.TryParse(Helper.NVL(json["apt_idx"]), out aptid);
@@ -38,7 +38,7 @@ namespace NpmAdapter.Payload
             return ToJson().ToByteArray(SysConfig.Instance.HomeNet_Encoding);
         }
 
-        public JObject ToJson()
+        public JToken ToJson()
         {
             JObject json = new JObject();
             int aptid = 0;

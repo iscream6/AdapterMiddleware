@@ -40,7 +40,7 @@ namespace NpmAdapter.Adapter
         private string AuthDong = "100";
         private string AuthHo = "900";
 
-        private static Dictionary<CmdType, JObject> dicBuffer = new Dictionary<CmdType, JObject>();
+        private static Dictionary<CmdType, JToken> dicBuffer = new Dictionary<CmdType, JToken>();
         public event IAdapter.ShowBallonTip ShowTip;
 
         #endregion
@@ -50,6 +50,8 @@ namespace NpmAdapter.Adapter
         private INetwork TcpClientNetwork { get; set; }
         public IAdapter TargetAdapter { get; set; }
         public bool IsRuning => isRun;
+
+        public string reqPid { get; set; }
 
         #endregion
 
@@ -575,7 +577,7 @@ namespace NpmAdapter.Adapter
                                 int iNo = 1;
 
                                 visitlst.total = list.Count.ToString();
-                                JObject sendedJson = dicBuffer.TryGetValue(CmdType.visit_list2);
+                                JObject sendedJson = dicBuffer.TryGetValue(CmdType.visit_list2) as JObject;
                                 dicBuffer.Remove(CmdType.visit_list2);
 
                                 if (sendedJson != null && sendedJson.Count > 0)
@@ -623,7 +625,7 @@ namespace NpmAdapter.Adapter
                 case CmdType.visit_reg2:
                     {
                         string sData = "#mode=1";
-                        JObject sendedJson = dicBuffer.TryGetValue(CmdType.visit_reg2);
+                        JObject sendedJson = dicBuffer.TryGetValue(CmdType.visit_reg2) as JObject;
                         dicBuffer.Remove(CmdType.visit_reg2);
                         if (sendedJson != null && sendedJson.Count > 0)
                         {
@@ -646,7 +648,7 @@ namespace NpmAdapter.Adapter
                 case CmdType.visit_del2:
                     {
                         string sData = "#mode=2";
-                        JObject sendedJson = dicBuffer.TryGetValue(CmdType.visit_del2);
+                        JObject sendedJson = dicBuffer.TryGetValue(CmdType.visit_del2) as JObject;
                         dicBuffer.Remove(CmdType.visit_del2);
                         if (sendedJson != null && sendedJson.Count > 0)
                         {

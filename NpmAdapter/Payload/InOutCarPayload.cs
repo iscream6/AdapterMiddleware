@@ -10,7 +10,7 @@ namespace NpmAdapter.Payload
         public string car_number { get; set; }
         public string date_time { get; set; }
 
-        public void Deserialize(JObject json)
+        public void Deserialize(JToken json)
         {
             dong = json["dong"].ToString();
             ho = json["ho"].ToString();
@@ -23,7 +23,7 @@ namespace NpmAdapter.Payload
             return ToJson().ToByteArray();
         }
 
-        public JObject ToJson()
+        public JToken ToJson()
         {
             JObject json = new JObject();
             json["dong"] = dong;

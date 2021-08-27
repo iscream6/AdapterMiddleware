@@ -9,7 +9,7 @@ namespace NpmAdapter.Payload
     class BeyondPayload : IPayload
     {
 
-        public virtual void Deserialize(JObject json)
+        public virtual void Deserialize(JToken json)
         {
 
         }
@@ -19,7 +19,7 @@ namespace NpmAdapter.Payload
             return ToJson().ToByteArray(SysConfig.Instance.HomeNet_Encoding);
         }
 
-        public virtual JObject ToJson()
+        public virtual JToken ToJson()
         {
             JObject json = new JObject();
             json["shadow"] = GetShadowBlock();
@@ -44,7 +44,7 @@ namespace NpmAdapter.Payload
     {
         public string requestType { get; set; }
 
-        public override void Deserialize(JObject json)
+        public override void Deserialize(JToken json)
         {
             base.Deserialize(json);
             requestType = Helper.NVL(json["requestType"]);
@@ -55,9 +55,9 @@ namespace NpmAdapter.Payload
             return ToJson().ToByteArray(SysConfig.Instance.HomeNet_Encoding);
         }
 
-        public override JObject ToJson()
+        public override JToken ToJson()
         {
-            JObject json = base.ToJson();
+            JToken json = base.ToJson();
             JObject instantJson = new JObject();
             instantJson["requestType"] = requestType;
             json["instantMessage"] = instantJson;
@@ -77,7 +77,7 @@ namespace NpmAdapter.Payload
         public IOType ioType { get; set; }
         public string dateTime { get; set; }
 
-        public override void Deserialize(JObject json)
+        public override void Deserialize(JToken json)
         {
             base.Deserialize(json);
             dateTime = Helper.NVL(json["enterOffsetDateTime"]);
@@ -97,9 +97,9 @@ namespace NpmAdapter.Payload
             return ToJson().ToByteArray(SysConfig.Instance.HomeNet_Encoding);
         }
 
-        public override JObject ToJson()
+        public override JToken ToJson()
         {
-            JObject json = base.ToJson();
+            JToken json = base.ToJson();
             json["carNo"] = carNo;
             if(ioType == IOType.IN)
             {

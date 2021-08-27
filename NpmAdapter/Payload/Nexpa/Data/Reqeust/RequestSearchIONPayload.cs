@@ -12,7 +12,7 @@ namespace NpmAdapter.Payload
         public string start_date_time { get; set; }
         public string end_date_time { get; set; }
 
-        public void Deserialize(JObject json)
+        public void Deserialize(JToken json)
         {
             car_number = Helper.NVL(json["car_number"]);
             start_date_time = Helper.NVL(json["start_date_time"]);
@@ -24,7 +24,7 @@ namespace NpmAdapter.Payload
             return ToJson().ToByteArray(SysConfig.Instance.Nexpa_Encoding);
         }
 
-        public JObject ToJson()
+        public JToken ToJson()
         {
             JObject json = new JObject();
             json["car_number"] = car_number;

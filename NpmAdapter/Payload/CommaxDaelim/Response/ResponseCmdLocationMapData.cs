@@ -44,7 +44,7 @@ namespace NpmAdapter.Payload
         /// </summary>
         public string in_complex { get; set; }
 
-        public void Deserialize(JObject json)
+        public void Deserialize(JToken json)
         {
             car_number = Helper.NVL(json["tag_num"]);
             alias = Helper.NVL(json["alias"]);
@@ -62,7 +62,7 @@ namespace NpmAdapter.Payload
             return ToJson().ToByteArray();
         }
 
-        public JObject ToJson()
+        public JToken ToJson()
         {
             JObject json = new JObject();
             json["tag_num"] = Helper.NVL(car_number);

@@ -29,8 +29,9 @@ namespace NpmAdapter.Payload
         /// 방문일 수(몇일동안 방문할것인지)
         /// </summary>
         public string term { get; set; }
+        public string remark { get; set; }
 
-        public void Deserialize(JObject json)
+        public void Deserialize(JToken json)
         {
             if (json == null) return;
 
@@ -39,6 +40,7 @@ namespace NpmAdapter.Payload
             car_number = Helper.NVL(json["car_number"]);
             date = Helper.NVL(json["date"]);
             term = Helper.NVL(json["term"]);
+            remark = Helper.NVL(json["remark"]);
         }
 
         public byte[] Serialize()
@@ -46,7 +48,7 @@ namespace NpmAdapter.Payload
             return ToJson().ToByteArray(SysConfig.Instance.Nexpa_Encoding);
         }
 
-        public JObject ToJson()
+        public JToken ToJson()
         {
             JObject json = new JObject();
             json["dong"] = dong;
@@ -54,6 +56,7 @@ namespace NpmAdapter.Payload
             json["car_number"] = car_number;
             json["date"] = date;
             json["term"] = term;
+            json["remark"] = remark;
             return json;
         }
     }

@@ -24,7 +24,7 @@ namespace NpmAdapter.Payload
         public string updatedAt { get; set; }
         public string deletedAt { get; set; }
 
-        public void Deserialize(JObject json)
+        public void Deserialize(JToken json)
         {
             zoneId = Helper.NVL(json["zoneId"]);
             type = Helper.NVL(json["type"]);
@@ -45,7 +45,7 @@ namespace NpmAdapter.Payload
             return ToJson().ToByteArray(SysConfig.Instance.HomeNet_Encoding);
         }
 
-        public JObject ToJson()
+        public JToken ToJson()
         {
             JObject json = new JObject();
             json["regId"] = regId;

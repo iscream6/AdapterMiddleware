@@ -13,7 +13,7 @@ namespace NpmAdapter.Payload
         public string date { get; set; }
         public string alias { get; set; }
 
-        public void Deserialize(JObject json)
+        public void Deserialize(JToken json)
         {
             car_number = json["car_number"].ToString();
             date = json["date"].ToString();
@@ -25,7 +25,7 @@ namespace NpmAdapter.Payload
             return ToJson().ToByteArray(SysConfig.Instance.Nexpa_Encoding);
         }
 
-        public JObject ToJson()
+        public JToken ToJson()
         {
             JObject json = new JObject();
             json["car_number"] = car_number;

@@ -45,7 +45,10 @@ namespace NpmAdapter
         Enable_Point,
         Used_Point,
         Acp_Date,
-        Exp_Date
+        Exp_Date,
+        Owner_Name,
+        Group_Name,
+        Dept_Name
     }
 
     public enum TimeType
@@ -227,6 +230,21 @@ namespace NpmAdapter
             return ASCIIEncoding.Default.GetBytes(charArr);
         }
 
+        public static byte[] StringToAsciiPading(this string str, string seperator, int lenth, bool IsLPad)
+        {
+            if (str.Length > lenth) return null;
+            int sLenth = lenth - str.Length;
+            string sep = string.Empty;
+            for (int i = 0; i < sLenth; i++)
+            {
+                sep += seperator;
+            }
+            if(IsLPad) str = sep + str;
+            else str = str + sep;
+            char[] charArr = str.ToCharArray();
+            return ASCIIEncoding.Default.GetBytes(charArr);
+        }
+
         public static byte[] FourStringTo4ByteAscii(this string str)
         {
             if (str.Length > 4) return null;
@@ -395,7 +413,7 @@ namespace NpmAdapter
             }
         }
 
-        public static byte[] ToByteArray(this JObject json, Encoding encoding = null)
+        public static byte[] ToByteArray(this JToken json, Encoding encoding = null)
         {
             if(encoding == null)
             {

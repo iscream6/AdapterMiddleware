@@ -14,7 +14,7 @@ namespace NpmAdapter.Payload
         /// </summary>
         public string count { get; set; }
 
-        public void Deserialize(JObject json)
+        public void Deserialize(JToken json)
         {
             page = json["page"].ToString();
             count = json["count"].ToString();
@@ -25,7 +25,7 @@ namespace NpmAdapter.Payload
             return ToJson().ToByteArray(SysConfig.Instance.Nexpa_Encoding);
         }
 
-        public JObject ToJson()
+        public JToken ToJson()
         {
             JObject json = new JObject();
             json["page"] = page;

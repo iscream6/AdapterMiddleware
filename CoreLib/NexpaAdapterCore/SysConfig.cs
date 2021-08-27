@@ -37,7 +37,9 @@ namespace NexpaAdapterStandardLib
             [Description("Etc_Config")]
             EtcConfig,
             [Description("Device_Config")]
-            DivConfig
+            DivConfig,
+            [Description("Hipass_Config")]
+            HipassConfig
         }
 
         #region Config Values
@@ -203,6 +205,54 @@ namespace NexpaAdapterStandardLib
 
         #endregion
 
+        #region Hipass Config
+
+        public int HIP_Count { get; }
+        public struct HIP
+        {
+            public string UnitNo;
+            public string IP;
+            public int Port;
+        }
+
+        public List<HIP> HIP_List { get; }
+
+        public string HIP_Dsc_Use { get; }
+        /// <summary>
+        /// 일반 0x00 ~ 0x0F
+        /// </summary>
+        public string HIP_Dsc_Normal { get; }
+        /// <summary>
+        /// 장애인 1~6급 0x10 ~ 0x1F
+        /// </summary>
+        public string HIP_Dsc_Disable { get; }
+        /// <summary>
+        /// 국가유공상이자 1~5급 0x20 ~ 0x2F
+        /// </summary>
+        public string HIP_Dsc_National15 { get; }
+        /// <summary>
+        /// 국가유공상이자 6~7급 0x30 ~ 0x3F
+        /// </summary>
+        public string HIP_Dsc_National67 { get; }
+        /// <summary>
+        /// 5.18민주화운동부상자 1~5급 0x40 ~ 0x4F
+        /// </summary>
+        public string HIP_Dsc_518Demo15 { get; }
+        /// <summary>
+        /// 5.18민주화운동부상자 6급 이하 0x50 ~ 0x5F
+        /// </summary>
+        public string HIP_Dsc_518Demo6 { get; }
+        /// <summary>
+        /// ‘61’ 독립유공자 0x60 ~ 0x6F
+        /// </summary>
+        public string HIP_Dsc_Independent { get; }
+        /// <summary>
+        /// ‘71’ 고엽제후유(의)증환자 0x70 ~ 0x7F
+        /// </summary>
+        public string HIP_Dsc_DeadLeaf { get; }
+
+        #endregion Hipass Config
+
         #endregion
 
         #region Constructor
@@ -250,6 +300,36 @@ namespace NexpaAdapterStandardLib
 
             ParkId = ConfigManager.ReadConfig(config, Sections.EtcConfig.GetDescription(), "ParkId");
             AuthToken = ConfigManager.ReadConfig(config, Sections.EtcConfig.GetDescription(), "AuthToken");
+
+            HIP_List = new List<HIP>();
+            int iTmpCount = 0;
+            string tmpCount = ConfigManager.ReadConfig(config, Sections.HipassConfig.GetDescription(), "Count");
+            if (int.TryParse(tmpCount, out iTmpCount))
+            {
+                HIP_Count = iTmpCount;
+                string preName = ConfigManager.ReadConfig(config, Sections.HipassConfig.GetDescription(), "PreName");
+                for (int i = 0; i < iTmpCount; i++)
+                {
+                    //구분자는 |
+                    string tmpHIP = ConfigManager.ReadConfig(config, Sections.HipassConfig.GetDescription(), $"{preName}_{i}");
+                    string[] arrHIP = tmpHIP.Split('|');
+                    HIP_List.Add(new HIP()
+                    {
+                        UnitNo = arrHIP[0],
+                        IP = arrHIP[1],
+                        Port = int.Parse(arrHIP[2])
+                    });
+                }
+            }
+            HIP_Dsc_Use = ConfigManager.ReadConfig(config, Sections.HipassConfig.GetDescription(), "HIP_Dsc_Use");
+            HIP_Dsc_Normal = ConfigManager.ReadConfig(config, Sections.HipassConfig.GetDescription(), "HIP_Dsc_Normal");
+            HIP_Dsc_Disable = ConfigManager.ReadConfig(config, Sections.HipassConfig.GetDescription(), "HIP_Dsc_Disable");
+            HIP_Dsc_National15 = ConfigManager.ReadConfig(config, Sections.HipassConfig.GetDescription(), "HIP_Dsc_National15");
+            HIP_Dsc_National67 = ConfigManager.ReadConfig(config, Sections.HipassConfig.GetDescription(), "HIP_Dsc_National67");
+            HIP_Dsc_518Demo15 = ConfigManager.ReadConfig(config, Sections.HipassConfig.GetDescription(), "HIP_Dsc_518Demo15");
+            HIP_Dsc_518Demo6 = ConfigManager.ReadConfig(config, Sections.HipassConfig.GetDescription(), "HIP_Dsc_518Demo6");
+            HIP_Dsc_Independent = ConfigManager.ReadConfig(config, Sections.HipassConfig.GetDescription(), "HIP_Dsc_Independent");
+            HIP_Dsc_DeadLeaf = ConfigManager.ReadConfig(config, Sections.HipassConfig.GetDescription(), "HIP_Dsc_DeadLeaf");
         }
 
         #endregion

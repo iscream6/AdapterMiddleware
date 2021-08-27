@@ -17,7 +17,7 @@ namespace NpmAdapter.Payload
         public string tkNo { get; set; }
         public EnrollType enrollType; 
 
-        public override void Deserialize(JObject json)
+        public override void Deserialize(JToken json)
         {
             base.Deserialize(json);
             carNo = Helper.NVL(json["carNo"]);
@@ -40,9 +40,9 @@ namespace NpmAdapter.Payload
             return ToJson().ToByteArray(SysConfig.Instance.HomeNet_Encoding);
         }           
 
-        public override JObject ToJson()
+        public override JToken ToJson()
         {
-            JObject json = base.ToJson();
+            JToken json = base.ToJson();
             json["carNo"] = carNo;
             json["tkNo"] = tkNo; 
             json["enrollType"] = (int)enrollType;
@@ -54,7 +54,7 @@ namespace NpmAdapter.Payload
     {
         public string belong { get; set; }
 
-        public override void Deserialize(JObject json)
+        public override void Deserialize(JToken json)
         {
             base.Deserialize(json);
             belong = Helper.NVL(json["belong"]);
@@ -65,9 +65,9 @@ namespace NpmAdapter.Payload
             return ToJson().ToByteArray(SysConfig.Instance.HomeNet_Encoding);
         }
 
-        public override JObject ToJson()
+        public override JToken ToJson()
         {
-            JObject json = base.ToJson();
+            JToken json = base.ToJson();
             json["belong"] = belong;
             return json;
         }

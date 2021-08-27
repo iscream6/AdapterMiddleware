@@ -15,7 +15,7 @@ namespace NpmAdapter.Payload
 
         public List<IncarInfoPayload> list { get; set; }
 
-        public void Deserialize(JObject json)
+        public void Deserialize(JToken json)
         {
             page = json["page"].ToString();
             list_count = json["list_count"].ToString();
@@ -38,7 +38,7 @@ namespace NpmAdapter.Payload
             return ToJson().ToByteArray(SysConfig.Instance.Nexpa_Encoding);
         }
 
-        public JObject ToJson()
+        public JToken ToJson()
         {
             JObject json = new JObject();
             json["page"] = page;
@@ -62,7 +62,7 @@ namespace NpmAdapter.Payload
         public NexpaPayloadManager.Type type { get; set; }
         public string date_time { get; set; }
 
-        public void Deserialize(JObject json)
+        public void Deserialize(JToken json)
         {
             car_number = json["car_number"].ToString();
             type = (NexpaPayloadManager.Type)Enum.Parse(typeof(NexpaPayloadManager.Type), json["type"].ToString());
@@ -74,7 +74,7 @@ namespace NpmAdapter.Payload
             return ToJson().ToByteArray();
         }
 
-        public JObject ToJson()
+        public JToken ToJson()
         {
             JObject json = new JObject();
             json["car_number"] = car_number;

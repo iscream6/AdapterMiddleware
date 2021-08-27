@@ -46,8 +46,21 @@ namespace NpmAdapter.Payload
         /// 방문종료일시 (kind가 v일 경우 외 빈값)
         /// </summary>
         public string visit_out_date_time { get; set; }
+        /// <summary>
+        /// 소유자명
+        /// </summary>
+        public string owner_name { get; set; }
+        /// <summary>
+        /// 그룹명
+        /// </summary>
+        public string group_name { get; set; }
+        /// <summary>
+        /// 부서명
+        /// </summary>
+        public string dept_name { get; set; }
 
-        public void Deserialize(JObject json)
+
+        public void Deserialize(JToken json)
         {
             if (json == null) return;
 
@@ -61,6 +74,9 @@ namespace NpmAdapter.Payload
             reg_no = json.NPGetValue(NPElements.Reg_No);
             visit_in_date_time = json.NPGetValue(NPElements.Visit_In_Date_Time);
             visit_out_date_time = json.NPGetValue(NPElements.Visit_Out_Date_Time);
+            owner_name = json.NPGetValue(NPElements.Owner_Name);
+            group_name = json.NPGetValue(NPElements.Group_Name);
+            dept_name = json.NPGetValue(NPElements.Dept_Name);
         }
 
         public byte[] Serialize()
@@ -68,7 +84,7 @@ namespace NpmAdapter.Payload
             return ToJson().ToByteArray(SysConfig.Instance.Nexpa_Encoding);
         }
 
-        public JObject ToJson()
+        public JToken ToJson()
         {
             JObject json = new JObject();
             json["dong"] = dong;
@@ -81,6 +97,9 @@ namespace NpmAdapter.Payload
             json["reg_no"] = reg_no;
             json["visit_in_date_time"] = visit_in_date_time;
             json["visit_out_date_time"] = visit_out_date_time;
+            json["owner_name"] = owner_name;
+            json["group_name"] = group_name;
+            json["dept_name"] = dept_name;
             return json;
         }
     }

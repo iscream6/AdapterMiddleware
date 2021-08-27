@@ -22,7 +22,10 @@ Body
       "car_image" : "차량 이미지 경로", //미들웨어에서도 이미지를 Loading 할 수 있는 경로,
       "reg_no" : "차량 식별키", //TkNo
       "visit_in_date_time" : "yyyyMMddHHmmss", //방문시작일시, kind가 v 일 경우 외 빈값
-      "visit_out_date_time" : "yyyyMMddHHmmss" //방문종료일시, kind가 v 일 경우 외 빈값
+      "visit_out_date_time" : "yyyyMMddHHmmss", //방문종료일시, kind가 v 일 경우 외 빈값
+      "ower_name" : "차량소유자명", //없으면 공백
+      "group_name" : "그룹명", //없으면 공백
+      "dept_name" : "부서명", //없으면 공백
   }
 }
 
@@ -50,7 +53,10 @@ Body
       "car_number": "차량번호",
       "date_time": "yyyyMMddHHmmss",
       "lprid" : "Lpr 식별 번호",
-      "car_image" : "차량 이미지 경로" //미들웨어에서도 이미지를 Loading 할 수 있는 경로
+      "car_image" : "차량 이미지 경로", //미들웨어에서도 이미지를 Loading 할 수 있는 경로
+      "ower_name" : "차량소유자명", //없으면 공백
+      "group_name" : "그룹명", //없으면 공백
+      "dept_name" : "부서명", //없으면 공백
   }
 }
 
@@ -1120,5 +1126,36 @@ Body
   "result": {
       "status": "응답상태코드",
       "message": "메시지"
+  }
+}
+
+9.1.11 LPR 정보 요청 (미들웨어 -> 주차)
+Body
+{
+  "command": "lpr_info",
+  "data": {
+    "park_no" : "주차장번호"
+  }
+}
+
+9.1.12 LPR 정보 응답 (주차 -> 미들웨어)
+Body
+{
+  "command": "lpr_info",
+  "data": {
+      "list" : [
+        {
+            "park_no" : "주차장번호",
+            "lprid" : "Lpr 식별 번호",
+            "lpr_name" : "입/출구명" //입구, 출구, 입구+출구 겸용 등등...
+        },
+        {
+            ...
+        }
+      ]
+  },
+  "result": {
+     "status": "응답상태코드", 
+     "message": "메시지"
   }
 }

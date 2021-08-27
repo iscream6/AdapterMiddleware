@@ -47,6 +47,7 @@ namespace NpmAdapter.Adapter
         public IAdapter TargetAdapter { get; set; }
 
         public bool IsRuning { get => isRun; }
+        public string reqPid { get; set; }
 
         public void Dispose()
         {
@@ -533,7 +534,7 @@ namespace NpmAdapter.Adapter
                             {
                                 e.Response.Reason = "OK";
 
-                                JObject jRemain = responsePayload.data.ToJson();
+                                JObject jRemain = responsePayload.data.ToJson() as JObject;
                                 //응답이 왔으므로.... Data는 채워져 있을거임...
                                 if (responsePayload.result == null)
                                 {

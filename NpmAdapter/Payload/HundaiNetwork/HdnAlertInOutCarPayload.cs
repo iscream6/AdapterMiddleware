@@ -37,14 +37,19 @@ namespace NpmAdapter.Payload
         /// IN/OUT
         /// </summary>
         public string type { get; set; }
+        /// <summary>
+        /// 출입구 ID
+        /// </summary>
+        public string gate_id { get; set; }
 
-        public void Deserialize(JObject json)
+        public void Deserialize(JToken json)
         {
             dong = json["dong"]?.ToString();
             ho = json["ho"]?.ToString();
             car_number = json["car_number"]?.ToString();
             date_time = json["date_time"]?.ToString();
             kind = json["kind"]?.ToString();
+            gate_id = json["lprid"]?.ToString();
         }
 
         public byte[] Serialize()
@@ -61,6 +66,19 @@ namespace NpmAdapter.Payload
             data.Append($"DateTime={date_time.Substring(0, 12)}");
             data.Append("&");
             data.Append($"InOut={(kind == "a"? "" : "VISIT_") + type}");
+            if (SysConfig.Instance.Sys_Option.ContainsKey("version"))
+            {
+                if (SysConfig.Instance.Sys_Option["version"] == "hdn_1") //GATE 명
+                {
+                    data.Append("&");
+                    data.Append($"Gate={SysConfig.Instance.GetDeviceName(gate_id)}");
+                }
+                else if (SysConfig.Instance.Sys_Option["version"] == "hdn_2") //GateNo + 인식기ID 조합
+                {
+                    data.Append("&");
+                    data.Append($"Gate={gate_id}{SysConfig.Instance.Sys_Option["CognizeID"]}");
+                }
+            }
             byte[] bData = data.ToString().ToByte(SysConfig.Instance.HomeNet_Encoding);
             DataLength = (UInt64)bData.Length;
             byte[] bLength = BitConverter.GetBytes(DataLength);
@@ -68,7 +86,7 @@ namespace NpmAdapter.Payload
             return bLength.Concat(bData).ToArray();
         }
 
-        public JObject ToJson()
+        public JToken ToJson()
         {
             throw new NotImplementedException();
         }

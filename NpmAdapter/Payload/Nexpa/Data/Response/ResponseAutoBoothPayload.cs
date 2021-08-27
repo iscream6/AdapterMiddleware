@@ -26,7 +26,7 @@ namespace NpmAdapter.Payload.Nexpa.Data.Response
             dcInfoList = new List<AutoBoothPayload>();
         }
 
-        public void Deserialize(JObject json)
+        public void Deserialize(JToken json)
         {
             {
                 JArray array = json["booth_list"] as JArray;
@@ -73,7 +73,7 @@ namespace NpmAdapter.Payload.Nexpa.Data.Response
             return ToJson().ToByteArray(SysConfig.Instance.Nexpa_Encoding);
         }
 
-        public JObject ToJson()
+        public JToken ToJson()
         {
             JObject json = new JObject();
 
@@ -137,7 +137,7 @@ namespace NpmAdapter.Payload.Nexpa.Data.Response
             public string div_no { get; set; }
             public string div_name { get; set; }
 
-            public void Deserialize(JObject json)
+            public void Deserialize(JToken json)
             {
                 park_no = Helper.NVL(json["park_no"]);
                 div_no = Helper.NVL(json[divNoDesc]);
@@ -149,7 +149,7 @@ namespace NpmAdapter.Payload.Nexpa.Data.Response
                 return ToJson().ToByteArray();
             }
 
-            public JObject ToJson()
+            public JToken ToJson()
             {
                 JObject json = new JObject();
                 json["park_no"] = park_no;

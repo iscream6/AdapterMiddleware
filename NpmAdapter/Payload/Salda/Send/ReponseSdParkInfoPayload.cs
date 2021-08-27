@@ -25,7 +25,7 @@ namespace NpmAdapter.Payload
         /// </summary>
         public string licenseNo { get; set; }
 
-        public void Deserialize(JObject json)
+        public void Deserialize(JToken json)
         {
             zoneName = Helper.NVL(json["zoneName"]);
             zoneAddress = Helper.NVL(json["zoneAddress"]);
@@ -38,7 +38,7 @@ namespace NpmAdapter.Payload
             return ToJson().ToByteArray(SysConfig.Instance.HomeNet_Encoding);
         }
 
-        public JObject ToJson()
+        public JToken ToJson()
         {
             JObject json = new JObject();
             json["zoneName"] = zoneName;

@@ -26,7 +26,7 @@ namespace NpmAdapter.Payload
         /// </summary>
         public string alias { get; set; }
 
-        public void Deserialize(JObject json)
+        public void Deserialize(JToken json)
         {
             dong = json["dong"].ToString();
             ho = json["ho"].ToString();
@@ -39,7 +39,7 @@ namespace NpmAdapter.Payload
             return ToJson().ToByteArray(SysConfig.Instance.Nexpa_Encoding);
         }
 
-        public JObject ToJson()
+        public JToken ToJson()
         {
             JObject json = new JObject();
             json["dong"] = dong;

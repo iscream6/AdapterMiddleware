@@ -12,7 +12,7 @@ namespace NpmAdapter.Payload
         public string reg_date { get; set; }
         public string alias { get; set; }
 
-        public void Deserialize(JObject json)
+        public void Deserialize(JToken json)
         {
             car_num = Helper.NVL(json["car_num"]);
             reg_date = Helper.NVL(json["reg_date"]);
@@ -24,7 +24,7 @@ namespace NpmAdapter.Payload
             return ToJson().ToByteArray(SysConfig.Instance.HomeNet_Encoding);
         }
 
-        public JObject ToJson()
+        public JToken ToJson()
         {
             JObject json = new JObject();
             json["car_num"] = Helper.NVL(car_num);

@@ -10,7 +10,7 @@ namespace NpmAdapter.Payload
         public string command { get; set; }
         public List<T> data { get; set; }
 
-        public void Deserialize(JObject json)
+        public void Deserialize(JToken json)
         {
             command = json["command"].ToString();
             JArray array = json["data"] as JArray;
@@ -30,7 +30,7 @@ namespace NpmAdapter.Payload
             return ToJson().ToByteArray();
         }
 
-        public JObject ToJson()
+        public JToken ToJson()
         {
             JObject json = new JObject();
             json["command"] = command;

@@ -62,6 +62,8 @@ namespace NpmAdapter.Adapter
         public IAdapter TargetAdapter { get; set; }
         public bool IsRuning { get=>isRun; }
 
+        public string reqPid { get; set; }
+
         public bool StartAdapter()
         {
             Log.WriteLog(LogType.Info, "SHT5800Adapter | StartAdapter", $"SHT5800 485 Serial 통신 시작", LogAdpType.HomeNet);

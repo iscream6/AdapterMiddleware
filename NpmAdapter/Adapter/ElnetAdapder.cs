@@ -24,6 +24,8 @@ namespace NpmAdapter.Adapter
 
         public bool IsRuning => throw new NotImplementedException();
 
+        public string reqPid { get; set; }
+
         public void Dispose()
         {
             

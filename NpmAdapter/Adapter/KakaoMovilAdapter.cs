@@ -35,7 +35,6 @@ namespace NpmAdapter.Adapter
         private string webport = "42141";
         private string aptId = "";
         private string hostDomain = "";
-        private string reqPid = null;
 
         Dictionary<string, string> dicHeader = new Dictionary<string, string>();
 
@@ -60,6 +59,8 @@ namespace NpmAdapter.Adapter
         public IAdapter TargetAdapter { get; set; }
         private INetwork HttpNet { get; set; }
         public bool IsRuning => isRun;
+
+        public string reqPid { get; set; }
 
         public void Dispose()
         {

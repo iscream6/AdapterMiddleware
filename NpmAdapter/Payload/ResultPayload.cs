@@ -100,7 +100,7 @@ namespace NpmAdapter.Payload
         public string code { get; set; }
         public string message { get; set; }
 
-        public void Deserialize(JObject json)
+        public void Deserialize(JToken json)
         {
             code = json["status"].ToString();
             message = json["message"].ToString();
@@ -111,7 +111,7 @@ namespace NpmAdapter.Payload
             return ToJson().ToByteArray();
         }
 
-        public JObject ToJson()
+        public JToken ToJson()
         {
             JObject json = new JObject();
             json["status"] = code;

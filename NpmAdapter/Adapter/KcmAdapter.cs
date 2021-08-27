@@ -11,6 +11,9 @@ namespace NpmAdapter.Adapter
 {
     /// <summary>
     /// 코콤
+    /// PARK_INFO -> PARK_INFO_ACK / ERROR_ACK
+    /// CHECK_PARK_INFO_ACK <- CHECK_PARK_INFO : 세대 동, 호를 기준으로 요청 세대내의 모든 차량의 입출차 정보를 보낸다.
+    /// ALIVE -> ALIVE_ACK : 50초마다 보낸다.
     /// </summary>
     class KcmAdapter : IAdapter
     {
@@ -21,6 +24,7 @@ namespace NpmAdapter.Adapter
         private INetwork MyTcpNetwork { get; set; }
 
         public bool IsRuning { get => isRun; }
+        public string reqPid { get; set; }
 
         private Thread aliveCheckThread;
         private TimeSpan waitForWork;
@@ -123,7 +127,7 @@ namespace NpmAdapter.Adapter
 
             JObject data = jobj["data"] as JObject;
             string cmd = jobj["command"].ToString();
-
+            
             switch ((CmdType)Enum.Parse(typeof(CmdType), cmd))
             {
                 case CmdType.alert_incar:

@@ -26,6 +26,7 @@ namespace NpmAdapter.Model
             }
 
             ConfigDA = DataAccessFactory.Instance.GetConfigDA();
+            ConfigDA.ExecuteDataTable("");
         }
     }
 }

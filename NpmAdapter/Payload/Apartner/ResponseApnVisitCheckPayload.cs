@@ -13,7 +13,7 @@ namespace NpmAdapter.Payload
         public string ho { get; set; }
         public string remark { get; set; }
 
-        public void Deserialize(JObject json)
+        public void Deserialize(JToken json)
         {
             check_yon = Helper.NVL(json["check_yon"]);
             dong = Helper.NVL(json["dong"]);
@@ -26,7 +26,7 @@ namespace NpmAdapter.Payload
             return ToJson().ToByteArray(SysConfig.Instance.Nexpa_Encoding);
         }
 
-        public JObject ToJson()
+        public JToken ToJson()
         {
             JObject json = new JObject();
             json["check_yon"] = check_yon;

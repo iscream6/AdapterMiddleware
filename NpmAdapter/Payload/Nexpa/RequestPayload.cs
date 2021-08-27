@@ -168,7 +168,23 @@ namespace NpmAdapter.Payload
         /// <summary>
         /// 스마트빌리지 전용, 할당 동기화
         /// </summary>
-        sync_assign
+        sync_assign,
+        /// <summary>
+        /// 장비 리스트
+        /// </summary>
+        div_list,
+        /// <summary>
+        /// 리스트
+        /// </summary>
+        list,
+        /// <summary>
+        /// 입출차 내역
+        /// </summary>
+        io_list,
+        /// <summary>
+        /// 주차현황
+        /// </summary>
+        guidance
     }
 
     class RequestPayload<T> : IPayload where T : IPayload, new()
@@ -176,7 +192,7 @@ namespace NpmAdapter.Payload
         public CmdType command { get; set; }
         public T data { get; set; }
 
-        public void Deserialize(JObject json)
+        public void Deserialize(JToken json)
         {
             command = (CmdType)Enum.Parse(typeof(CmdType), json["command"].ToString());
             var dataJson = json["data"];
@@ -189,7 +205,7 @@ namespace NpmAdapter.Payload
             return ToJson().ToByteArray(SysConfig.Instance.Nexpa_Encoding);
         }
 
-        public JObject ToJson()
+        public JToken ToJson()
         {
             JObject json = new JObject();
             json["command"] = command.ToString();
@@ -202,7 +218,7 @@ namespace NpmAdapter.Payload
     {
         public CmdType command { get; set; }
 
-        public void Deserialize(JObject json)
+        public void Deserialize(JToken json)
         {
             command = (CmdType)Enum.Parse(typeof(CmdType), json["command"].ToString());
         }
@@ -212,7 +228,7 @@ namespace NpmAdapter.Payload
             return ToJson().ToByteArray(SysConfig.Instance.Nexpa_Encoding);
         }
 
-        public JObject ToJson()
+        public JToken ToJson()
         {
             JObject json = new JObject();
             json["command"] = command.ToString();

@@ -16,7 +16,7 @@ namespace NpmAdapter.Payload.CommaxDaelim.Response
             list = new List<SubLocationListData>();
         }
 
-        public void Deserialize(JObject json)
+        public void Deserialize(JToken json)
         {
             location_type = json.Value<string>("location_type");
             JArray array = json.Value<JArray>("list");
@@ -37,7 +37,7 @@ namespace NpmAdapter.Payload.CommaxDaelim.Response
             return ToJson().ToByteArray(SysConfig.Instance.HomeNet_Encoding);
         }
 
-        public JObject ToJson()
+        public JToken ToJson()
         {
             JObject json = new JObject();
             json["location_type"] = location_type;
@@ -59,7 +59,7 @@ namespace NpmAdapter.Payload.CommaxDaelim.Response
         public string in_complex { get; set;}
         public string location_text { get; set; }
         public string datetime { get; set; }
-        public void Deserialize(JObject json)
+        public void Deserialize(JToken json)
         {
             car_number = json.Value<string>("tag_num");
             alias = json.Value<string>("alias");
@@ -74,7 +74,7 @@ namespace NpmAdapter.Payload.CommaxDaelim.Response
             return ToJson().ToByteArray(SysConfig.Instance.HomeNet_Encoding);
         }
 
-        public JObject ToJson()
+        public JToken ToJson()
         {
             JObject json = new JObject();
             json["tag_num"] = Helper.NVL(car_number);

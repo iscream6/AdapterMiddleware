@@ -11,7 +11,7 @@ namespace NpmAdapter.Payload
     {
         public List<VisitCarInfo2Payload> list { get; set; }
 
-        public void Deserialize(JObject json)
+        public void Deserialize(JToken json)
         {
             JArray array = json["list"] as JArray;
             if (array != null)
@@ -30,7 +30,7 @@ namespace NpmAdapter.Payload
             return ToJson().ToByteArray(SysConfig.Instance.Nexpa_Encoding);
         }
 
-        public JObject ToJson()
+        public JToken ToJson()
         {
             JObject json = new JObject();
             JArray array = new JArray();
@@ -51,7 +51,7 @@ namespace NpmAdapter.Payload
         public string end_date_time { get; set; }
         public string visit_flag { get; set; }
 
-        public void Deserialize(JObject json)
+        public void Deserialize(JToken json)
         {
             reg_no = json["reg_no"].ToString();
             car_number = json["car_number"].ToString();
@@ -65,7 +65,7 @@ namespace NpmAdapter.Payload
             return ToJson().ToByteArray(SysConfig.Instance.Nexpa_Encoding);
         }
 
-        public JObject ToJson()
+        public JToken ToJson()
         {
             JObject json = new JObject();
             json["reg_no"] = reg_no;

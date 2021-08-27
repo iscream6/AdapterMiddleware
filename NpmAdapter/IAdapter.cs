@@ -14,6 +14,8 @@ namespace NpmAdapter
 
         bool IsRuning { get; }
 
+        string reqPid { get; set; }
+
         /// <summary>
         /// 초기화.... 
         /// </summary>

@@ -13,7 +13,7 @@ namespace NpmAdapter.Payload
         public string gate { get; set; }
         public string parking_out_datetime { get; set; }
 
-        public void Deserialize(JObject json)
+        public void Deserialize(JToken json)
         {
             apt_id = Helper.NVL(json["apt_id"]);
             car_number = Helper.NVL(json["car_number"]);
@@ -26,7 +26,7 @@ namespace NpmAdapter.Payload
             return ToJson().ToByteArray(SysConfig.Instance.HomeNet_Encoding);
         }
 
-        public JObject ToJson()
+        public JToken ToJson()
         {
             JObject json = new JObject();
             json["apt_id"] = Helper.NVL(apt_id);

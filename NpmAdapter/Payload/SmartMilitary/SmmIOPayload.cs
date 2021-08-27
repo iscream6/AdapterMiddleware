@@ -23,12 +23,24 @@ namespace NpmAdapter.Payload
             else if (cmd == CmdType.alert_outcar) command = "smt_alert_outcar";
         }
 
-        public void Deserialize(JObject json)
+        public void Deserialize(JToken json)
         {
             car_number = Helper.NVL(json["car_number"]);
             date_time = Helper.NVL(json["date_time"]);
             lprid = Helper.NVL(json["lprid"]);
-            kind = Helper.NVL(json["kind"]);
+            switch (Helper.NVL(json["kind"]))
+            {
+                case "a":
+                    kind = "0";
+                    break;
+                case "n":
+                    kind = "1";
+                    break;
+                case "v":
+                    kind = "2";
+                    break;
+            }
+            
             owner_name = Helper.NVL(json["owner_name"]);
             group_name = Helper.NVL(json["group_name"]);
             dept_name = Helper.NVL(json["dept_name"]);
@@ -39,7 +51,7 @@ namespace NpmAdapter.Payload
             return ToJson().ToByteArray(SysConfig.Instance.HomeNet_Encoding);
         }
 
-        public JObject ToJson()
+        public JToken ToJson()
         {
             JObject json = new JObject();
             json["command"] = command;

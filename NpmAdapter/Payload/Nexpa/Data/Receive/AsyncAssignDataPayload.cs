@@ -15,7 +15,7 @@ namespace NpmAdapter.Payload
             list = new List<AsyncAssignDataPayload>();
         }
 
-        public void Deserialize(JObject json)
+        public void Deserialize(JToken json)
         {
             JArray array = json["list"] as JArray;
             if (array != null)
@@ -34,7 +34,7 @@ namespace NpmAdapter.Payload
             return ToJson().ToByteArray(SysConfig.Instance.Nexpa_Encoding);
         }
 
-        public JObject ToJson()
+        public JToken ToJson()
         {
             JObject json = new JObject();
             JArray array = new JArray();
@@ -79,7 +79,7 @@ namespace NpmAdapter.Payload
         /// </summary>
         public string exp_date { get; set; }
 
-        public void Deserialize(JObject json)
+        public void Deserialize(JToken json)
         {
             if (json == null) return;
 
@@ -98,7 +98,7 @@ namespace NpmAdapter.Payload
             return ToJson().ToByteArray(SysConfig.Instance.Nexpa_Encoding);
         }
 
-        public JObject ToJson()
+        public JToken ToJson()
         {
             JObject json = new JObject();
             json["park_no"] = park_no;

@@ -33,6 +33,8 @@ namespace NpmAdapter.Adapter
         public IAdapter TargetAdapter { get; set; }
         public bool IsRuning => isRun;
 
+        public string reqPid { get; set; }
+
         public void Dispose()
         {
             StopAdapter();

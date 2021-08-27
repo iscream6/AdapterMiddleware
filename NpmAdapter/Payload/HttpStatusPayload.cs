@@ -551,12 +551,12 @@ namespace NpmAdapter.Payload
             return ToJson().ToByteArray();
         }
 
-        public JObject ToJson()
+        public JToken ToJson()
         {
             throw new NotImplementedException();
         }
 
-        public void Deserialize(JObject json)
+        public void Deserialize(JToken json)
         {
             throw new NotImplementedException();
         }

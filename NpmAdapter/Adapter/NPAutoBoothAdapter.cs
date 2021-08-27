@@ -54,6 +54,8 @@ namespace NpmAdapter.Adapter
 
         public bool IsRuning => isRun;
 
+        public string reqPid { get; set; }
+
         public NPAutoBoothAdapter()
         {
             _dcMdl = new DCModel();

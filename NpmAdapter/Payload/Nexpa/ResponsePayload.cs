@@ -46,7 +46,7 @@ namespace NpmAdapter.Payload
             
         }
 
-        public virtual void Deserialize(JObject json)
+        public virtual void Deserialize(JToken json)
         {
             command = (CmdType)Enum.Parse(typeof(CmdType), json["command"].ToString());
             resultPayload.Deserialize(json["result"] as JObject);
@@ -57,7 +57,7 @@ namespace NpmAdapter.Payload
             return ToJson().ToByteArray(SysConfig.Instance.Nexpa_Encoding);
         }
 
-        public virtual JObject ToJson()
+        public virtual JToken ToJson()
         {
             JObject json = new JObject();
             json["command"] = command.ToString();

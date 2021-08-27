@@ -10,7 +10,7 @@ namespace NpmAdapter.Payload
     {
         public string point { get; set; }
 
-        public void Deserialize(JObject json)
+        public void Deserialize(JToken json)
         {
             point = Helper.NVL(json["point"]);
         }
@@ -20,7 +20,7 @@ namespace NpmAdapter.Payload
             return ToJson().ToByteArray(SysConfig.Instance.Nexpa_Encoding);
         }
 
-        public JObject ToJson()
+        public JToken ToJson()
         {
             JObject json = new JObject();
             json["point"] = Helper.NVL(point);

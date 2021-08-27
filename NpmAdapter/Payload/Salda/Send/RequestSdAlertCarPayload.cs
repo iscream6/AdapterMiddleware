@@ -49,7 +49,7 @@ namespace NpmAdapter.Payload
         /// </summary>
         public string metaData2 { get; set; }
 
-        public void Deserialize(JObject json)
+        public void Deserialize(JToken json)
         {
             zoneId = Helper.NVL(json["zoneId"]);
             eventId = Helper.NVL(json["eventId"]);
@@ -68,7 +68,7 @@ namespace NpmAdapter.Payload
             return ToJson().ToByteArray(SysConfig.Instance.HomeNet_Encoding);
         }
 
-        public JObject ToJson()
+        public JToken ToJson()
         {
             JObject json = new JObject();
             json["zoneId"] = zoneId;

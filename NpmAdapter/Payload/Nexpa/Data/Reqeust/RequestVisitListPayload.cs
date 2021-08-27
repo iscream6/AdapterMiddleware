@@ -1,28 +1,10 @@
 ﻿using Newtonsoft.Json.Linq;
 using NexpaAdapterStandardLib;
-using System;
 
 namespace NpmAdapter.Payload
 {
-    class RequestVisitList2Payload : IPayload
+    class RequestVisitListPayload : IPayload
     {
-        public enum EventType
-        {
-            /// <summary>
-            /// All(전체)
-            /// </summary>
-            A,
-            /// <summary>
-            /// Future(미래)
-            /// </summary>
-            F,
-            /// <summary>
-            /// History(과거이력)
-            /// </summary>
-            H
-        }
-
-        public string car_number { get; set; }
         /// <summary>
         /// 동
         /// </summary>
@@ -31,17 +13,21 @@ namespace NpmAdapter.Payload
         /// 호
         /// </summary>
         public string ho { get; set; }
+        /// <summary>
+        /// 쿼리 할 자료 총 합계를 count로 나눈 총 page 수 값 중 몇번째 page를 가져올지의 값, 0일경우 전체가져오기
+        /// </summary>
+        public string page { get; set; }
+        /// <summary>
+        /// 쿼리할 자료 수
+        /// </summary>
+        public string count { get; set; }
 
-        public string event_date_time { get; set; }
-        public EventType eventType { get; set; }
-
-        public void Deserialize(JObject json)
+        public void Deserialize(JToken json)
         {
-            car_number = Helper.NVL(json["car_number"]);
-            dong = Helper.NVL(json["dong"]);
-            ho = Helper.NVL(json["ho"]);
-            event_date_time = Helper.NVL(json["event_date_time"]);
-            eventType = (EventType)Enum.Parse(typeof(EventType), Helper.NVL(json["eventType"]));
+            dong = json["dong"].ToString();
+            ho = json["ho"].ToString();
+            page = json["page"].ToString();
+            count = json["count"].ToString();
         }
 
         public byte[] Serialize()
@@ -49,14 +35,13 @@ namespace NpmAdapter.Payload
             return ToJson().ToByteArray(SysConfig.Instance.Nexpa_Encoding);
         }
 
-        public JObject ToJson()
+        public JToken ToJson()
         {
             JObject json = new JObject();
-            json["car_number"] = car_number;
             json["dong"] = dong;
             json["ho"] = ho;
-            json["event_date_time"] = event_date_time;
-            json["eventType"] = eventType.ToString();
+            json["page"] = page;
+            json["count"] = count;
             return json;
         }
     }

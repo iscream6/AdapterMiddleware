@@ -37,10 +37,11 @@ namespace NpmAdapter.Adapter
 
         public IAdapter TargetAdapter { get; set; }
 
-        private INetwork MyTcpNetwork { get; set; }
+        private INetwork MyTcpClientNetwork { get; set; }
         private INetwork MyTcpServer { get; set; }
 
         public bool IsRuning { get => isRun; }
+        public string reqPid { get; set; }
 
         public void Dispose()
         {
@@ -61,7 +62,7 @@ namespace NpmAdapter.Adapter
             tcpPort = SysConfig.Instance.HT_Port;
             myport = SysConfig.Instance.HT_MyPort;
 
-            MyTcpNetwork = NetworkFactory.GetInstance().MakeNetworkControl(NetworkFactory.Adapters.TcpClient, tcpServerIp, tcpPort);
+            MyTcpClientNetwork = NetworkFactory.GetInstance().MakeNetworkControl(NetworkFactory.Adapters.TcpClient, tcpServerIp, tcpPort);
             MyTcpServer = NetworkFactory.GetInstance().MakeNetworkControl(NetworkFactory.Adapters.TcpServer, myport);
             //Alive Check
             if (SysConfig.Instance.Sys_Option.GetValueToUpper("CmxAliveCheckUse").Equals("Y"))
@@ -83,7 +84,7 @@ namespace NpmAdapter.Adapter
         {
             try
             {
-                MyTcpNetwork.ReceiveFromPeer += MyTcpNetwork_ReceiveFromPeer;
+                MyTcpClientNetwork.ReceiveFromPeer += MyTcpNetwork_ReceiveFromPeer;
                 MyTcpServer.ReceiveFromPeer += MyTcpServer_ReceiveFromPeer;
                 isRun = MyTcpServer.Run();
 
@@ -114,8 +115,8 @@ namespace NpmAdapter.Adapter
         {
             try
             {
-                MyTcpNetwork.ReceiveFromPeer -= MyTcpNetwork_ReceiveFromPeer;
-                isRun = !MyTcpNetwork.Down();
+                MyTcpClientNetwork.ReceiveFromPeer -= MyTcpNetwork_ReceiveFromPeer;
+                isRun = !MyTcpClientNetwork.Down();
 
                 //Alive Check Thread pause
                 _pauseEvent.Reset();
@@ -133,7 +134,14 @@ namespace NpmAdapter.Adapter
         {
 
         }
-
+        
+        /// <summary>
+        /// From Nexpa Adapter
+        /// </summary>
+        /// <param name="buffer"></param>
+        /// <param name="offset"></param>
+        /// <param name="size"></param>
+        /// <param name="pid"></param>
         public void SendMessage(byte[] buffer, long offset, long size, string pid = null)
         {
             bResponseSuccess = false;
@@ -149,7 +157,7 @@ namespace NpmAdapter.Adapter
             {
                 case CmdType.alert_incar:
                 case CmdType.alert_outcar:
-                    if (MyTcpNetwork.Run())
+                    if (MyTcpClientNetwork.Run())
                     {
                         RequestPayload<HdnAlertInOutCarPayload> payload = new RequestPayload<HdnAlertInOutCarPayload>();
                         payload.Deserialize(jobj);
@@ -173,7 +181,7 @@ namespace NpmAdapter.Adapter
                                 payload.data.type = $"{visitValue}OUT";
                             }
                             byte[] networkMessage = payload.data.Serialize();
-                            MyTcpNetwork.SendToPeer(networkMessage, 0, networkMessage.Length);
+                            MyTcpClientNetwork.SendToPeer(networkMessage, 0, networkMessage.Length);
                         }
                     }
                     break;
@@ -186,15 +194,33 @@ namespace NpmAdapter.Adapter
                 iSec -= 1;
             }
 
-            if(bResponseSuccess == false) MyTcpNetwork.Down();
+            if(bResponseSuccess == false) MyTcpClientNetwork.Down();
         }
 
+        /// <summary>
+        /// 주차서버 -> 단지서버
+        /// </summary>
+        /// <param name="buffer"></param>
+        /// <param name="offset"></param>
+        /// <param name="size"></param>
+        /// <param name="pEvent"></param>
+        /// <param name="id"></param>
+        /// <param name="ep"></param>
         private void MyTcpNetwork_ReceiveFromPeer(byte[] buffer, long offset, long size, HttpServer.RequestEventArgs pEvent = null, string id = null, System.Net.EndPoint ep = null)
         {
             //응답 처리...
             bResponseSuccess = true;
         }
 
+        /// <summary>
+        /// 단지서버 -> 주차서버
+        /// </summary>
+        /// <param name="buffer"></param>
+        /// <param name="offset"></param>
+        /// <param name="size"></param>
+        /// <param name="pEvent"></param>
+        /// <param name="id"></param>
+        /// <param name="ep"></param>
         private void MyTcpServer_ReceiveFromPeer(byte[] buffer, long offset, long size, HttpServer.RequestEventArgs pEvent = null, string id = null, System.Net.EndPoint ep = null)
         {
             //세대 방문자 리스트(단지서버 -> 주차서버)
@@ -213,7 +239,6 @@ namespace NpmAdapter.Adapter
                 var dicData = sData.DoubleSplit('&', '=');
 
                 SendToNexpa(dicData);
-                
             }
         }
 

@@ -12,6 +12,9 @@ using System.Threading;
 
 namespace NpmAdapter.Adapter
 {
+    /// <summary>
+    /// 정기차량에 관한 DB 연동이 있어 권한이 필요함.
+    /// </summary>
     class ChamAdapter : IAdapter
     {
         private class ChamData
@@ -109,6 +112,7 @@ namespace NpmAdapter.Adapter
         public event IAdapter.ShowBallonTip ShowTip;
 
         private INetwork MyTcpServer { get; set; }
+        public string reqPid { get; set; }
 
         public void Dispose()
         {

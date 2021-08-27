@@ -17,18 +17,19 @@ namespace NpmAdapter.Adapter
 {
     class SaldaAdapter : IAdapter
     {
-        private const string GET_PARKINGZONE = "/parking/zone"; //주차장 정보
-        private const string GET_DEVICES = "/parking/devices";
-        private const string GET_STATUS = "/parking/status";
-        private const string GET_WHITE_LIST = "/parking/whitelist/list";
+        private const string GET_PARKINGZONE = "/parking/zone"; //4.1 Zone정보(주차장 정보)
+        private const string GET_DEVICES = "/parking/devices"; //4.2 장치 정보
+        private const string GET_STATUS = "/parking/status"; //4.3 주차 현황
+        private const string GET_WHITE_LIST = "/parking/whitelist/list"; //4.4 화이트리스트 조회
         private const string GET_LIST_REGULAR = "/parking/whitelist/regular";
         private const string GET_LIST_VISITOR = "/parking/whitelist/visitor";
-        private const string SET_REGISTRATION = "/parking/whitelist/registration";
-        private const string SET_UPDATE = "/parking/whitelist/update";
-        private const string DEL_REMOVE = "/parking/whitelist/remove";
-        private const string CON_DEVICE = "/parking/devices/control";
+        private const string SET_REGISTRATION = "/parking/whitelist/registration"; //4.5 화이트리스트 등록
+        private const string SET_UPDATE = "/parking/whitelist/update"; //4.6 화이트리스트 수정
+        private const string DEL_REMOVE = "/parking/whitelist/remove"; //4.7 화이트리스트 삭제
+        private const string CON_DEVICE = "/parking/devices/control"; //4.9 차단기 제어
         private const string SND_ALERT = "/ext/parking/event";
         private const string SND_PING = "/ext/parking/ping";
+        private const string GET_LIST_IOCAR = "/parking/event"; //4.8 입출차내역 조회
 
         private bool isRun = false;
         private bool bResponseSuccess = false;
@@ -47,12 +48,18 @@ namespace NpmAdapter.Adapter
         private ManualResetEventSlim shutdownEvent = new ManualResetEventSlim(false);
         ManualResetEvent _pauseEvent = new ManualResetEvent(false);
         private delegate void SafeCallDelegate();
+        private IPayload currentReqPayload;
+
+        public event IAdapter.ShowBallonTip ShowTip;
 
         public IAdapter TargetAdapter { get; set; }
         private INetwork MyHttpNetwork { get; set; }
         public bool IsRuning { get => isRun; }
+        public string reqPid { get; set; }
+        private string ParkNo { get; set; }
 
         #region Model
+
         private ParkInfoModel PrkInf = new ParkInfoModel();
         private DataTable parkInfoDt;
 
@@ -75,25 +82,30 @@ namespace NpmAdapter.Adapter
             //ParkInfo DB Load =========
             parkInfoPayload = new ReponseSdParkInfoPayload();
             
-            parkInfoDt = PrkInf.GetParkInfo();
-            if (parkInfoDt == null || parkInfoDt.Rows.Count == 0)
+            if(SysConfig.Instance.Sys_NexpaAdapter == "TCP")
             {
-                Log.WriteLog(LogType.Error, "SaldaAdapter | Initialize", "ParkInfo 가져오기 오류");
-                return false;
-            }
-            else
-            {
-                DataRow fRow = parkInfoDt.Rows[0];
-                parkInfoPayload.companyName = Helper.NVL(fRow["Admin"]?.ToString());
-                parkInfoPayload.licenseNo = Helper.NVL(fRow["RegNo"]?.ToString());
-                parkInfoPayload.zoneAddress = Helper.NVL(fRow["ParkAddr"]?.ToString());
-                parkInfoPayload.zoneName = Helper.NVL(fRow["ParkName"]?.ToString());
-            }
-            //ParkInfo DB Load 완료 =====
+                parkInfoDt = PrkInf.GetParkInfo();
+                if (parkInfoDt == null || parkInfoDt.Rows.Count == 0)
+                {
+                    Log.WriteLog(LogType.Error, "SaldaAdapter | Initialize", "ParkInfo 가져오기 오류");
+                    return false;
+                }
+                else
+                {
+                    DataRow fRow = parkInfoDt.Rows[0];
+                    parkInfoPayload.companyName = Helper.NVL(fRow["Admin"]?.ToString());
+                    parkInfoPayload.licenseNo = Helper.NVL(fRow["RegNo"]?.ToString());
+                    parkInfoPayload.zoneAddress = Helper.NVL(fRow["ParkAddr"]?.ToString());
+                    parkInfoPayload.zoneName = Helper.NVL(fRow["ParkName"]?.ToString());
 
-            //UnitInfo DB Load =========
-            unitInfoDt = UitInf.GetLprInfo();
-            //UnitInfo DB Load 완료 =====
+                    ParkNo = Helper.NVL(fRow["ParkNo"]?.ToString());
+                }
+                //ParkInfo DB Load 완료 =====
+
+                //UnitInfo DB Load =========
+                unitInfoDt = UitInf.GetLprInfo();
+                //UnitInfo DB Load 완료 =====
+            }
 
             webport = SysConfig.Instance.HW_Port;
             MyHttpNetwork = NetworkFactory.GetInstance().MakeNetworkControl(NetworkFactory.Adapters.HttpServer, webport);
@@ -159,7 +171,255 @@ namespace NpmAdapter.Adapter
             }
             while (_pauseEvent.WaitOne());
         }
-        
+
+        private Dictionary<string, IPayload> dicTempSearch = new Dictionary<string, IPayload>();
+
+        private void MyHttpNetwork_ReceiveFromPeer(byte[] buffer, long offset, long size, HttpServer.RequestEventArgs e = null, string id = null, System.Net.EndPoint ep = null)
+        {
+            lock (lockObj)
+            {
+                JObject json = null;
+                bResponseSuccess = false;
+                responseSdPayload.Initialize();
+
+                string urlData = e.Request.Uri.LocalPath;
+                string sMethod = e.Request.Method;
+
+                string receiveEncryptMsg = SysConfig.Instance.HomeNet_Encoding.GetString(buffer[..(int)size]);
+                json = JObject.Parse(Helper.ValidateJsonParseingData(AESEncrypt.Decrypt(receiveEncryptMsg, aeskey)));
+
+                switch (urlData)
+                {
+                    case GET_STATUS: //4.3 주차 현황
+                        {
+                            JObject sttJson = new JObject();
+                            JObject sttDataJson = new JObject();
+                            sttJson["command"] = CmdType.guidance.ToString();
+                            sttDataJson["park_no"] = Helper.NVL(json["zoneId"]);
+                            sttJson["data"] = sttDataJson;
+                            byte[] responseBuffer = sttJson.ToByteArray(SysConfig.Instance.Nexpa_Encoding);
+                            TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);
+                        }
+                        break;
+                    case GET_DEVICES: //4.2 장치 정보
+                        {
+                            RequestPayload<RequestLprInfoPayload> payload = new RequestPayload<RequestLprInfoPayload>();
+                            payload.command = CmdType.div_list;
+
+                            RequestLprInfoPayload data = new RequestLprInfoPayload();
+                            data.park_no = Helper.NVL(json["zoneId"]);
+                            
+                            payload.data = data;
+                            byte[] responseBuffer = payload.Serialize();
+                            TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);
+                        }
+                        break;
+                    case GET_PARKINGZONE:
+                        currentReqPayload = null;
+                        responseSdPayload.resultCode = "OK";
+                        responseSdPayload.content = parkInfoPayload;
+                        bResponseSuccess = true;
+                        break;
+                    case GET_WHITE_LIST: //4.4 화이트리스트 조회
+                        {
+                            RequestPayload<RequestListPayload> payload = new RequestPayload<RequestListPayload>();
+                            payload.command = CmdType.list;
+
+                            RequestListPayload data = new RequestListPayload();
+                            data.park_no = Helper.NVL(json["zoneId"]);
+                            data.page = Helper.NVL(json["pageNumber"]);
+                            data.count = Helper.NVL(json["pageSize"]);
+                            data.reg_no = Helper.NVL(json["regId"]);
+
+                            if (Helper.NVL(json["type"]) == "Regular") data.search_type = RequestListPayload.SearchType.cust;
+                            else data.search_type = RequestListPayload.SearchType.visit;
+                            
+                            if (Helper.NVL(json["dateTimeFilterType"]) == "StartDateTime") data.filter_type = RequestListPayload.FilterType.start;
+                            else data.filter_type = RequestListPayload.FilterType.end;
+
+                            data.start_date = Helper.NVL(json["dateTimeFrom"]).ConvertDateTimeFormat("ISO8601", "yyyyMMdd");
+                            data.end_date = Helper.NVL(json["dateTimeTo"]).ConvertDateTimeFormat("ISO8601", "yyyyMMdd");
+                            data.lprID = Helper.NVL(json["deviceId"]);
+                            data.car_number = Helper.NVL(json["carNo"]);
+                            data.tel_number = Helper.NVL(json["mobileNo"]);
+                            data.dong = Helper.NVL(json["metaData1"]);
+                            data.ho = Helper.NVL(json["metaData2"]);
+                            
+                            payload.data = data;
+                            byte[] responseBuffer = payload.Serialize();
+                            TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);
+                        }
+                        currentReqPayload = null;
+                        break;
+                    case GET_LIST_VISITOR: //방문차량 조회
+                        currentReqPayload = null;
+                        break;
+                    case GET_LIST_REGULAR: //정기차량 조회
+                        currentReqPayload = null;
+                        break;
+                    case SET_REGISTRATION: //4.5 차량등록(정기/방문)
+                        if (Helper.NVL(json["type"]).ToLower() == "regular")
+                        {
+                            //정기차량등록
+                            RequestSdReg reqPayload = new RequestSdReg();
+                            reqPayload.Deserialize(json);
+                            currentReqPayload = reqPayload;
+
+                            RequestCustRegPayload dataPayload = new RequestCustRegPayload();
+                            dataPayload.car_number = Helper.NVL(json["carNo"]);
+                            dataPayload.dong = Helper.NVL(json["metaData1"]);
+                            dataPayload.ho = Helper.NVL(json["metaData2"]);
+                            dataPayload.name = Helper.NVL(json["customerName"]);
+                            dataPayload.start_date = Helper.NVL(json["startDateTime"]).ConvertDateTimeFormat("ISO8601", "yyyyMMdd");
+                            dataPayload.end_date = Helper.NVL(json["endDateTime"]).ConvertDateTimeFormat("ISO8601", "yyyyMMdd");
+                            dataPayload.tel_number = Helper.NVL(json["mobileNo"]);
+                            dataPayload.remark = Helper.NVL(json["memo"]);
+
+                            RequestPayload<RequestCustRegPayload> payload = new RequestPayload<RequestCustRegPayload>();
+                            payload.command = CmdType.cust_reg;
+                            payload.data = dataPayload;
+                            Log.WriteLog(LogType.Info, $"SaldaAdapter | HttpServer_ReceiveFromPeer", $"{SET_REGISTRATION}: {payload.ToJson()}", LogAdpType.HomeNet);
+
+                            byte[] responseBuffer = payload.Serialize();
+                            TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);
+                        }
+                        else if (Helper.NVL(json["type"]).ToLower() == "visitor")
+                        {
+                            //방문차량등록
+                            RequestSdReg reqPayload = new RequestSdReg();
+                            reqPayload.Deserialize(json);
+                            currentReqPayload = reqPayload;
+
+                            RequestVisitRegPayload dataPayload = new RequestVisitRegPayload();
+                            dataPayload.car_number = Helper.NVL(json["carNo"]);
+                            dataPayload.dong = Helper.NVL(json["metaData1"]);
+                            dataPayload.ho = Helper.NVL(json["metaData2"]);
+                            dataPayload.date = Helper.NVL(json["startDateTime"]).ConvertDateTimeFormat("ISO8601", "yyyyMMdd");
+                            DateTime startDate = Convert.ToDateTime(Helper.NVL(json["startDateTime"]));
+                            DateTime endDate = Convert.ToDateTime(Helper.NVL(json["endDateTime"]));
+
+                            TimeSpan dateDiff = endDate - startDate;
+                            string sTerm;
+                            if (dateDiff.Days == 0) sTerm = "1";
+                            else sTerm = dateDiff.Days.ToString();
+                            dataPayload.term = sTerm;
+                            //TODO : Remark 추가해야함... 2021-01-14
+                            dataPayload.remark = Helper.NVL(json["memo"]);
+                            RequestPayload<RequestVisitRegPayload> payload = new RequestPayload<RequestVisitRegPayload>();
+                            payload.command = CmdType.visit_reg;
+                            payload.data = dataPayload;
+                            Log.WriteLog(LogType.Info, $"SaldaAdapter | HttpServer_ReceiveFromPeer", $"{SET_REGISTRATION}: {payload.ToJson()}", LogAdpType.HomeNet);
+
+                            byte[] responseBuffer = payload.Serialize();
+                            TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);
+                        }
+                        break;
+                    case SET_UPDATE: //4.6 화이트리스트 수정
+
+                        break;
+                    case DEL_REMOVE: //4.7 차량삭제(정기/방문)
+                        currentReqPayload = null;
+                        if (Helper.NVL(json["type"]).ToLower() == "regular")
+                        {
+                            RequestCustDelPayload dataPayload = new RequestCustDelPayload();
+                            dataPayload.car_number = Helper.NVL(json["carNo"]);
+                            dataPayload.dong = Helper.NVL(json["metaData1"]);
+                            dataPayload.ho = Helper.NVL(json["metaData2"]);
+                            dataPayload.reg_no = Helper.NVL(json["regId"]);
+
+                            RequestPayload<RequestCustDelPayload> payload = new RequestPayload<RequestCustDelPayload>();
+                            payload.command = CmdType.cust_del;
+                            payload.data = dataPayload;
+                            Log.WriteLog(LogType.Info, $"SaldaAdapter | HttpServer_ReceiveFromPeer", $"{DEL_REMOVE}: {payload.ToJson()}", LogAdpType.HomeNet);
+
+                            byte[] responseBuffer = payload.Serialize();
+                            TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);
+                        }
+                        else if (Helper.NVL(json["type"]).ToLower() == "visitor")
+                        {
+                            RequestVisitDelPayload dataPayload = new RequestVisitDelPayload();
+                            dataPayload.dong = Helper.NVL(json["metaData1"]);
+                            dataPayload.ho = Helper.NVL(json["metaData2"]);
+                            dataPayload.reg_no = Helper.NVL(json["regId"]);
+                            dataPayload.car_number = Helper.NVL(json["carNo"]);
+
+                            RequestPayload<RequestVisitDelPayload> payload = new RequestPayload<RequestVisitDelPayload>();
+                            payload.command = CmdType.visit_del;
+                            payload.data = dataPayload;
+                            Log.WriteLog(LogType.Info, $"SaldaAdapter | HttpServer_ReceiveFromPeer", $"{DEL_REMOVE}: {payload.ToJson()}", LogAdpType.HomeNet);
+
+                            byte[] responseBuffer = payload.Serialize();
+                            TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);
+                        }
+                        break;
+                    case GET_LIST_IOCAR: //4.8 입출차내역 조회
+                        {
+                            RequestIOListPayload dataPayload = new RequestIOListPayload();
+                            dataPayload.park_no = Helper.NVL(json["zoneId"]);
+                            dataPayload.car_number = Helper.NVL(json["carNo"]);
+                            dataPayload.tel_number = Helper.NVL(json["mobileNo"]);
+                            dataPayload.dong = Helper.NVL(json["metaData1"]);
+                            dataPayload.ho = Helper.NVL(json["metaData2"]);
+                            dataPayload.page = Helper.NVL(json["pageNumber"]);
+                            dataPayload.count = Helper.NVL(json["pageSize"]);
+                            dataPayload.start_date = Helper.NVL(json["dateTimeFrom"]).ConvertDateTimeFormat("ISO8601", "yyyyMMdd");
+                            dataPayload.end_date = Helper.NVL(json["dateTimeTo"]).ConvertDateTimeFormat("ISO8601", "yyyyMMdd");
+
+                            RequestPayload<RequestIOListPayload> payload = new RequestPayload<RequestIOListPayload>();
+                            payload.command = CmdType.io_list;
+                            payload.data = dataPayload;
+
+                            Log.WriteLog(LogType.Info, $"SaldaAdapter | HttpServer_ReceiveFromPeer", $"{GET_LIST_IOCAR}: {payload.ToJson()}", LogAdpType.HomeNet);
+
+                            byte[] responseBuffer = payload.Serialize();
+                            TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);
+                        }
+                        break;
+                }
+
+                //Task waitTask = WaitTask(15);
+                //await waitTask;
+                //5초 대기 Task
+                int iSec = 5 * 100; //5초
+                while (iSec > 0 && !bResponseSuccess)
+                {
+                    Thread.Sleep(10); //0.01초씩..쉰다...
+                    iSec -= 1;
+                }
+
+                if (bResponseSuccess) //응답성공
+                {
+                    byte[] result = ParseDataEncoding(responseSdPayload.ToJson().ToString());
+                    e.Response.Status = System.Net.HttpStatusCode.OK;
+                    e.Response.Encoding = SysConfig.Instance.HomeNet_Encoding;
+                    e.Response.ContentType = new ContentTypeHeader("application/json");
+
+                    Log.WriteLog(LogType.Info, $"SaldaAdapter | 응답(성공)", $"{responseSdPayload.ToJson()}", LogAdpType.HomeNet);
+                    e.Response.Body.Write(result, 0, result.Length);
+                }
+                else
+                {
+                    MvlResponsePayload payload = new MvlResponsePayload();
+                    payload.resultCode = MvlResponsePayload.SttCode.NotSupportedMethod;
+                    payload.resultMessage = "주차 시스템으로 부터 응답이 없습니다";
+                    payload.responseTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+                    byte[] result = payload.Serialize();
+                    e.Response.Encoding = SysConfig.Instance.HomeNet_Encoding;
+                    e.Response.ContentType = new ContentTypeHeader("application/json");
+
+                    Log.WriteLog(LogType.Info, $"SaldaAdapter | 응답(TimeOut)", $"{responseSdPayload.ToJson()}", LogAdpType.HomeNet);
+                    e.Response.Body.Write(result, 0, result.Length);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Nexpa 에서 보내온 메시지 처리
+        /// </summary>
+        /// <param name="buffer"></param>
+        /// <param name="offset"></param>
+        /// <param name="size"></param>
+        /// <param name="pid"></param>
         public void SendMessage(byte[] buffer, long offset, long size, string pid = null)
         {
             //bResponseSuccess
@@ -241,7 +501,6 @@ namespace NpmAdapter.Adapter
                         string responseHeader = string.Empty;
                         ResponsePayload responsePayload = new ResponsePayload();
                         byte[] responseBuffer;
-                        
 
                         if (NetworkWebClient.Instance.SendData(uri, NetworkWebClient.RequestType.POST, ContentType.Json, requestData, ref responseData, ref responseHeader, header: dicHeader))
                         {
@@ -260,7 +519,7 @@ namespace NpmAdapter.Adapter
                                 responsePayload.result = ResultType.OK;
                             }
                             responseBuffer = responsePayload.Serialize();
-                            TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);
+                            TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length, pid);
                         }
                     }
                     break;
@@ -287,174 +546,6 @@ namespace NpmAdapter.Adapter
                         bResponseSuccess = true;
                     }
                     break;
-            }
-        }
-
-        private IPayload currentReqPayload;
-
-        public event IAdapter.ShowBallonTip ShowTip;
-
-        private void MyHttpNetwork_ReceiveFromPeer(byte[] buffer, long offset, long size, HttpServer.RequestEventArgs e = null, string id = null, System.Net.EndPoint ep = null)
-        {
-            lock (lockObj)
-            {
-                JObject json = null;
-                bResponseSuccess = false;
-                responseSdPayload.Initialize();
-                
-                string urlData = e.Request.Uri.LocalPath;
-                string sMethod = e.Request.Method;
-
-                string receiveEncryptMsg = SysConfig.Instance.HomeNet_Encoding.GetString(buffer[..(int)size]);
-                json = JObject.Parse(Helper.ValidateJsonParseingData(AESEncrypt.Decrypt(receiveEncryptMsg, aeskey)));
-
-                switch (urlData)
-                {
-                    case GET_DEVICES:
-                        //ParkNo, UnitNo, UnitName, UnitKind, MyNo, IPNo, PortNo
-                        //deviceId, deviceName, deviceType(장치구분)
-                        break;
-                    case GET_PARKINGZONE:
-                        currentReqPayload = null;
-                        responseSdPayload.resultCode = "OK";
-                        responseSdPayload.content = parkInfoPayload;
-                        bResponseSuccess = true;
-                        break;
-                    case GET_WHITE_LIST:
-                        currentReqPayload = null;
-                        break;
-                    case GET_LIST_VISITOR: //방문차량 조회
-                        currentReqPayload = null;
-                        break;
-                    case GET_LIST_REGULAR: //정기차량 조회
-                        currentReqPayload = null;
-                        break;
-                    case SET_REGISTRATION: //차량등록(정기/방문)
-                        if(Helper.NVL(json["type"]).ToLower() == "regular")
-                        {
-                            //정기차량등록
-                            RequestSdReg reqPayload = new RequestSdReg();
-                            reqPayload.Deserialize(json);
-                            currentReqPayload = reqPayload;
-                            
-                            RequestCustRegPayload dataPayload = new RequestCustRegPayload();
-                            dataPayload.car_number = Helper.NVL(json["carNo"]);
-                            dataPayload.dong = Helper.NVL(json["metaData1"]);
-                            dataPayload.ho = Helper.NVL(json["metaData2"]);
-                            dataPayload.name = Helper.NVL(json["customerName"]);
-                            dataPayload.start_date = Helper.NVL(json["startDateTime"]).ConvertDateTimeFormat("ISO8601", "yyyyMMdd");
-                            dataPayload.end_date = Helper.NVL(json["endDateTime"]).ConvertDateTimeFormat("ISO8601", "yyyyMMdd");
-                            dataPayload.tel_number = Helper.NVL(json["mobileNo"]);
-                            dataPayload.remark = Helper.NVL(json["memo"]);
-
-                            RequestPayload<RequestCustRegPayload> payload = new RequestPayload<RequestCustRegPayload>();
-                            payload.command = CmdType.cust_reg;
-                            payload.data = dataPayload;
-                            Log.WriteLog(LogType.Info, $"SaldaAdapter | HttpServer_ReceiveFromPeer", $"{SET_REGISTRATION}: {payload.ToJson()}", LogAdpType.HomeNet);
-
-                            byte[] responseBuffer = payload.Serialize();
-                            TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);
-                        }
-                        else if (Helper.NVL(json["type"]).ToLower() == "visitor")
-                        {
-                            //방문차량등록
-                            RequestSdReg reqPayload = new RequestSdReg();
-                            reqPayload.Deserialize(json);
-                            currentReqPayload = reqPayload;
-                            
-                            RequestVisitRegPayload dataPayload = new RequestVisitRegPayload();
-                            dataPayload.car_number = Helper.NVL(json["carNo"]);
-                            dataPayload.dong = Helper.NVL(json["metaData1"]);
-                            dataPayload.ho = Helper.NVL(json["metaData2"]);
-                            dataPayload.date = Helper.NVL(json["startDateTime"]).ConvertDateTimeFormat("ISO8601", "yyyyMMdd");
-                            DateTime startDate = Convert.ToDateTime(Helper.NVL(json["startDateTime"]));
-                            DateTime endDate = Convert.ToDateTime(Helper.NVL(json["endDateTime"]));
-
-                            TimeSpan dateDiff = endDate - startDate;
-                            string sTerm;
-                            if (dateDiff.Days == 0) sTerm = "1";
-                            else sTerm = dateDiff.Days.ToString();
-                            dataPayload.term = sTerm;
-                            //TODO : Remark 추가해야함... 2021-01-14
-                            RequestPayload<RequestVisitRegPayload> payload = new RequestPayload<RequestVisitRegPayload>();
-                            payload.command = CmdType.visit_reg;
-                            payload.data = dataPayload;
-                            Log.WriteLog(LogType.Info, $"SaldaAdapter | HttpServer_ReceiveFromPeer", $"{SET_REGISTRATION}: {payload.ToJson()}", LogAdpType.HomeNet);
-
-                            byte[] responseBuffer = payload.Serialize();
-                            TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);
-                        }
-                        break;
-                    case DEL_REMOVE: //차량삭제(정기/방문)
-                        currentReqPayload = null;
-                        if (Helper.NVL(json["type"]).ToLower() == "regular")
-                        {
-                            RequestCustDelPayload dataPayload = new RequestCustDelPayload();
-                            dataPayload.car_number = Helper.NVL(json["carNo"]);
-                            dataPayload.dong = Helper.NVL(json["metaData1"]);
-                            dataPayload.ho = Helper.NVL(json["metaData2"]);
-                            dataPayload.reg_no = Helper.NVL(json["regId"]);
-
-                            RequestPayload<RequestCustDelPayload> payload = new RequestPayload<RequestCustDelPayload>();
-                            payload.command = CmdType.cust_del;
-                            payload.data = dataPayload;
-                            Log.WriteLog(LogType.Info, $"SaldaAdapter | HttpServer_ReceiveFromPeer", $"{DEL_REMOVE}: {payload.ToJson()}", LogAdpType.HomeNet);
-
-                            byte[] responseBuffer = payload.Serialize();
-                            TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);
-                        }
-                        else if (Helper.NVL(json["type"]).ToLower() == "visitor")
-                        {
-                            RequestVisitDelPayload dataPayload = new RequestVisitDelPayload();
-                            dataPayload.dong = Helper.NVL(json["metaData1"]);
-                            dataPayload.ho = Helper.NVL(json["metaData2"]);
-                            dataPayload.reg_no = Helper.NVL(json["regId"]);
-                            dataPayload.car_number = Helper.NVL(json["carNo"]);
-
-                            RequestPayload<RequestVisitDelPayload> payload = new RequestPayload<RequestVisitDelPayload>();
-                            payload.command = CmdType.visit_del;
-                            payload.data = dataPayload;
-                            Log.WriteLog(LogType.Info, $"SaldaAdapter | HttpServer_ReceiveFromPeer", $"{DEL_REMOVE}: {payload.ToJson()}", LogAdpType.HomeNet);
-
-                            byte[] responseBuffer = payload.Serialize();
-                            TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length);
-                        }
-                        break;
-                }
-
-                //Task waitTask = WaitTask(15);
-                //await waitTask;
-                //5초 대기 Task
-                int iSec = 5 * 100; //10초
-                while (iSec > 0 && !bResponseSuccess)
-                {
-                    Thread.Sleep(10); //0.01초씩..쉰다...
-                    iSec -= 1;
-                }
-
-                if (bResponseSuccess) //응답성공
-                {
-                    byte[] result = ParseDataEncoding(responseSdPayload.ToJson().ToString());
-                    e.Response.Status = System.Net.HttpStatusCode.OK;
-                    e.Response.Encoding = SysConfig.Instance.HomeNet_Encoding;
-                    e.Response.ContentType = new ContentTypeHeader("application/json");
-                    
-                    Log.WriteLog(LogType.Info, $"SaldaAdapter | 응답(성공)", $"{responseSdPayload.ToJson()}", LogAdpType.HomeNet);
-                    e.Response.Body.Write(result, 0, result.Length);
-                }
-                else
-                {
-                    MvlResponsePayload payload = new MvlResponsePayload();
-                    payload.resultCode = MvlResponsePayload.SttCode.NotSupportedMethod;
-                    payload.resultMessage = "주차 시스템으로 부터 응답이 없습니다";
-                    payload.responseTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-                    byte[] result = payload.Serialize();
-                    e.Response.Encoding = SysConfig.Instance.HomeNet_Encoding;
-                    e.Response.ContentType = new ContentTypeHeader("application/json");
-                    
-                    Log.WriteLog(LogType.Info, $"SaldaAdapter | 응답(TimeOut)", $"{responseSdPayload.ToJson()}", LogAdpType.HomeNet);
-                    e.Response.Body.Write(result, 0, result.Length);
-                }
             }
         }
 

@@ -34,7 +34,7 @@ namespace NpmAdapter.Payload
         public SttCode resultCode;
         public string resultMessage { get; set; }
         public string responseTime { get; set; }
-        public virtual void Deserialize(JObject json)
+        public virtual void Deserialize(JToken json)
         {
             int iResultCode;
             if (int.TryParse(Helper.NVL(json["resultCode"]), out iResultCode))
@@ -55,7 +55,7 @@ namespace NpmAdapter.Payload
             return ToJson().ToByteArray(SysConfig.Instance.HomeNet_Encoding);
         }
 
-        public virtual JObject ToJson()
+        public virtual JToken ToJson()
         {
             JObject json = new JObject();
             json["resultCode"] = (int)resultCode;

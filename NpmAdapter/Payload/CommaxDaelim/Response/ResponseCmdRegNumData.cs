@@ -11,7 +11,7 @@ namespace NpmAdapter.Payload
     {
         public string reg_num { get; set; }
 
-        public void Deserialize(JObject json)
+        public void Deserialize(JToken json)
         {
             reg_num = Helper.NVL(json["reg_num"]);
         }
@@ -21,7 +21,7 @@ namespace NpmAdapter.Payload
             return ToJson().ToByteArray(SysConfig.Instance.HomeNet_Encoding);
         }
 
-        public JObject ToJson()
+        public JToken ToJson()
         {
             JObject json = new JObject();
             json["reg_num"] = Helper.NVL(reg_num);

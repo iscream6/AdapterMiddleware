@@ -13,7 +13,7 @@ namespace NpmAdapter.Payload
         public string ho { get; set; }
         public string reg_no { get; set; }
 
-        public void Deserialize(JObject json)
+        public void Deserialize(JToken json)
         {
             car_number = Helper.NVL(json["car_number"]);
             dong = Helper.NVL(json["dong"]);
@@ -26,7 +26,7 @@ namespace NpmAdapter.Payload
             return ToJson().ToByteArray(SysConfig.Instance.Nexpa_Encoding);
         }
 
-        public JObject ToJson()
+        public JToken ToJson()
         {
             JObject json = new JObject();
             json["car_number"] = car_number;

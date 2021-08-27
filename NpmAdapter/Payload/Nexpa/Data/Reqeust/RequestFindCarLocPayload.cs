@@ -8,7 +8,7 @@ namespace NpmAdapter.Payload
         public string car_number { get; set; }
         public string dong { get; set; }
         public string ho { get; set; }
-        public void Deserialize(JObject json)
+        public void Deserialize(JToken json)
         {
             car_number = Helper.NVL(json["car_no"]);
             dong = Helper.NVL(json["dong"]);
@@ -22,7 +22,7 @@ namespace NpmAdapter.Payload
             return ToJson().ToByteArray();
         }
 
-        public JObject ToJson()
+        public JToken ToJson()
         {
             JObject json = new JObject();
             json["car_no"] = car_number;

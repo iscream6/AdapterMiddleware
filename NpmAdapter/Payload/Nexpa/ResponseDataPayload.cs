@@ -9,7 +9,7 @@ namespace NpmAdapter.Payload
     {
         public IPayload data { get; set; }
 
-        public override void Deserialize(JObject json)
+        public override void Deserialize(JToken json)
         {
             base.Deserialize(json);
             data = NexpaPayloadManager.MakeResponseDataPayload(command, json["data"] as JObject);
@@ -20,9 +20,9 @@ namespace NpmAdapter.Payload
             return ToJson().ToByteArray(SysConfig.Instance.Nexpa_Encoding);
         }
 
-        public override JObject ToJson()
+        public override JToken ToJson()
         {
-            JObject json = base.ToJson();
+            JToken json = base.ToJson();
             json["data"] = data?.ToJson();
             return json;
         }

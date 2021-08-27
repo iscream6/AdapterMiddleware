@@ -10,7 +10,7 @@ namespace NpmAdapter.Payload
     {
         public List<CommaxDaelimVisitFavoritResponseData> list { get; set; }
 
-        public void Deserialize(JObject json)
+        public void Deserialize(JToken json)
         {
             JArray array = json["list"] as JArray;
             if (array != null)
@@ -30,7 +30,7 @@ namespace NpmAdapter.Payload
             return ToJson().ToByteArray(SysConfig.Instance.HomeNet_Encoding);
         }
 
-        public JObject ToJson()
+        public JToken ToJson()
         {
             JObject json = new JObject();
             //json["list"] = list.Select(p => p.ToJson()).ToArray();
@@ -54,7 +54,7 @@ namespace NpmAdapter.Payload
         public string reg_date { get; set; }
         public string register { get; set; }
 
-        public void Deserialize(JObject json)
+        public void Deserialize(JToken json)
         {
             reg_num = Helper.NVL(json["reg_num"]);
             car_num = Helper.NVL(json["car_num"]);
@@ -67,7 +67,7 @@ namespace NpmAdapter.Payload
             return ToJson().ToByteArray(SysConfig.Instance.HomeNet_Encoding);
         }
 
-        public JObject ToJson()
+        public JToken ToJson()
         {
             JObject json = new JObject();
             json["reg_num"] = Helper.NVL(reg_num);

@@ -42,7 +42,7 @@ namespace NpmAdapter.Payload
             result = null;
         }
 
-        public void Deserialize(JObject json)
+        public void Deserialize(JToken json)
         {
             header.Deserialize(json["header"] as JObject);
             result.Deserialize(json["result"] as JObject);
@@ -53,7 +53,7 @@ namespace NpmAdapter.Payload
             }
         }
 
-        public void DeserializeData(CmdHelper.Type type, JObject json)
+        public void DeserializeData(CmdHelper.Type type, JToken json)
         {
             data = CmdHelper.MakeResponseDataPayload(type, json);
         }
@@ -63,7 +63,7 @@ namespace NpmAdapter.Payload
             return ToJson().ToByteArray();
         }
 
-        public JObject ToJson()
+        public JToken ToJson()
         {
             JObject json = new JObject();
             json["header"] = header?.ToJson();

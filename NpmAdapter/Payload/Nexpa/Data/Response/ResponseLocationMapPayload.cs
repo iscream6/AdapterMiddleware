@@ -35,7 +35,7 @@ namespace NpmAdapter.Payload
         /// </summary>
         public string car_image { get; set; }
 
-        public void Deserialize(JObject json)
+        public void Deserialize(JToken json)
         {
             car_number = json["car_number"].ToString();
             alias = json["alias"].ToString();
@@ -51,7 +51,7 @@ namespace NpmAdapter.Payload
             return ToJson().ToByteArray(SysConfig.Instance.Nexpa_Encoding);
         }
 
-        public JObject ToJson()
+        public JToken ToJson()
         {
             JObject json = new JObject();
             json["car_number"] = car_number;
@@ -75,7 +75,7 @@ namespace NpmAdapter.Payload
             list = new List<ResponseLocationMapPayload>();
         }
 
-        public void Deserialize(JObject json)
+        public void Deserialize(JToken json)
         {
             location_type = json.Value<string>("location_type");
             JArray array = json.Value<JArray>("list");
@@ -96,7 +96,7 @@ namespace NpmAdapter.Payload
             return ToJson().ToByteArray();
         }
 
-        public JObject ToJson()
+        public JToken ToJson()
         {
             JObject json = new JObject();
             json["location_type"] = location_type;
