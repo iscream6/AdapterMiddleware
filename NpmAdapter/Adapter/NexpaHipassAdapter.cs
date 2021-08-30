@@ -109,6 +109,16 @@ namespace NpmAdapter.Adapter
                 try
                 {
                     receiveMessageBuffer.Append(buffer.ToString(SysConfig.Instance.Nexpa_Encoding, size));
+
+                    Log.WriteLog(LogType.Info, "NexpaLocalAdapter | MyTcpNetwork_ReceiveFromPeer", $"ReceiveMessage : {receiveMessageBuffer.ToString()}", LogAdpType.Nexpa);
+
+                    //넥스파 장비쪽 Live Check 로 OK를 보낸다...
+                    if(receiveMessageBuffer.ToString() == "OK")
+                    {
+                        receiveMessageBuffer.Clear();
+                        return;
+                    }
+
                     var jobj = JObject.Parse(Helper.ValidateJsonParseingData(receiveMessageBuffer.ToString()));
                     Thread.Sleep(10);
                     receiveMessageBuffer.Clear();
@@ -135,6 +145,7 @@ namespace NpmAdapter.Adapter
                 catch (Exception ex)
                 {
                     Log.WriteLog(LogType.Error, "NexpaLocalAdapter | MyTcpNetwork_ReceiveFromPeer", $"{ex.StackTrace}", LogAdpType.Nexpa);
+                    receiveMessageBuffer.Clear();
                 }
             }
         }

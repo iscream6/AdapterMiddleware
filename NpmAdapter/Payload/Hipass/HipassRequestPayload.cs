@@ -13,6 +13,14 @@ namespace NpmAdapter.Payload
         public string car_number { get; set; }
         public string fee { get; set; }
 
+        public void Initialize()
+        {
+            unit_no = "";
+            tk_no = "";
+            car_number = "";
+            fee = "";
+        }
+
         public void Deserialize(JToken json)
         {
             unit_no = Helper.NVL(json["unit_no"]);
@@ -36,15 +44,34 @@ namespace NpmAdapter.Payload
             return json;
         }
 
-        public byte[] ResponseSerialize(JToken data, bool isSuccess)
+        public byte[] ResponseSerialize(JToken data, int iSuccessCode)
         {
             var json = ToJson();
             if(data != null)
             {
                 json["data"] = data;
             }
-            json["result_code"] = isSuccess ? "OK" : "Fail";
-            json["result_message"] = isSuccess ? "" : "하이패스 장비 연동에 실패하였습니다.";
+
+            if(iSuccessCode == 200)
+            {
+                json["result_code"] = "OK";
+                json["result_message"] = "";
+            }
+            else if(iSuccessCode == 400)
+            {
+                json["result_code"] = "Fail";
+                json["result_message"] = "하이패스 장비 연동에 실패하였습니다.";
+            }
+            else if (iSuccessCode == 408)
+            {
+                json["result_code"] = "Fail";
+                json["result_message"] = "Request Time Out";
+            }
+            else if (iSuccessCode == 501)
+            {
+                json["result_code"] = "Fail";
+                json["result_message"] = "하이패스 결제에 실패하였습니다.";
+            }
 
             Log.WriteLog(LogType.Info, "HipassRequestPayload | ResponseSerialize", $"{json}", LogAdpType.Nexpa);
 

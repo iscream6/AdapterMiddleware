@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace DB.Schema
+namespace NpmDataBase
 {
     class DayKeyMaster
     {

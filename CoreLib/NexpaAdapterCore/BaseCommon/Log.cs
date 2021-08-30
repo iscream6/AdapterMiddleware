@@ -32,7 +32,15 @@ namespace NexpaAdapterStandardLib
 
             if(adapterType != LogAdpType.none || type == LogType.Error)
             {
-                SystemStatus.Instance.SendEventMessage(adapterType, message);
+                try
+                {
+                    SystemStatus.Instance.SendEventMessage(adapterType, message);
+                }
+                catch (Exception ex)
+                {
+                    logger.Error(preAdpType + pathName + " | " + ex.StackTrace);
+                }
+                
             }
         }
     }

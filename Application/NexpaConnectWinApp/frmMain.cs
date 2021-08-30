@@ -227,12 +227,24 @@ namespace NexpaConnectWinApp
 
         private void btnLogClear_Click(object sender, EventArgs e)
         {
-            txtSysLog.Clear();
+            try
+            {
+                txtSysLog?.Clear();
+            }
+            catch (Exception)
+            {
+            }
         }
 
         private void timerLogClear_Tick(object sender, EventArgs e)
         {
-            txtSysLog.Clear();
+            try
+            {
+                txtSysLog?.Clear();
+            }
+            catch (Exception)
+            {
+            }
         }
 
         #endregion
@@ -320,31 +332,33 @@ namespace NexpaConnectWinApp
 
         private void FrmMain_StatusChanged(LogAdpType adapterType, string statusMessage)
         {
-            StringBuilder builder = new StringBuilder();
-            builder.Append(DateTime.Now.ToString("yy-MM-dd hh:mm:ss "));
-            if (adapterType == LogAdpType.none)
+            try
             {
-                builder.Append($"[Error] ");
+                StringBuilder builder = new StringBuilder();
+                builder.Append(DateTime.Now.ToString("yy-MM-dd hh:mm:ss "));
+                if (adapterType == LogAdpType.none)
+                {
+                    builder.Append($"[Error] ");
+                }
+                else
+                {
+                    builder.Append($"[{adapterType.ToString()}] ");
+                }
+                builder.Append(statusMessage);
+                SafeAppendLogText(txtSysLog, builder.ToString() + "\r");
+                if (this.InvokeRequired)
+                {
+                    this.Invoke(new MethodInvoker(delegate () { txtSysLog.SelectionStart = txtSysLog.Text.Length; }));
+                }
+                else
+                {
+                    txtSysLog.SelectionStart = txtSysLog.Text.Length;
+                }
             }
-            else
+            catch (Exception)
             {
-                builder.Append($"[{adapterType.ToString()}] ");
-            }
-            builder.Append(statusMessage);
-            SafeAppendLogText(txtSysLog, builder.ToString() + "\r");
-            if (this.InvokeRequired)
-            {
-                this.Invoke(new MethodInvoker(delegate () { txtSysLog.SelectionStart = txtSysLog.Text.Length; }));
-            }
-            else
-            {
-                txtSysLog.SelectionStart = txtSysLog.Text.Length;
-            }
-        }
 
-        private void CNotSafetySetText()
-        {
-            txtSysLog.SelectionStart = txtSysLog.Text.Length;
+            }
         }
 
         #endregion
@@ -360,7 +374,14 @@ namespace NexpaConnectWinApp
         {
             if (isShutdown)
             {
+                var process = Process.GetProcessesByName("NexpaConnectWinApp");
+                timerDeath.Stop();
+                timerDeath.Dispose();
                 e.Cancel = false;
+                foreach (var item in process)
+                {
+                    item.Kill();
+                }
             }
             else
             {
@@ -368,7 +389,6 @@ namespace NexpaConnectWinApp
                 this.Visible = false; //화면을 닫지 않고 숨긴다.
             }
         }
-
 
 
         private void timerDeath_Tick(object sender, EventArgs e)
@@ -470,21 +490,26 @@ namespace NexpaConnectWinApp
 
         private void 설정ToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            using (frmOption option = new frmOption())
+            try
             {
-                if (option.ShowDialog() == DialogResult.OK)
+                using (frmOption option = new frmOption())
                 {
-                    if (MessageBox.Show("You need to restart the program to apply the settings. " +
-                        "Do you want to restart?", "You neet restart!", MessageBoxButtons.YesNo) == DialogResult.Yes)
+                    if (option.ShowDialog() == DialogResult.OK)
                     {
-                        System.Diagnostics.Process.Start(Application.ExecutablePath); // to start new instance of application
-                        isShutdown = true;
-                        this.Close();
-                        this.Dispose();
+                        if (MessageBox.Show("You need to restart the program to apply the settings. " +
+                            "Do you want to restart?", "You neet restart!", MessageBoxButtons.YesNo) == DialogResult.Yes)
+                        {
+                            System.Diagnostics.Process.Start(Application.ExecutablePath); // to start new instance of application
+                            isShutdown = true;
+                            this.Close();
+                            this.Dispose();
+                        }
                     }
                 }
             }
-
+            catch (Exception)
+            {
+            }
         }
 
         private void mnuOpenLogFolder_Click(object sender, EventArgs e)
@@ -498,9 +523,16 @@ namespace NexpaConnectWinApp
 
         private void 프로그램종료XToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            isShutdown = true;
-            this.Close();
-            this.Dispose();
+            try
+            {
+                isShutdown = true;
+                this.Close();
+                this.Dispose();
+            }
+            catch (Exception)
+            {
+
+            }
         }
 
         private void mnuShutdown_Click(object sender, EventArgs e)
