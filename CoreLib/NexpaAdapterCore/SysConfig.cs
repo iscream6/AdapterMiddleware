@@ -219,6 +219,10 @@ namespace NexpaAdapterStandardLib
 
         public string HIP_Dsc_Use { get; }
         /// <summary>
+        /// 경차 할인
+        /// </summary>
+        public string HIP_Dsc_Small { get; }
+        /// <summary>
         /// 일반 0x00 ~ 0x0F
         /// </summary>
         public string HIP_Dsc_Normal { get; }
@@ -322,6 +326,7 @@ namespace NexpaAdapterStandardLib
                 }
             }
             HIP_Dsc_Use = ConfigManager.ReadConfig(config, Sections.HipassConfig.GetDescription(), "HIP_Dsc_Use");
+            HIP_Dsc_Small = ConfigManager.ReadConfig(config, Sections.HipassConfig.GetDescription(), "HIP_Dsc_Small");
             HIP_Dsc_Normal = ConfigManager.ReadConfig(config, Sections.HipassConfig.GetDescription(), "HIP_Dsc_Normal");
             HIP_Dsc_Disable = ConfigManager.ReadConfig(config, Sections.HipassConfig.GetDescription(), "HIP_Dsc_Disable");
             HIP_Dsc_National15 = ConfigManager.ReadConfig(config, Sections.HipassConfig.GetDescription(), "HIP_Dsc_National15");

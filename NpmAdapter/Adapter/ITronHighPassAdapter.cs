@@ -436,7 +436,7 @@ namespace NpmAdapter.Adapter
             data[0] = 0x02; //STX
             MsgToByte(ref data, 1, 4, "0494"); //Length
             MsgToByte(ref data, 5, 4, "0102"); //Code
-            MsgToByte(ref data, 9, 3, "000"); //6종OBU할인율
+            MsgToByte(ref data, 9, 3, SysConfig.Instance.HIP_Dsc_Small); //6종OBU할인율
             MsgToByte(ref data, 12, 3, SysConfig.Instance.HIP_Dsc_Normal); //일반
             MsgToByte(ref data, 15, 3, SysConfig.Instance.HIP_Dsc_Disable); //장애인 1~6급
             MsgToByte(ref data, 18, 3, SysConfig.Instance.HIP_Dsc_National15); //국가유공상이자 1~5급
