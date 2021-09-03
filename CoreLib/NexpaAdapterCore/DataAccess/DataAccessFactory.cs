@@ -74,11 +74,6 @@ namespace NexpaAdapterStandardLib.DataAccess
             return _Helper;
         }
 
-        public AbstractDA GetConfigDA()
-        {
-            return new SQLiteDA();
-        }
-
         /// <summary>
         /// IDbDataParameter 인스턴스 생성
         /// </summary>
