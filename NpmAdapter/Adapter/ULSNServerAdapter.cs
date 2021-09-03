@@ -562,7 +562,7 @@ namespace NpmAdapter.Adapter
         {
             await Task.Run(() =>
             {
-                int iSec = 10 * 100; //10초
+                int iSec = 30 * 100; //10초
                 while (iSec > 0 && isProcessing)
                 {
                     Thread.Sleep(10); //0.01초씩..쉰다...
