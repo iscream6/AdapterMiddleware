@@ -12,17 +12,23 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using WPF.Themes;
 
 namespace NexpaConnectWpfApp.View
 {
     /// <summary>
-    /// OptionPage.xaml에 대한 상호 작용 논리
+    /// MainGate.xaml에 대한 상호 작용 논리
     /// </summary>
-    public partial class OptionPage : Page
+    public partial class MainGate : Page
     {
-        public OptionPage()
+        public MainGate()
         {
             InitializeComponent();
+        }
+
+        private void Page_Loaded(object sender, RoutedEventArgs e)
+        {
+            
         }
     }
 }

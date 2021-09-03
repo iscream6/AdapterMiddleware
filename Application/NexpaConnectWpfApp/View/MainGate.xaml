@@ -1,12 +1,12 @@
-﻿<Window x:Class="NexpaConnectWpfApp.MainWindow"
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:NexpaConnectWpfApp"
-        mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800" Loaded="Window_Loaded"
-        >
+﻿<Page x:Class="NexpaConnectWpfApp.View.MainGate"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+      xmlns:local="clr-namespace:NexpaConnectWpfApp.View"
+      mc:Ignorable="d" 
+      d:DesignHeight="394.688" d:DesignWidth="762.5"
+      Title="MainGate" Loaded="Page_Loaded">
 
     <Grid>
         <Border BorderBrush="Black" BorderThickness="1" HorizontalAlignment="Stretch" Margin="3,3,3,3" VerticalAlignment="Stretch">
@@ -38,4 +38,4 @@
         </Border>
 
     </Grid>
-</Window>
+</Page>
