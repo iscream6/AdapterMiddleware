@@ -6,7 +6,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace NexpaAdapterStandardLib
+namespace NpmCommon
 {
     /// <summary>
     /// 32바이트 little-endian 바이트 배열로 표현되는 256비트 unsigned int.

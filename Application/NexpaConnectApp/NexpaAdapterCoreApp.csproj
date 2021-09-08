@@ -15,7 +15,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\CoreLib\NexpaAdapterCore\NpmStandardLib.csproj" />
+    <ProjectReference Include="..\..\CoreLib\NexpaAdapterCore\NpmCommon.csproj" />
+    <ProjectReference Include="..\..\CoreLib\NpmAdapter\NpmAdapter.csproj" />
     <ProjectReference Include="..\..\NpmAdapter\NpmAdapter.csproj" />
   </ItemGroup>
 

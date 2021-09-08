@@ -18,7 +18,7 @@ using System.Text;
 //              Cn0201124.2   [Etc_Config] -> ParkId 추가
 //              Cn0201124.3   [Etc_Config] -> AuthToken 추가
 // 2021-02-02   Cn0210202.1   [Nexpa_Config] -> WebIP 추가
-namespace NexpaAdapterStandardLib
+namespace NpmCommon
 {
     public class SysConfig : Singleton<SysConfig>
     {

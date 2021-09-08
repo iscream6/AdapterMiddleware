@@ -19,6 +19,12 @@
                     <ColumnDefinition Width="50*"/>
                     <ColumnDefinition Width="50*"/>
                 </Grid.ColumnDefinitions>
+                <Border x:Name="AdapterBorder"
+                        Grid.Row="0"
+                        Grid.Column="0"
+                        Grid.ColumnSpan="2"
+                        FlowDirection="LeftToRight">
+                </Border>
                 <Border x:Name="LogBorder" 
                         BorderBrush="DarkGray"
                         BorderThickness="1"

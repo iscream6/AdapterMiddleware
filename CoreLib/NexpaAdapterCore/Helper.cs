@@ -8,7 +8,7 @@ using System.IO;
 using System.Text;
 using System.Xml;
 
-namespace NexpaAdapterStandardLib
+namespace NpmCommon
 {
     public enum NexpaDBType
     {

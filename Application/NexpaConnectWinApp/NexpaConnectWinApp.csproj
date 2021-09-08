@@ -108,12 +108,12 @@
     <Content Include="CARS.ICO" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\CoreLib\NexpaAdapterCore\NpmStandardLib.csproj">
+    <ProjectReference Include="..\..\CoreLib\NexpaAdapterCore\NpmCommon.csproj">
       <Project>{fd2e3ea0-30b9-4a82-8273-90b87cce9815}</Project>
-      <Name>NpmStandardLib</Name>
+      <Name>NpmCommon</Name>
     </ProjectReference>
-    <ProjectReference Include="..\..\NpmAdapter\NpmAdapter.csproj">
-      <Project>{52165791-6bce-486f-a717-76db0e5c610a}</Project>
+    <ProjectReference Include="..\..\CoreLib\NpmAdapter\NpmAdapter.csproj">
+      <Project>{e310059b-6d61-4046-bd0d-5466165dbede}</Project>
       <Name>NpmAdapter</Name>
     </ProjectReference>
   </ItemGroup>

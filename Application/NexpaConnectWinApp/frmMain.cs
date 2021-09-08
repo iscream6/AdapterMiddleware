@@ -1,11 +1,10 @@
-﻿using NexpaAdapterStandardLib;
-using NpmAdapter;
+﻿using NpmAdapter;
+using NpmCommon;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
-using System.Runtime.InteropServices.WindowsRuntime;
 using System.Text;
 using System.Threading;
 using System.Windows.Forms;
@@ -38,7 +37,6 @@ namespace NexpaConnectWinApp
 
             pipe = new NexPipe();
             pipe.ShowTip += Pipe_ShowTip;
-            SystemStatus.Instance.StatusChanged += FrmMain_StatusChanged; ;
         }
 
         #endregion
@@ -308,6 +306,8 @@ namespace NexpaConnectWinApp
             {
                 timerDeath.Start();
             }
+
+            SystemStatus.Instance.StatusChanged += FrmMain_StatusChanged;
         }
 
         #endregion

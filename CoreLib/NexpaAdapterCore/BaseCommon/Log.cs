@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace NexpaAdapterStandardLib
+namespace NpmCommon
 {
     public enum LogType
     {

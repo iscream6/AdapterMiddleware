@@ -4,7 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Runtime.InteropServices;
 
-namespace NexpaAdapterStandardLib
+namespace NpmCommon
 {
     /// <summary>
     /// 20 바이트 little-endian 바이트 배열로 표현되는 160 비트 unsigned int

@@ -1,4 +1,5 @@
 ﻿using NexpaConnectWpfApp.Common;
+using NpmAdapter;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -22,6 +23,8 @@ namespace NexpaConnectWpfApp
     /// </summary>
     public partial class MainWindow : Window
     {
+        private NexPipe pipe;
+
         public MainWindow()
         {
             InitializeComponent();
@@ -30,6 +33,19 @@ namespace NexpaConnectWpfApp
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
             this.ApplyTheme("ExpressionDark");
+
+            var tt = new AdpaterUC();
+
+            this.AdapterBorder.Child = tt;
+            tt.AdapterName = "TEST";
+
+            pipe = new NexPipe();
+            pipe.ShowTip += Pipe_ShowTip;
+        }
+
+        private void Pipe_ShowTip(int showSec, string title, string message)
+        {
+            throw new NotImplementedException();
         }
     }
 }
