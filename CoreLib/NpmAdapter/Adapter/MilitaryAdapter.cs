@@ -1,6 +1,7 @@
 ﻿using Newtonsoft.Json.Linq;
 using NpmAdapter.Payload;
 using NpmCommon;
+using NpmNetwork;
 using System;
 using System.Collections.Generic;
 using System.Text;
