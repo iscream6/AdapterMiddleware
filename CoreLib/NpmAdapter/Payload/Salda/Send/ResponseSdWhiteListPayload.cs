@@ -1,11 +1,52 @@
 ﻿using Newtonsoft.Json.Linq;
 using NpmCommon;
+using System;
+using System.Collections.Generic;
+using System.Text;
 
 namespace NpmAdapter.Payload
 {
-    class RequestSdReg : IPayload
+    class ResponseSdWhiteListPayload : IPayload
     {
-        public string zoneId { get; set; }
+        public List<ResponseSdWhiteListContentPayload> contents { get; set; }
+
+        public ResponseSdWhiteListPayload()
+        {
+            contents = new List<ResponseSdWhiteListContentPayload>();
+        }
+
+        public void Deserialize(JToken json)
+        {
+            JArray array = json as JArray;
+            if (array != null)
+            {
+                foreach (var item in array)
+                {
+                    ResponseSdWhiteListContentPayload content = new ResponseSdWhiteListContentPayload();
+                    content.Deserialize(item);
+                    contents.Add(content);
+                }
+            }
+        }
+
+        public byte[] Serialize()
+        {
+            return ToJson().ToByteArray(SysConfig.Instance.HomeNet_Encoding);
+        }
+
+        public JToken ToJson()
+        {
+            JArray jarr = new JArray();
+            foreach (var item in contents)
+            {
+                jarr.Add(item.ToJson());
+            }
+            return jarr;
+        }
+    }
+
+    class ResponseSdWhiteListContentPayload : IPayload
+    {
         public string type { get; set; }
         public string regId { get; set; }
         public string carNo { get; set; }
@@ -19,11 +60,9 @@ namespace NpmAdapter.Payload
         public bool repeatable { get; set; }
         public string createdAt { get; set; }
         public string updatedAt { get; set; }
-        public string deletedAt { get; set; }
 
         public void Deserialize(JToken json)
         {
-            zoneId = Helper.NVL(json["zoneId"]);
             type = Helper.NVL(json["type"]);
             regId = Helper.NVL(json["regId"]);
             carNo = Helper.NVL(json["carNo"]);
@@ -37,7 +76,6 @@ namespace NpmAdapter.Payload
             repeatable = bool.Parse(Helper.NVL(json["repeatable"]));
             createdAt = Helper.NVL(json["createdAt"]);
             updatedAt = Helper.NVL(json["updatedAt"]);
-            deletedAt = Helper.NVL(json["deletedAt"]);
         }
 
         public byte[] Serialize()
@@ -56,11 +94,12 @@ namespace NpmAdapter.Payload
             json["mobileNo"] = mobileNo;
             json["metaData1"] = metaData1;
             json["metaData2"] = metaData2;
-            json["memo"] = memo; 
+            json["memo"] = memo;
             json["type"] = type;
             json["createdAt"] = createdAt;
             json["updatedAt"] = updatedAt;
-            json["deletedAt"] = deletedAt;
+            json["repeatable"] = repeatable.ToString().ToLower();
+
             return json;
         }
     }

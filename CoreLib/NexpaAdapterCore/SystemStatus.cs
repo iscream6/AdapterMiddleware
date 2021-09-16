@@ -9,7 +9,8 @@ namespace NpmCommon
         none,
         Biz,
         Nexpa,
-        HomeNet
+        HomeNet,
+        DataBase
     }
 
     public delegate void StatusChange(LogAdpType adapterType, string statusMessage);

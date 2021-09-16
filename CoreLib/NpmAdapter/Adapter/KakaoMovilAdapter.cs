@@ -12,6 +12,14 @@ namespace NpmAdapter.Adapter
 {
     class KakaoMovilAdapter : IAdapter
     {
+        private enum ResponseStt
+        {
+            none,
+            success,
+            fail
+        }
+
+
         private const string GET_GATESTATUS = "/getGateStatus";
         private const string GET_IONDATA = "/getIONData";
         private const string SET_CUSTINFO = "/setCustInfo";
@@ -39,7 +47,7 @@ namespace NpmAdapter.Adapter
         Dictionary<string, string> dicHeader = new Dictionary<string, string>();
 
         private bool isRun = false;
-        private bool bResponseSuccess = false;
+        private ResponseStt bResponseSuccess = ResponseStt.none;
 
         private IPayload responsePayload;
         private StringBuilder receiveMessageBuffer = new StringBuilder();
@@ -144,7 +152,7 @@ namespace NpmAdapter.Adapter
         {
             lock (lockObj)
             {
-                bResponseSuccess = false;
+                bResponseSuccess = ResponseStt.none;
 
                 Dictionary<string, string> dicParams = null;
                 JObject json = null;
@@ -396,16 +404,26 @@ namespace NpmAdapter.Adapter
                         //Task waitTask = WaitTask(15);
                         //await waitTask;
                         //5초 대기 Task
-                        int iSec = 5 * 100; //10초
-                        while (iSec > 0 && !bResponseSuccess)
+                        int iSec = 10 * 100; //10초
+                        while (iSec > 0 && bResponseSuccess == ResponseStt.none)
                         {
                             Thread.Sleep(10); //0.01초씩..쉰다...
                             iSec -= 1;
                         }
 
-                        if (bResponseSuccess) //응답성공
+                        if (bResponseSuccess != ResponseStt.none) //응답성공
                         {
                             byte[] result = responsePayload.Serialize();
+                            
+                            if(bResponseSuccess == ResponseStt.success)
+                            {
+                                e.Response.Status = System.Net.HttpStatusCode.OK;
+                            }
+                            else
+                            {
+                                e.Response.Status = System.Net.HttpStatusCode.InternalServerError;
+                            }
+                            
                             e.Response.Encoding = SysConfig.Instance.HomeNet_Encoding;
                             e.Response.ContentType = new ContentTypeHeader("application/json");
                             e.Response.Add(iHeader);
@@ -419,6 +437,7 @@ namespace NpmAdapter.Adapter
                             payload.resultMessage = "주차 시스템으로 부터 응답이 없습니다";
                             payload.responseTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
                             byte[] result = payload.Serialize();
+                            e.Response.Status = System.Net.HttpStatusCode.InternalServerError;
                             e.Response.Encoding = SysConfig.Instance.HomeNet_Encoding;
                             e.Response.ContentType = new ContentTypeHeader("application/json");
                             e.Response.Add(iHeader);
@@ -600,7 +619,7 @@ namespace NpmAdapter.Adapter
                         JObject result = jobj["result"] as JObject; //응답 결과
                         ResultPayload resultPayload = result.GetResultPayload();
 
-                        if (resultPayload.code == "200")
+                        if (resultPayload.code.StartsWith("20"))
                         {
                             switch ((CmdType)Enum.Parse(typeof(CmdType), cmd))
                             {
@@ -630,7 +649,7 @@ namespace NpmAdapter.Adapter
                                         payload.resultMessage = MvlResponsePayload.SttCode.OK.GetDescription();
                                         payload.responseTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
                                         responsePayload = payload;
-                                        bResponseSuccess = true;
+                                        bResponseSuccess = ResponseStt.success;
                                     }
                                     break;
                                 case CmdType.cust_reg:
@@ -655,7 +674,7 @@ namespace NpmAdapter.Adapter
                                         payload.resultMessage = MvlResponsePayload.SttCode.OK.GetDescription();
                                         payload.responseTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
                                         responsePayload = payload;
-                                        bResponseSuccess = true;
+                                        bResponseSuccess = ResponseStt.success;
                                     }
                                     break;
                                 case CmdType.cust_del:
@@ -666,7 +685,7 @@ namespace NpmAdapter.Adapter
                                         payload.resultMessage = MvlResponsePayload.SttCode.OK.GetDescription();
                                         payload.responseTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
                                         responsePayload = payload;
-                                        bResponseSuccess = true;
+                                        bResponseSuccess = ResponseStt.success;
                                     }
                                     break;
                                 case CmdType.cust_list:
@@ -701,7 +720,7 @@ namespace NpmAdapter.Adapter
                                         payload.resultMessage = MvlResponsePayload.SttCode.OK.GetDescription();
                                         payload.responseTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
                                         responsePayload = payload;
-                                        bResponseSuccess = true;
+                                        bResponseSuccess = ResponseStt.success;
                                     }
                                     break;
                                 case CmdType.cust_io_list:
@@ -732,23 +751,34 @@ namespace NpmAdapter.Adapter
                                         payload.resultMessage = MvlResponsePayload.SttCode.OK.GetDescription();
                                         payload.responseTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
                                         responsePayload = payload;
-                                        bResponseSuccess = true;
+                                        bResponseSuccess = ResponseStt.success;
                                     }
                                     break;
                                 case CmdType.visit_reg:
                                     {
                                         MvlSingleReserveCarPayload payload = new MvlSingleReserveCarPayload();
-
+                                        ResponseStt stt = ResponseStt.none;
                                         if (data != null && data.HasValues)
                                         {
                                             payload.belong = Helper.NVL(data["reg_no"]);
                                         }
 
-                                        payload.resultCode = MvlResponsePayload.SttCode.OK;
-                                        payload.resultMessage = MvlResponsePayload.SttCode.OK.GetDescription();
+                                        if(resultPayload.code == "200")
+                                        {
+                                            payload.resultCode = MvlResponsePayload.SttCode.OK;
+                                            payload.resultMessage = MvlResponsePayload.SttCode.OK.GetDescription();
+                                            stt = ResponseStt.success;
+                                        }
+                                        else
+                                        {
+                                            payload.resultCode = MvlResponsePayload.SttCode.InternalServerError;
+                                            payload.resultMessage = MvlResponsePayload.SttCode.AlreadyRegistedCar.GetDescription();
+                                            stt = ResponseStt.fail;
+                                        }
+                                        
                                         payload.responseTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
                                         responsePayload = payload;
-                                        bResponseSuccess = true;
+                                        bResponseSuccess = stt;
                                     }
                                     break;
                                 case CmdType.visit_single_list:
@@ -779,7 +809,7 @@ namespace NpmAdapter.Adapter
                                         payload.resultMessage = MvlResponsePayload.SttCode.OK.GetDescription();
                                         payload.responseTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
                                         responsePayload = payload;
-                                        bResponseSuccess = true;
+                                        bResponseSuccess = ResponseStt.success;
                                     }
                                     break;
                                 case CmdType.visit_del:
@@ -790,7 +820,7 @@ namespace NpmAdapter.Adapter
                                         payload.resultMessage = MvlResponsePayload.SttCode.OK.GetDescription();
                                         payload.responseTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
                                         responsePayload = payload;
-                                        bResponseSuccess = true;
+                                        bResponseSuccess = ResponseStt.success;
                                     }
                                     break;
                                 case CmdType.visit_single_io:
@@ -820,7 +850,7 @@ namespace NpmAdapter.Adapter
                                         payload.resultMessage = MvlResponsePayload.SttCode.OK.GetDescription();
                                         payload.responseTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
                                         responsePayload = payload;
-                                        bResponseSuccess = true;
+                                        bResponseSuccess = ResponseStt.success;
                                     }
                                     break;
                             }
@@ -833,7 +863,7 @@ namespace NpmAdapter.Adapter
                             payload.resultMessage = resultPayload.message;
                             payload.responseTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
                             responsePayload = payload;
-                            bResponseSuccess = true;
+                            bResponseSuccess = ResponseStt.fail;
                         }
                         break;
                 }

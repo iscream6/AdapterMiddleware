@@ -24,6 +24,8 @@ namespace NpmAdapter.Payload
             NotFoundPage = 7,
             [Description("Requested method is not supported")]
             NotSupportedMethod = 8,
+            [Description("Already Registed Car")]
+            AlreadyRegistedCar = 9,
             [Description("Internal Server Error")]
             InternalServerError = 99,
         }

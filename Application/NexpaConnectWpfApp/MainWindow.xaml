@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:NexpaConnectWpfApp"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800" Loaded="Window_Loaded"
+        Title="MainWindow" Height="556.981" Width="944.34" Loaded="Window_Loaded" Closed="Window_Closed" Closing="Window_Closing"
         >
 
     <Grid>
@@ -14,34 +14,63 @@
                 <Grid.RowDefinitions>
                     <RowDefinition Height="30*"/>
                     <RowDefinition Height="70*"/>
+                    <RowDefinition Height="35"/>
                 </Grid.RowDefinitions>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="50*"/>
-                    <ColumnDefinition Width="50*"/>
-                </Grid.ColumnDefinitions>
                 <Border x:Name="AdapterBorder"
+                        BorderBrush="DarkGray"
+                        BorderThickness="1"
+                        HorizontalAlignment="Stretch"
+                        VerticalAlignment="Stretch"
                         Grid.Row="0"
                         Grid.Column="0"
-                        Grid.ColumnSpan="2"
-                        FlowDirection="LeftToRight">
+                        Margin="3,3,3,0">
                 </Border>
                 <Border x:Name="LogBorder" 
                         BorderBrush="DarkGray"
                         BorderThickness="1"
                         HorizontalAlignment="Stretch"
                         VerticalAlignment="Stretch"
+                        Margin="3,3,3,3"
                         Grid.Row="1" 
-                        Grid.Column="0" 
-                        Grid.ColumnSpan="2">
-                    <TextBox x:Name="txtLog" 
-                             Background="Black"
-                             Foreground="AliceBlue"
-                             TextWrapping="Wrap"
-                             FontSize="12"
-                             Margin="1,1,1,1"/>
+                        Grid.Column="0">
+                </Border>
+                <Border x:Name="StatusBorder" 
+                        BorderBrush="DarkGray"
+                        BorderThickness="1"
+                        HorizontalAlignment="Stretch"
+                        VerticalAlignment="Stretch"
+                        Margin="3,0,3,3"
+                        Grid.Row="2">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="30"/>
+                            <ColumnDefinition Width="100*"/>
+                            <ColumnDefinition Width="180"/>
+                        </Grid.ColumnDefinitions>
+                        <Rectangle x:Name="btmStatusRect"
+                                   Grid.Column="0"
+                                   RadiusX="10"
+                                   RadiusY="10"
+                                   Margin="4,4,4,4"
+                                   StrokeThickness="2"
+                                   Stroke="DarkSlateGray"
+                                   Fill="{Binding StatusColor, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Window}}"/>
+                        <TextBlock x:Name="btmStatusMessage"
+                                   Grid.Column="1"
+                                   FontSize="13"
+                                   FontWeight="Bold"
+                                   Margin="7,6,5,6"
+                                   Text="{Binding StatusMessage,RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Window}}"/>
+                        <TextBlock x:Name="btmStartDate"
+                                   Grid.Column="2"
+                                   FontSize="13"
+                                   FontWeight="Bold"
+                                   TextAlignment="Right"
+                                   Margin="7,6,5,6"
+                                   Text="{Binding StartDateTime,RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Window}}"/>
+                    </Grid>
                 </Border>
             </Grid>
         </Border>
-
     </Grid>
 </Window>

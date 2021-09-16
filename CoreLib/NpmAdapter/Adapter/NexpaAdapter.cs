@@ -161,8 +161,36 @@ namespace NpmAdapter.Adapter
             {
                 try
                 {
-                    receiveMessageBuffer.Append(buffer.ToString(SysConfig.Instance.Nexpa_Encoding, size));
-                    var jobj = JObject.Parse(Helper.ValidateJsonParseingData(receiveMessageBuffer.ToString()));
+                    JObject jobj;
+                    var strReceiveData = buffer.ToString(SysConfig.Instance.Nexpa_Encoding, size);
+                    if (strReceiveData.Contains("command")) //전문에 Command 는 반드시 들어가야 함..
+                    {
+                        receiveMessageBuffer.Clear();
+                        receiveMessageBuffer.Append(strReceiveData);
+                        try
+                        {
+                            jobj = JObject.Parse(Helper.ValidateJsonParseingData(receiveMessageBuffer.ToString()));
+                        }
+                        catch (Exception)
+                        {
+                            Log.WriteLog(LogType.Error, "NexpaTcpAdapter | MyTcpNetwork_ReceiveFromPeer", "JSON 변환 중 : " + strReceiveData, LogAdpType.Nexpa);
+                            return;
+                        }
+                    }
+                    else
+                    {
+                        receiveMessageBuffer.Append(strReceiveData);
+                        try
+                        {
+                            jobj = JObject.Parse(Helper.ValidateJsonParseingData(receiveMessageBuffer.ToString()));
+                        }
+                        catch (Exception)
+                        {
+                            Log.WriteLog(LogType.Error, "NexpaTcpAdapter | MyTcpNetwork_ReceiveFromPeer", "JSON 변환 중 : " + strReceiveData, LogAdpType.Nexpa);
+                            return;
+                        }
+                    }
+
                     Thread.Sleep(10);
                     receiveMessageBuffer.Clear();
 
@@ -186,12 +214,14 @@ namespace NpmAdapter.Adapter
                     }
                     else
                     {
-                        TargetAdapter.SendMessage(buffer, offset, size, id);
+                        byte[] sendBuffer = jobj.ToByteArray(SysConfig.Instance.Nexpa_Encoding);
+                        TargetAdapter.SendMessage(sendBuffer, 0, sendBuffer.Length, id);
                     }
                 }
                 catch (Exception ex)
                 {
                     Log.WriteLog(LogType.Error, "NexpaTcpAdapter | MyTcpNetwork_ReceiveFromPeer", $"JSON 처리 오류 : {ex.Message}", LogAdpType.Nexpa);
+                    receiveMessageBuffer.Clear();
                 }
             }
             Log.WriteLog(LogType.Info, "NexpaTcpAdapter | MyTcpNetwork_ReceiveFromPeer", "수신 완료 =====", LogAdpType.Nexpa);

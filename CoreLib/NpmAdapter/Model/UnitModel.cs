@@ -1,4 +1,5 @@
-﻿using System.Data;
+﻿using System.Collections.Generic;
+using System.Data;
 using System.Text;
 
 namespace NpmAdapter.Model
@@ -22,6 +23,27 @@ namespace NpmAdapter.Model
             sQuery.Append("				    AND B.MyNo = 0) \r");
             sQuery.Append("ORDER BY ParkNo, MyNo, UnitNo ");
 
+            WriteLog("UnitModel | GetLprInfo", sQuery.ToString());
+
+            return DA.ExecuteDataTable(sQuery.ToString());
+        }
+
+        public DataTable GetLprInfo(Dictionary<ColName, object> dicParam)
+        {
+            QueryString sQuery = new QueryString();
+            sQuery.Append($"SELECT");
+            sQuery.Append($" ParkNo, UnitNo, UnitName, UnitKind, MyNo, IPNo, PortNo");
+            sQuery.Append($"FROM UnitInfo A");
+            sQuery.Append($"WHERE ParkNo = {Helper.NVL(dicParam[ColName.ParkNo])}");
+            sQuery.Append($"AND UnitKind IN (8, 9)");
+            sQuery.Append($"AND MyNo NOT IN (SELECT UnitNo");
+            sQuery.Append($"                 FROM UnitInfo B");
+            sQuery.Append($"				    WHERE B.UnitKind = 20");
+            sQuery.Append($"				    AND B.MyNo = 0)");
+            sQuery.Append($"ORDER BY ParkNo, MyNo, UnitNo");
+
+            WriteLog("UnitModel | GetLprInfo", sQuery.ToString());
+
             return DA.ExecuteDataTable(sQuery.ToString());
         }
 
@@ -37,6 +59,8 @@ namespace NpmAdapter.Model
             sQuery.Append("				    WHERE B.UnitKind = 20 \r");
             sQuery.Append("				    AND B.MyNo = 0) \r");
             sQuery.Append("ORDER BY ParkNo, MyNo, UnitNo ");
+
+            WriteLog("UnitModel | GetBoothInfo", sQuery.ToString());
 
             return DA.ExecuteDataTable(sQuery.ToString());
         }

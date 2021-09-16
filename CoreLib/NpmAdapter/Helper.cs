@@ -58,91 +58,91 @@ namespace NpmAdapter
         Millisecond,
     }
 
+    public enum TelFormat
+    {
+        Normal,
+        Gloval
+    }
+
     public static class Helper
     {
         private static readonly DateTime unixEpoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
-        public static string ToString(this byte[] bytes, Encoding encodeing, long size = 0)
+        #region A
+
+        public static string AsString(this XmlDocument xmlDoc)
         {
-            string str = "";
-            if (size == 0)
+            using (StringWriter sw = new StringWriter())
             {
-                str = encodeing.GetString(bytes);
+                using (XmlTextWriter tx = new XmlTextWriter(sw))
+                {
+                    xmlDoc.WriteTo(tx);
+                    string strXmlText = sw.ToString();
+                    return strXmlText;
+                }
             }
-            else
-            {
-                str = encodeing.GetString(bytes[..(int)size]);
-            }
-            
-            return str;
         }
 
-        public static byte[] ToByte(this string str, Encoding encoding)
-        {
-            byte[] bytes = encoding.GetBytes(str);
-            return bytes;
-        }
+        #endregion
 
-        public static int GetByteLength(this string STR)
-        {
-            char[] charobj = STR.ToCharArray();
-            int maxLEN = 0;
+        #region B
 
-            for (int i = 0; i < charobj.Length; i++)
-            {
-                byte oF = (byte)((charobj[i] & 0xff00) >> 7);
-                byte oB = (byte)(charobj[i] & 0x00ff);
-
-                if (oF == 0)
-                    maxLEN++;
-                else
-                    maxLEN += 2;
-            }
-
-            return maxLEN;
-        }
-
-        public static string GetSubStringByteLength(this string STR,int startIdx, int length)
-        {
-            List<char> returnList = new List<char>();
-            string tempStr = STR.Substring(startIdx);
-            char[] charobj = tempStr.ToCharArray();
-            int maxLEN = 0;
-
-            for (int i = 0; i < charobj.Length; i++)
-            {
-                returnList.Add(charobj[i]);
-
-                byte oF = (byte)((charobj[i] & 0xff00) >> 7);
-                byte oB = (byte)(charobj[i] & 0x00ff);
-
-                if (oF == 0)
-                    maxLEN++;
-                else
-                    maxLEN += 2;
-
-                if (maxLEN >= length) break;
-            }
-
-            return new string(returnList.ToArray());
-        }
-
-        public static byte CalCheckSum(this byte[] _PacketData, int offset, int size)
+        public static string Base64Encode(this string data)
         {
             try
             {
-                Byte _CheckSumByte = 0x00;
-                int latestIdx = offset + size - 1;
-
-                byte[] b = _PacketData[(_PacketData.Length - 1).._PacketData.Length]; 
-
-                for (int i = 0; i < b.Length; i++)
-                    _CheckSumByte ^= b[i];
-                return _CheckSumByte;
+                byte[] encData_byte = new byte[data.Length];
+                encData_byte = System.Text.Encoding.UTF8.GetBytes(data);
+                string encodedData = Convert.ToBase64String(encData_byte);
+                return encodedData;
             }
-            catch (Exception)
+            catch (Exception e)
             {
-                throw;
+                throw new Exception("Error in Base64Encode: " + e.Message);
+            }
+
+        }
+
+        public static string ByteToStr(byte[] bytes)
+        {
+            StringBuilder builder = new StringBuilder();
+            foreach (byte b in bytes)
+            {
+                builder.Append(string.Format("%02x ", b));
+            }
+
+            return builder.ToString();
+        }
+
+        public static int BytesToInt(byte[] bytes)
+        {
+            int result = (int)bytes[3] & 0xFF;
+            result |= (int)bytes[2] << 8 & 0xFF00;
+            result |= (int)bytes[1] << 16 & 0xFF0000;
+            result |= (int)bytes[0] << 24;
+
+            return result;
+        }
+
+        #endregion
+
+        #region C
+
+        public static byte[] ConvertHexStringToByte(this string convertString)
+        {
+            try
+            {
+                byte[] convertArr = new byte[convertString.Length / 2];
+
+                for (int i = 0; i < convertArr.Length; i++)
+                {
+                    convertArr[i] = Convert.ToByte(convertString.Substring(i * 2, 2), 16);
+                }
+                return convertArr;
+            }
+            catch (Exception e)
+            {
+                throw new Exception("Error in Base64Encode: " + e.Message);
             }
         }
 
@@ -156,6 +156,35 @@ namespace NpmAdapter
             return _CheckSumByte;
         }
 
+        public static byte CalCheckSum(this List<byte> _PacketData, int offset = 0)
+        {
+            Byte _CheckSumByte = 0x00;
+            byte[] b = _PacketData.ToArray();
+
+            for (int i = offset; i < b.Length; i++)
+                _CheckSumByte ^= b[i];
+            return _CheckSumByte;
+        }
+
+        public static byte CalCheckSum(this byte[] _PacketData, int offset, int size)
+        {
+            try
+            {
+                Byte _CheckSumByte = 0x00;
+                int latestIdx = offset + size - 1;
+
+                byte[] b = _PacketData[(_PacketData.Length - 1).._PacketData.Length];
+
+                for (int i = 0; i < b.Length; i++)
+                    _CheckSumByte ^= b[i];
+                return _CheckSumByte;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+
         public static byte CalCheckSum(List<byte> data)
         {
             Byte _CheckSumByte = 0x00;
@@ -166,39 +195,124 @@ namespace NpmAdapter
             return _CheckSumByte;
         }
 
-        public static CmdType GetCommand(this byte[] buffer, Encoding encoding = null)
+        public static byte[] ConvertToLittleEndian(int value)
         {
+            return new byte[]{
+                (byte) value,
+                (byte) (value >> 8),
+                (byte) (value >> 16),
+                (byte) (value >> 24)
+        };
+        }
+
+        public static byte[] ConvertToBigEndian(int value)
+        {
+            return new byte[]{
+                (byte) (value >> 24),
+                (byte) (value >> 16),
+                (byte) (value >> 8),
+                (byte) value
+            };
+        }
+
+        public static string ConvertDateTimeFormat(this string dateTime, string from, string to)
+        {
+            if (dateTime == null || dateTime == "")
+            {
+                return "";
+            }
+            else
+            {
+                try
+                {
+                    if (from == "ISO8601")
+                    {
+                        DateTime dt;
+                        if (DateTime.TryParse(dateTime, out dt))
+                        {
+                            return dt.ToString(to);
+                        }
+                        else
+                        {
+                            return "";
+                        }
+                    }
+                    else if (to == "ISO8601")
+                    {
+                        return DateTime.ParseExact(dateTime, from, null).ToString("yyyy-MM-ddTHH:mm:ss");
+                    }
+                    else
+                    {
+                        return DateTime.ParseExact(dateTime, from, null).ToString(to);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Log.WriteLog(LogType.Error, "Helper | ConvertDateTimeFormat", $"{dateTime} : {ex.Message}");
+                    return "";
+                }
+            }
+        }
+
+        public static string ConvertTelFormat(this string telNum, TelFormat format)
+        {
+            switch (format)
+            {
+                case TelFormat.Normal:
+                    {
+                        if (telNum.StartsWith("+"))
+                        {
+                            //Gloval Format
+                            telNum = telNum.Replace("+82", "0");
+                        }
+
+                        if (telNum.Length == 7) return Convert.ToInt32(telNum).ToString("###-####");
+                        else if (telNum.Length == 10) return Convert.ToInt32(telNum).ToString("0" + "##-###-####");
+                        else if (telNum.Length > 10) return Convert.ToInt32(telNum).ToString("0" + "##-####-####");
+                        else return telNum;
+                    }
+                case TelFormat.Gloval:
+                    //한국에 국한함.
+                    {
+                        if (telNum.Length == 0) return "";
+                        else return "+82" + telNum.TrimStart('0').Replace("-", "");
+                    }
+                default:
+                    return telNum;
+            }
+        }
+
+        #endregion
+
+        #region D
+
+        public static Dictionary<string, string> DoubleSplit(this string str, char BigSep, char SmallSep)
+        {
+            Dictionary<string, string> dicResult = new Dictionary<string, string>();
+
             try
             {
-                JObject jobj;
-                if (encoding == null)
+                string[] bigSplit = str.Split(BigSep);
+                foreach (var item in bigSplit)
                 {
-                    jobj = JObject.Parse(Encoding.UTF8.GetString(buffer));
+                    string[] smallSplit = item.Split(SmallSep);
+                    dicResult.Add(smallSplit[0].ToUpper(), smallSplit[1]);
                 }
-                else
-                {
-                    jobj = JObject.Parse(encoding.GetString(buffer));
-                }
-                jobj = JObject.Parse(Encoding.UTF8.GetString(buffer));
-                string cmd = jobj["command"].ToString();
-                return (CmdType)Enum.Parse(typeof(CmdType), cmd);
+                return dicResult;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                Log.WriteLog(LogType.Error, "Helper | GetCommand", ex.Message);
-                return CmdType.none;
+                return dicResult;
             }
         }
 
-        public static byte CalCheckSum(this List<byte> _PacketData, int offset = 0)
-        {
-            Byte _CheckSumByte = 0x00;
-            byte[] b = _PacketData.ToArray();
+        #endregion
 
-            for (int i = offset; i < b.Length; i++)
-                _CheckSumByte ^= b[i];
-            return _CheckSumByte;
-        }
+        #region E
+
+        #endregion
+
+        #region F
 
         /// <summary>
         /// 4자리수 기준 String 값을 2Byte로 변환한다.
@@ -221,27 +335,6 @@ namespace NpmAdapter
             }
 
             return convert;
-        }
-
-        public static byte[] StringToAsciiByte(this string str)
-        {
-            char[] charArr = str.ToCharArray();
-            return ASCIIEncoding.Default.GetBytes(charArr);
-        }
-
-        public static byte[] StringToAsciiPading(this string str, string seperator, int lenth, bool IsLPad)
-        {
-            if (str.Length > lenth) return null;
-            int sLenth = lenth - str.Length;
-            string sep = string.Empty;
-            for (int i = 0; i < sLenth; i++)
-            {
-                sep += seperator;
-            }
-            if(IsLPad) str = sep + str;
-            else str = str + sep;
-            char[] charArr = str.ToCharArray();
-            return ASCIIEncoding.Default.GetBytes(charArr);
         }
 
         public static byte[] FourStringTo4ByteAscii(this string str)
@@ -277,6 +370,173 @@ namespace NpmAdapter
             return convert;
         }
 
+        #endregion
+
+        #region G
+
+        public static int GetByteLength(this string STR)
+        {
+            char[] charobj = STR.ToCharArray();
+            int maxLEN = 0;
+
+            for (int i = 0; i < charobj.Length; i++)
+            {
+                byte oF = (byte)((charobj[i] & 0xff00) >> 7);
+                byte oB = (byte)(charobj[i] & 0x00ff);
+
+                if (oF == 0)
+                    maxLEN++;
+                else
+                    maxLEN += 2;
+            }
+
+            return maxLEN;
+        }
+
+        public static string GetValueToUpper(this Dictionary<string, string> dic, string key)
+        {
+            if (dic.ContainsKey(key)) return dic[key].ToUpper();
+            else return "";
+        }
+
+        public static string GetValue(this Dictionary<string, string> dic, string key)
+        {
+            if (dic.ContainsKey(key)) return dic[key];
+            else return "";
+        }
+
+        public static string GetSubStringByteLength(this string STR, int startIdx, int length)
+        {
+            List<char> returnList = new List<char>();
+            string tempStr = STR.Substring(startIdx);
+            char[] charobj = tempStr.ToCharArray();
+            int maxLEN = 0;
+
+            for (int i = 0; i < charobj.Length; i++)
+            {
+                returnList.Add(charobj[i]);
+
+                byte oF = (byte)((charobj[i] & 0xff00) >> 7);
+                byte oB = (byte)(charobj[i] & 0x00ff);
+
+                if (oF == 0)
+                    maxLEN++;
+                else
+                    maxLEN += 2;
+
+                if (maxLEN >= length) break;
+            }
+
+            return new string(returnList.ToArray());
+        }
+
+        public static CmdType GetCommand(this byte[] buffer, Encoding encoding = null)
+        {
+            try
+            {
+                JObject jobj;
+                if (encoding == null)
+                {
+                    jobj = JObject.Parse(Encoding.UTF8.GetString(buffer));
+                }
+                else
+                {
+                    jobj = JObject.Parse(encoding.GetString(buffer));
+                }
+                jobj = JObject.Parse(Encoding.UTF8.GetString(buffer));
+                string cmd = jobj["command"].ToString();
+                return (CmdType)Enum.Parse(typeof(CmdType), cmd);
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLog(LogType.Error, "Helper | GetCommand", ex.Message);
+                return CmdType.none;
+            }
+        }
+
+        public static ResultPayload GetResultPayload(this JObject obj)
+        {
+            //결과 Payload 생성 =======
+            ResultPayload resultPayload = null;
+
+            //if (obj != null && Helper.NVL(obj["status"]) != "200")
+            //{
+            //    resultPayload = new ResultPayload();
+            //    string sCode = "";
+
+            //    if (Helper.NVL(obj["status"]) == "204") sCode = "404";
+            //    else sCode = Helper.NVL(obj["status"]);
+
+            //    resultPayload.code = sCode;
+            //    resultPayload.message = Helper.NVL(obj["message"]);
+            //}
+            //else
+            //{
+            //    resultPayload = new ResultPayload();
+            //    resultPayload.code = "200";
+            //    resultPayload.message = "oK";
+            //}
+            ////결과 Payload 생성완료 =======
+
+            resultPayload = new ResultPayload();
+            resultPayload.code = NVL(obj["status"]) == "319" ? "204" : NVL(obj["status"]);
+            resultPayload.message = NVL(obj["message"]);
+
+            return resultPayload;
+        }
+
+        public static string GetLocalIP()
+        {
+            string localIP = "Not available, please check your network settings!";
+            IPHostEntry host = Dns.GetHostEntry(Dns.GetHostName());
+            foreach (IPAddress ip in host.AddressList)
+            {
+                if (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+                {
+                    localIP = ip.ToString();
+                    Log.WriteLog(LogType.Error, "Helper | GetLocalIP", localIP);
+                    break;
+                }
+            }
+
+            return localIP;
+        }
+
+        public static List<string> GetLocalIPs()
+        {
+            List<string> localIPs = new List<string>();
+            IPHostEntry host = Dns.GetHostEntry(Dns.GetHostName());
+            foreach (IPAddress ip in host.AddressList)
+            {
+                if (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+                {
+                    localIPs.Add(ip.ToString());
+                    Log.WriteLog(LogType.Error, "Helper | GetLocalIP", ip.ToString());
+                }
+            }
+
+            return localIPs;
+        }
+
+        public static long GetUTCMillisecond(string strTime)
+        {
+            try
+            {
+                DateTime date = DateTime.ParseExact(strTime, "yyyyMMddHHmmss", null);
+                var utc = (long)date.ToUniversalTime().Subtract(new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)).TotalMinutes;
+                return utc;
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLog(LogType.Error, "Helper | GetUTCMillisecond", ex.Message);
+                return 0;
+            }
+        }
+
+        #endregion
+
+        #region H
+
         public static byte[] HexToBytes(this string value)
         {
             if (value == null || value.Length == 0)
@@ -288,6 +548,154 @@ namespace NpmAdapter
                 result[i] = byte.Parse(value.Substring(i * 2, 2), NumberStyles.AllowHexSpecifier);
             return result;
         }
+
+        #endregion
+
+        #region I
+
+        /// <summary>
+        /// 문자열 안에서 몇번째 Char가 발견되는 Index를 반환한다.
+        /// </summary>
+        /// <param name="str"></param>
+        /// <param name="value">찾을 Char 값</param>
+        /// <param name="count">찾은 Char의 갯수</param>
+        /// <returns></returns>
+        public static int IndexOfChar(this string str, char value, int count)
+        {
+            int startIdx = 0;
+            int charCnt = 0;
+            foreach (var c in str.ToCharArray())
+            {
+                startIdx += 1;
+                if (c == value)
+                {
+                    charCnt += 1;
+                }
+                if (charCnt == count) break;
+            }
+
+            return startIdx;
+        }
+
+        #endregion
+
+        #region J
+
+        #endregion
+
+        #region K
+
+        #endregion
+
+        #region L
+
+        #endregion
+
+        #region M
+
+        public static XmlDocument MakeXmlDeclareDocument(string ver, string encoding)
+        {
+            XmlDocument doc = new XmlDocument();
+            XmlDeclaration xmlDecl;
+            xmlDecl = doc.CreateXmlDeclaration(ver, null, null);
+            xmlDecl.Encoding = encoding;
+
+            XmlElement root = doc.DocumentElement;
+            doc.InsertBefore(xmlDecl, root);
+
+            return doc;
+        }
+
+        #endregion
+
+        #region N
+
+        public static string NVL(JObject jObject, string defaultValue = "")
+        {
+            if (jObject == null) return defaultValue;
+            else
+            {
+                return jObject.ToString();
+            }
+        }
+
+        public static string NVL(JToken jToken, string defaultValue = "")
+        {
+            if (jToken == null) return defaultValue;
+            else
+            {
+                return jToken.ToString();
+            }
+        }
+
+        public static string NVL(string str, string defaultValue = "")
+        {
+            if (str == null) return defaultValue;
+            else return str;
+        }
+
+        public static string NVL(object obj, string defaultValue = "")
+        {
+            if (obj == null) return defaultValue;
+            else return obj.ToString();
+        }
+
+        public static string NPGetValue(this JObject jObject, NPElements elements, string defaultValue = "")
+        {
+            var key = elements.ToString().ToLower();
+            return NVL(jObject[key], defaultValue);
+        }
+
+        public static string NPGetValue(this JToken jToken, NPElements elements, string defaultValue = "")
+        {
+            var key = elements.ToString().ToLower();
+            return NVL(jToken[key], defaultValue);
+        }
+
+        #endregion
+
+        #region O
+
+        #endregion
+
+        #region P
+
+        #endregion
+
+        #region Q
+
+        #endregion
+
+        #region R
+
+        #endregion
+
+        #region S
+
+        public static byte[] StringToAsciiByte(this string str)
+        {
+            char[] charArr = str.ToCharArray();
+            return ASCIIEncoding.Default.GetBytes(charArr);
+        }
+
+        public static byte[] StringToAsciiPading(this string str, string seperator, int lenth, bool IsLPad)
+        {
+            if (str.Length > lenth) return null;
+            int sLenth = lenth - str.Length;
+            string sep = string.Empty;
+            for (int i = 0; i < sLenth; i++)
+            {
+                sep += seperator;
+            }
+            if (IsLPad) str = sep + str;
+            else str = str + sep;
+            char[] charArr = str.ToCharArray();
+            return ASCIIEncoding.Default.GetBytes(charArr);
+        }
+
+        #endregion
+
+        #region T
 
         public static string ToHexString(this byte[] value)
         {
@@ -313,6 +721,27 @@ namespace NpmAdapter
             return sb.ToString().ToUpper();
         }
 
+        public static string ToString(this byte[] bytes, Encoding encodeing, long size = 0)
+        {
+            string str = "";
+            if (size == 0)
+            {
+                str = encodeing.GetString(bytes);
+            }
+            else
+            {
+                str = encodeing.GetString(bytes[..(int)size]);
+            }
+
+            return str;
+        }
+
+        public static byte[] ToByte(this string str, Encoding encoding)
+        {
+            byte[] bytes = encoding.GetBytes(str);
+            return bytes;
+        }
+
         public static uint ToTimestamp(this DateTime time)
         {
             return (uint)(time.ToUniversalTime() - unixEpoch).TotalSeconds;
@@ -323,16 +752,55 @@ namespace NpmAdapter
             return (ulong)(time.ToUniversalTime() - unixEpoch).TotalMilliseconds;
         }
 
+        public static byte[] ToByteArray(this JToken json, Encoding encoding = null)
+        {
+            if (encoding == null)
+            {
+                return Encoding.UTF8.GetBytes(json.ToString());
+            }
+            else
+            {
+                return encoding.GetBytes(json.ToString());
+            }
+        }
+
+        public static TValue TryGetValue<TKey, TValue>(this Dictionary<TKey, TValue> dictionary, TKey key)
+        {
+            return dictionary.ContainsKey(key) ? dictionary[key] : default(TValue);
+        }
+
+        public static IEnumerable<TValue> TryGetValues<TKey, TValue>(this Dictionary<TKey, TValue> dictionary, IEnumerable<TKey> keys)
+        {
+            TValue value;
+            foreach (TKey key in keys)
+                if (dictionary.TryGetValue(key, out value))
+                    yield return value;
+        }
+
+        public static IEnumerable<TValue> TryGetValues<TKey, TValue>(this Dictionary<TKey, TValue> dictionary, IEnumerable<TKey> keys, Action<TKey> notFoundHandler)
+        {
+            TValue value;
+            foreach (TKey key in keys)
+                if (dictionary.TryGetValue(key, out value))
+                    yield return value;
+                else
+                    notFoundHandler(key);
+        }
+
+        #endregion
+
+        #region U
+
         public static string uni_to_kr(this string uni)
         {
             StringBuilder writeFileContent = new StringBuilder();
             char[] uniarray = uni.ToCharArray();
-            for(int loop=0; loop < uniarray.Length;)
+            for (int loop = 0; loop < uniarray.Length;)
             {
                 char c = uniarray[loop];
                 char u = '\0';
                 if (loop + 1 < uniarray.Length) u = uniarray[loop + 1];
-                if(c=='\\' || u == 'u')
+                if (c == '\\' || u == 'u')
                 {
                     try
                     {
@@ -360,322 +828,21 @@ namespace NpmAdapter
             return writeFileContent.ToString();
         }
 
-        public static string AsString(this XmlDocument xmlDoc)
+        /// <summary>
+        /// 최대 13자리 난수 생성
+        /// </summary>
+        /// <param name="dateTime"></param>
+        /// <param name="size"></param>
+        /// <returns></returns>
+        public static string UTCNansu(this DateTime dateTime, int size)
         {
-            using (StringWriter sw = new StringWriter())
-            {
-                using (XmlTextWriter tx = new XmlTextWriter(sw))
-                {
-                    xmlDoc.WriteTo(tx);
-                    string strXmlText = sw.ToString();
-                    return strXmlText;
-                }
-            }
+            long resultTime = (long)dateTime.ToUniversalTime().Subtract(new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)).TotalMilliseconds;
+            return resultTime.ToString().Substring(resultTime.ToString().Length - size, size);
         }
 
-        public static string ConvertDateTimeFormat(this string dateTime, string from, string to)
-        {
-            if(dateTime == null || dateTime == "")
-            {
-                return "";
-            }
-            else
-            {
-                try
-                {
-                    if(from == "ISO8601")
-                    {
-                        DateTime dt;
-                        if(DateTime.TryParse(dateTime, out dt))
-                        {
-                            return dt.ToString(to);
-                        }
-                        else
-                        {
-                            return "";
-                        }
-                    }
-                    else if(to == "ISO8601")
-                    {
-                        return DateTime.ParseExact(dateTime, from, null).ToString("yyyy-MM-ddTHH:mm:ss");
-                    }
-                    else
-                    {
-                        return DateTime.ParseExact(dateTime, from, null).ToString(to);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Log.WriteLog(LogType.Error, "Helper | ConvertDateTimeFormat", $"{dateTime} : {ex.Message}");
-                    return "";
-                }
-            }
-        }
+        #endregion
 
-        public static byte[] ToByteArray(this JToken json, Encoding encoding = null)
-        {
-            if(encoding == null)
-            {
-                return Encoding.UTF8.GetBytes(json.ToString());
-            }
-            else
-            {
-                return encoding.GetBytes(json.ToString());
-            }
-        }
-
-        public static string GetValueToUpper(this Dictionary<string, string> dic, string key)
-        {
-            if (dic.ContainsKey(key)) return dic[key].ToUpper();
-            else return "";
-        }
-
-        public static string GetValue(this Dictionary<string, string> dic, string key)
-        {
-            if (dic.ContainsKey(key)) return dic[key];
-            else return "";
-        }
-
-        public static Dictionary<string, string> DoubleSplit(this string str, char BigSep, char SmallSep)
-        {
-            Dictionary<string, string> dicResult = new Dictionary<string, string>();
-
-            try
-            {
-                string[] bigSplit = str.Split(BigSep);
-                foreach (var item in bigSplit)
-                {
-                    string[] smallSplit = item.Split(SmallSep);
-                    dicResult.Add(smallSplit[0].ToUpper(), smallSplit[1]);
-                }
-                return dicResult;
-            }
-            catch (Exception)
-            {
-                return dicResult;
-            }
-        }
-
-        public static string NVL(JObject jObject, string defaultValue = "")
-        {
-            if (jObject == null) return defaultValue;
-            else
-            {
-                return jObject.ToString();
-            }
-        }
-
-        public static string NVL(JToken jToken, string defaultValue = "")
-        {
-            if (jToken == null) return defaultValue;
-            else
-            {
-                return jToken.ToString();
-            }
-        }
-
-        public static string NVL(string str, string defaultValue = "")
-        {
-            if (str == null) return defaultValue;
-            else return str;
-        }
-
-        public static string NPGetValue(this JObject jObject, NPElements elements, string defaultValue = "")
-        {
-            var key = elements.ToString().ToLower();
-            return NVL(jObject[key], defaultValue);
-        }
-
-        public static string NPGetValue(this JToken jToken, NPElements elements, string defaultValue = "")
-        {
-            var key = elements.ToString().ToLower();
-            return NVL(jToken[key], defaultValue);
-        }
-
-        public static string Base64Encode(this string data)
-        {
-            try
-            {
-                byte[] encData_byte = new byte[data.Length];
-                encData_byte = System.Text.Encoding.UTF8.GetBytes(data);
-                string encodedData = Convert.ToBase64String(encData_byte);
-                return encodedData;
-            }
-            catch (Exception e)
-            {
-                throw new Exception("Error in Base64Encode: " + e.Message);
-            }
-
-        }
-
-        public static byte[] ConvertHexStringToByte(this string convertString)
-        {
-            try
-            {
-                byte[] convertArr = new byte[convertString.Length / 2];
-
-                for (int i = 0; i < convertArr.Length; i++)
-                {
-                    convertArr[i] = Convert.ToByte(convertString.Substring(i * 2, 2), 16);
-                }
-                return convertArr;
-            }
-            catch (Exception e)
-            {
-                throw new Exception("Error in Base64Encode: " + e.Message);
-            }
-        }
-
-        public static ResultPayload GetResultPayload(this JObject obj)
-        {
-            //결과 Payload 생성 =======
-            ResultPayload resultPayload = null;
-
-            if (obj != null && Helper.NVL(obj["status"]) != "200")
-            {
-                resultPayload = new ResultPayload();
-                string sCode = "";
-
-                if (Helper.NVL(obj["status"]) == "204") sCode = "404";
-                else sCode = Helper.NVL(obj["status"]);
-
-                resultPayload.code = sCode;
-                resultPayload.message = Helper.NVL(obj["message"]);
-            }
-            else
-            {
-                resultPayload = new ResultPayload();
-                resultPayload.code = "200";
-                resultPayload.message = "oK";
-            }
-            //결과 Payload 생성완료 =======
-
-            return resultPayload;
-        }
-
-        public static string GetLocalIP()
-        {
-            string localIP = "Not available, please check your network settings!";
-            IPHostEntry host = Dns.GetHostEntry(Dns.GetHostName());
-            foreach (IPAddress ip in host.AddressList)
-            {
-                if(ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
-                {
-                    localIP = ip.ToString();
-                    Log.WriteLog(LogType.Error, "Helper | GetLocalIP", localIP);
-                    break;
-                }
-            }
-
-            return localIP;
-        }
-
-        public static List<string> GetLocalIPs()
-        {
-            List<string> localIPs = new List<string>();
-            IPHostEntry host = Dns.GetHostEntry(Dns.GetHostName());
-            foreach (IPAddress ip in host.AddressList)
-            {
-                if (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
-                {
-                    localIPs.Add(ip.ToString());
-                    Log.WriteLog(LogType.Error, "Helper | GetLocalIP", ip.ToString());
-                }
-            }
-
-            return localIPs;
-        }
-
-        public static TValue TryGetValue<TKey, TValue>(this Dictionary<TKey, TValue> dictionary, TKey key)
-        {
-            return dictionary.ContainsKey(key) ? dictionary[key] : default(TValue);
-        }
-
-        public static IEnumerable<TValue> TryGetValues<TKey, TValue>(this Dictionary<TKey, TValue> dictionary, IEnumerable<TKey> keys)
-        {
-            TValue value;
-            foreach (TKey key in keys)
-                if (dictionary.TryGetValue(key, out value))
-                    yield return value;
-        }
-
-        public static IEnumerable<TValue> TryGetValues<TKey, TValue>(this Dictionary<TKey, TValue> dictionary, IEnumerable<TKey> keys, Action<TKey> notFoundHandler)
-        {
-            TValue value;
-            foreach (TKey key in keys)
-                if (dictionary.TryGetValue(key, out value))
-                    yield return value;
-                else
-                    notFoundHandler(key);
-        }
-
-        public static long GetUTCMillisecond(string strTime)
-        {
-            try
-            {
-                DateTime date = DateTime.ParseExact(strTime, "yyyyMMddHHmmss", null);
-                var utc = (long)date.ToUniversalTime().Subtract(new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)).TotalMinutes;
-                return utc;
-            }
-            catch (Exception ex)
-            {
-                Log.WriteLog(LogType.Error, "Helper | GetUTCMillisecond", ex.Message);
-                return 0;
-            }
-        }
-
-        public static XmlDocument MakeXmlDeclareDocument(string ver, string encoding)
-        {
-            XmlDocument doc = new XmlDocument();
-            XmlDeclaration xmlDecl;
-            xmlDecl = doc.CreateXmlDeclaration(ver, null, null);
-            xmlDecl.Encoding = encoding;
-
-            XmlElement root = doc.DocumentElement;
-            doc.InsertBefore(xmlDecl, root);
-
-            return doc;
-        }
-        public static byte[] ConvertToLittleEndian(int value)
-        {
-            return new byte[]{
-                (byte) value,
-                (byte) (value >> 8),
-                (byte) (value >> 16),
-                (byte) (value >> 24)
-        };
-        }
-
-        public static byte[] ConvertToBigEndian(int value)
-        {
-            return new byte[]{
-                (byte) (value >> 24),
-                (byte) (value >> 16),
-                (byte) (value >> 8),
-                (byte) value
-        };
-        }
-
-        public static string ByteToStr(byte[] bytes)
-        {
-            StringBuilder builder = new StringBuilder();
-            foreach (byte b in bytes)
-            {
-                builder.Append(string.Format("%02x ", b));
-            }
-
-            return builder.ToString();
-        }
-
-        public static int BytesToInt(byte[] bytes)
-        {
-            int result = (int)bytes[3] & 0xFF;
-            result |= (int)bytes[2] << 8 & 0xFF00;
-            result |= (int)bytes[1] << 16 & 0xFF0000;
-            result |= (int)bytes[0] << 24;
-
-            return result;
-        }
+        #region V
 
         public static string ValidateJsonParseingData(string strJson)
         {
@@ -704,28 +871,22 @@ namespace NpmAdapter
             }
         }
 
-        /// <summary>
-        /// 문자열 안에서 몇번째 Char가 발견되는 Index를 반환한다.
-        /// </summary>
-        /// <param name="str"></param>
-        /// <param name="value">찾을 Char 값</param>
-        /// <param name="count">찾은 Char의 갯수</param>
-        /// <returns></returns>
-        public static int IndexOfChar(this string str, char value, int count)
-        {
-            int startIdx = 0;
-            int charCnt = 0;
-            foreach (var c in str.ToCharArray())
-            {
-                startIdx += 1;
-                if (c == value)
-                {
-                    charCnt += 1;
-                }
-                if (charCnt == count) break;
-            }
+        #endregion
 
-            return startIdx;
-        }
+        #region W
+
+        #endregion
+
+        #region X
+
+        #endregion
+
+        #region Y
+
+        #endregion
+
+        #region Z
+
+        #endregion
     }
 }

@@ -31,7 +31,10 @@ namespace NpmAdapter.Payload
             JObject json = new JObject();
             json["resultCode"] = resultCode;
             json["resultMsg"] = resultMsg;
-            json["content"] = content?.ToJson();
+            if(content != null)
+            {
+                json["content"] = content.ToJson();
+            }
             return json;
         }
     }

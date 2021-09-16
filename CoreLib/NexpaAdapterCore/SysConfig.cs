@@ -39,7 +39,9 @@ namespace NpmCommon
             [Description("Device_Config")]
             DivConfig,
             [Description("Hipass_Config")]
-            HipassConfig
+            HipassConfig,
+            [Description("DB_Config")]
+            DBConfig
         }
 
         #region Config Values
@@ -195,6 +197,7 @@ namespace NpmCommon
         public string InitialCatalog { get; private set; }
         public string UserID { get; private set; }
         public string Password { get; private set; }
+        public string DBCustGroupNo { get; private set; }
 
         #endregion
 
@@ -280,13 +283,15 @@ namespace NpmCommon
             Nexpa_UWebPort = ConfigManager.ReadConfig(config, Sections.NexpaConfig.GetDescription(), "UWebPort");
             Nexpa_EncodCd = ConfigManager.ReadConfig(config, Sections.NexpaConfig.GetDescription(), "Encoding");
             Nexpa_Encoding = GetEncoding(Nexpa_EncodCd);
-            DBType = ConfigManager.ReadConfig(config, Sections.NexpaConfig.GetDescription(), "DBType");
-            DataSource = $"{ConfigManager.ReadConfig(config, Sections.NexpaConfig.GetDescription(), "DBIP")},{ConfigManager.ReadConfig(config, Sections.NexpaConfig.GetDescription(), "DBPort")}";
-            NpgHost = ConfigManager.ReadConfig(config, Sections.NexpaConfig.GetDescription(), "DBIP");
-            NpgPort = ConfigManager.ReadConfig(config, Sections.NexpaConfig.GetDescription(), "DBPort");
-            InitialCatalog = ConfigManager.ReadConfig(config, Sections.NexpaConfig.GetDescription(), "DBName");
-            UserID = ConfigManager.ReadConfig(config, Sections.NexpaConfig.GetDescription(), "DBID");
-            Password = ConfigManager.ReadConfig(config, Sections.NexpaConfig.GetDescription(), "DBPW");
+
+            DBType = ConfigManager.ReadConfig(config, Sections.DBConfig.GetDescription(), "DBType");
+            DataSource = $"{ConfigManager.ReadConfig(config, Sections.DBConfig.GetDescription(), "DBIP")},{ConfigManager.ReadConfig(config, Sections.DBConfig.GetDescription(), "DBPort")}";
+            NpgHost = ConfigManager.ReadConfig(config, Sections.DBConfig.GetDescription(), "DBIP");
+            NpgPort = ConfigManager.ReadConfig(config, Sections.DBConfig.GetDescription(), "DBPort");
+            InitialCatalog = ConfigManager.ReadConfig(config, Sections.DBConfig.GetDescription(), "DBName");
+            UserID = ConfigManager.ReadConfig(config, Sections.DBConfig.GetDescription(), "DBID");
+            Password = ConfigManager.ReadConfig(config, Sections.DBConfig.GetDescription(), "DBPW");
+            DBCustGroupNo = ConfigManager.ReadConfig(config, Sections.DBConfig.GetDescription(), "DBCustGroupNo");
 
             HS_BaudRate = ConfigManager.ReadConfig(config, Sections.HomeNetConfig.GetDescription(), "Serial_BaudRate");
             HS_PortName = ConfigManager.ReadConfig(config, Sections.HomeNetConfig.GetDescription(), "Serial_PortName");
@@ -341,11 +346,18 @@ namespace NpmCommon
 
         #region Methods
 
+        private Dictionary<string, string> unitName = new Dictionary<string, string>();
+
         public string GetDeviceName(string unitNo)
         {
             try
             {
-                return ConfigManager.ReadConfig(config, Sections.DivConfig.GetDescription(), unitNo);
+                if (unitName.ContainsKey(unitNo)) return unitName[unitNo];
+                else
+                {
+                    unitName.Add(unitNo, ConfigManager.ReadConfig(config, Sections.DivConfig.GetDescription(), unitNo));
+                    return ConfigManager.ReadConfig(config, Sections.DivConfig.GetDescription(), unitNo);
+                }
             }
             catch (Exception ex)
             {
