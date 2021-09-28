@@ -57,10 +57,7 @@ namespace NpmAdapter.Adapter
         //==== Access Token Thread ====
         private int _AccesExpireSec = 0; //Access Token 만료 시간(초)
 
-        private Thread AccessTokenThread;
-        private TimeSpan waitForAccessTokenProcess;
-        private ManualResetEventSlim shutdownAccessTokenEvent = new ManualResetEventSlim(false);
-        ManualResetEvent _pauseFailAccessTokenEvent = new ManualResetEvent(false);
+        private NpmThread _AccessTokenThread;
         private delegate void AccessTokenSafeCallDelegate();
         //==== Fail Process Thread ====
 
@@ -72,7 +69,7 @@ namespace NpmAdapter.Adapter
 
         public void Dispose()
         {
-
+            _AccessTokenThread.Dispose();
         }
 
         public bool Initialize()
@@ -83,9 +80,8 @@ namespace NpmAdapter.Adapter
             webport = SysConfig.Instance.HW_Port;
             HttpNet = NetworkFactory.GetInstance().MakeNetworkControl(NetworkFactory.Adapters.HttpServer, webport);
 
-            AccessTokenThread = new Thread(new ThreadStart(AccessTokenAction));
-            AccessTokenThread.Name = "access token";
-            waitForAccessTokenProcess = TimeSpan.FromSeconds(1); //1초
+            _AccessTokenThread = new NpmThread("access token", TimeSpan.FromSeconds(1));
+            _AccessTokenThread.ThreadAction = AccessTokenAction;
 
             return true;
         }
@@ -102,15 +98,7 @@ namespace NpmAdapter.Adapter
                 {
                     dicHeader.Add("Authorization",GetAccessToken());
 
-                    if (AccessTokenThread.IsAlive)
-                    {
-                        _pauseFailAccessTokenEvent.Set();
-                    }
-                    else
-                    {
-                        AccessTokenThread.Start();
-                        _pauseFailAccessTokenEvent.Set();
-                    }
+                    _AccessTokenThread.Start();
                 }
                 catch (Exception)
                 {
@@ -126,7 +114,7 @@ namespace NpmAdapter.Adapter
             bool bResult = false;
             try
             {
-                _pauseFailAccessTokenEvent.Reset();
+                _AccessTokenThread.Stop();
                 _AccesExpireSec = 0;
 
                 HttpNet.ReceiveFromPeer -= HttpServer_ReceiveFromPeer;
@@ -896,41 +884,25 @@ namespace NpmAdapter.Adapter
 
         private void AccessTokenAction()
         {
-            do
+            if (_AccesExpireSec < 1) //새 Access Token 을 발급 받는다.
             {
-                if (shutdownAccessTokenEvent.IsSet) return;
+                //Access Token 발급
+                string accessToken = GetAccessToken();
+                if (dicHeader.ContainsKey("Authorization"))
                 {
-                    try
-                    {
-                        if (_AccesExpireSec < 1) //새 Access Token 을 발급 받는다.
-                        {
-                            //Access Token 발급
-                            string accessToken = GetAccessToken();
-                            if (dicHeader.ContainsKey("Authorization"))
-                            {
-                                dicHeader["Authorization"] = accessToken;
-                            }
-                            else
-                            {
-                                dicHeader.Add("Authorization", accessToken);
-                            }
-                            //Alive Check 서버로 전달....
-                            Log.WriteLog(LogType.Info, $"KakaoMovilAdapter | AccessTokenAction", $"AccessToken : {accessToken}, AcceptSecond : {_AccesExpireSec}");
-                        }
-                        else
-                        {
-                            _AccesExpireSec -= 1;
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Log.WriteLog(LogType.Error, $"KakaoMovilAdapter | AccessTokenAction", $"{ex.StackTrace}");
-                    }
+                    dicHeader["Authorization"] = accessToken;
                 }
-
-                shutdownAccessTokenEvent.Wait(waitForAccessTokenProcess);
+                else
+                {
+                    dicHeader.Add("Authorization", accessToken);
+                }
+                //Alive Check 서버로 전달....
+                Log.WriteLog(LogType.Info, $"KakaoMovilAdapter | AccessTokenAction", $"AccessToken : {accessToken}, AcceptSecond : {_AccesExpireSec}");
             }
-            while (_pauseFailAccessTokenEvent.WaitOne());
+            else
+            {
+                _AccesExpireSec -= 1;
+            }
         }
 
         private string GetAccessToken()

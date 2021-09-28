@@ -20,8 +20,9 @@ namespace NexpaConnectWinApp
         private bool isRunHomeNet = false;
         private bool autoClear = false;
         private bool isShutdown = false;
+        private bool isSimple = false;
         private static DateTime startDate;
-
+        
         #endregion
 
         #region Constructor
@@ -285,6 +286,14 @@ namespace NexpaConnectWinApp
                 this.Height = 650 - 177;
             }
 
+            
+            //로그표시 여부
+            if (SysConfig.Instance.Sys_Option.GetValueToUpper("SimpleMode") == "Y")
+            {
+                isSimple = true;
+                txtSysLog.Text = "No Display Log...";
+            }
+
             //자동시작 여부
             if (SysConfig.Instance.Sys_Option.GetValueToUpper("AutoStart") == "Y")
             {
@@ -298,8 +307,18 @@ namespace NexpaConnectWinApp
                     btnStartHomeNet.PerformClick();
                 }
 
-                txtClearSec.Text = "90";
-                btnLogAutoClear.PerformClick();
+                if (SysConfig.Instance.Sys_Option.GetValueToUpper("SimpleMode") == "Y")
+                {
+                    timerLogClear.Stop();
+                    txtClearSec.Enabled = false;
+                    btnLogAutoClear.Enabled = false;
+                    btnLogClear.Enabled = false;
+                }
+                else
+                {
+                    txtClearSec.Text = "90";
+                    btnLogAutoClear.PerformClick();
+                }
             }
 
             if (SysConfig.Instance.Sys_Option.GetValueToUpper("AutoDaeth") == "Y")
@@ -334,25 +353,28 @@ namespace NexpaConnectWinApp
         {
             try
             {
-                StringBuilder builder = new StringBuilder();
-                builder.Append(DateTime.Now.ToString("yy-MM-dd hh:mm:ss "));
-                if (adapterType == LogAdpType.none)
+                if (!isSimple)
                 {
-                    builder.Append($"[Error] ");
-                }
-                else
-                {
-                    builder.Append($"[{adapterType.ToString()}] ");
-                }
-                builder.Append(statusMessage);
-                SafeAppendLogText(txtSysLog, builder.ToString() + "\r");
-                if (this.InvokeRequired)
-                {
-                    this.Invoke(new MethodInvoker(delegate () { txtSysLog.SelectionStart = txtSysLog.Text.Length; }));
-                }
-                else
-                {
-                    txtSysLog.SelectionStart = txtSysLog.Text.Length;
+                    StringBuilder builder = new StringBuilder();
+                    builder.Append(DateTime.Now.ToString("yy-MM-dd hh:mm:ss "));
+                    if (adapterType == LogAdpType.none)
+                    {
+                        builder.Append($"[Error] ");
+                    }
+                    else
+                    {
+                        builder.Append($"[{adapterType.ToString()}] ");
+                    }
+                    builder.Append(statusMessage);
+                    SafeAppendLogText(txtSysLog, builder.ToString() + "\r");
+                    if (this.InvokeRequired)
+                    {
+                        this.Invoke(new MethodInvoker(delegate () { txtSysLog.SelectionStart = txtSysLog.Text.Length; }));
+                    }
+                    else
+                    {
+                        txtSysLog.SelectionStart = txtSysLog.Text.Length;
+                    }
                 }
             }
             catch (Exception)

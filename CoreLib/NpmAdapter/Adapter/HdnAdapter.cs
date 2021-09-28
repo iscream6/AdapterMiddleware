@@ -26,11 +26,6 @@ namespace NpmAdapter.Adapter
         private bool isRun = false;
 
         private object lockObj = new object();
-        private Thread aliveCheckThread;
-        private TimeSpan waitForWork;
-        private ManualResetEventSlim shutdownEvent = new ManualResetEventSlim(false);
-        ManualResetEvent _pauseEvent = new ManualResetEvent(false);
-
         public event IAdapter.ShowBallonTip ShowTip;
 
         public IAdapter TargetAdapter { get; set; }
@@ -43,8 +38,7 @@ namespace NpmAdapter.Adapter
 
         public void Dispose()
         {
-            _pauseEvent.Set();
-            shutdownEvent.Set();
+            
         }
 
         public bool Initialize()
@@ -62,18 +56,6 @@ namespace NpmAdapter.Adapter
 
             MyTcpClientNetwork = NetworkFactory.GetInstance().MakeNetworkControl(NetworkFactory.Adapters.TcpClient, tcpServerIp, tcpPort);
             MyTcpServer = NetworkFactory.GetInstance().MakeNetworkControl(NetworkFactory.Adapters.TcpServer, myport);
-            //Alive Check
-            if (SysConfig.Instance.Sys_Option.GetValueToUpper("CmxAliveCheckUse").Equals("Y"))
-            {
-                aliveCheckThread = new Thread(new ThreadStart(AliveCheck));
-                aliveCheckThread.Name = "Cmx thread for alive check";
-                if (!TimeSpan.TryParse(SysConfig.Instance.Sys_Option.GetValueToUpper("CmxAliveCheckTime"), out waitForWork))
-                {
-                    //Default 50초
-                    waitForWork = TimeSpan.FromSeconds(50);
-                }
-            }
-            //Alive Check
 
             return true;
         }
@@ -85,20 +67,6 @@ namespace NpmAdapter.Adapter
                 MyTcpClientNetwork.ReceiveFromPeer += MyTcpNetwork_ReceiveFromPeer;
                 MyTcpServer.ReceiveFromPeer += MyTcpServer_ReceiveFromPeer;
                 isRun = MyTcpServer.Run();
-
-                if (SysConfig.Instance.Sys_Option.GetValueToUpper("CmxAliveCheckUse").Equals("Y"))
-                {
-                    //Alive Check Thread 시작
-                    if (aliveCheckThread.IsAlive)
-                    {
-                        _pauseEvent.Set();
-                    }
-                    else
-                    {
-                        aliveCheckThread.Start();
-                        _pauseEvent.Set();
-                    }
-                }
             }
             catch (Exception ex)
             {
@@ -115,9 +83,6 @@ namespace NpmAdapter.Adapter
             {
                 MyTcpClientNetwork.ReceiveFromPeer -= MyTcpNetwork_ReceiveFromPeer;
                 isRun = !MyTcpClientNetwork.Down();
-
-                //Alive Check Thread pause
-                _pauseEvent.Reset();
             }
             catch (Exception ex)
             {
@@ -338,31 +303,6 @@ namespace NpmAdapter.Adapter
                 byte[] sendBytes = responsePayload.Serialize();
                 TargetAdapter.SendMessage(sendBytes, 0, sendBytes.Length);
             }
-        }
-
-        private void AliveCheck()
-        {
-            do
-            {
-                if (shutdownEvent.IsSet) return;
-
-                {
-                    //Alive Check 서버로 전달....
-                    Log.WriteLog(LogType.Info, $"CcmAdapter | AliveCheck", $"Alive Check~!");
-
-                    try
-                    {
-
-                    }
-                    catch (Exception)
-                    {
-
-                    }
-                }
-
-                shutdownEvent.Wait(waitForWork);
-            }
-            while (_pauseEvent.WaitOne());
         }
     }
 }

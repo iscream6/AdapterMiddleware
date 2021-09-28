@@ -13,6 +13,9 @@ using System.Threading;
 
 namespace NpmAdapter.Adapter
 {
+    /// <summary>
+    /// TEST URI : URI : http://qa.nexpa.co.kr:42142
+    /// </summary>
     class SaldaAdapter : IAdapter
     {
         private const string GET_PARKINGZONE = "/parking/zone"; //4.1 Zone정보(주차장 정보)
@@ -41,11 +44,7 @@ namespace NpmAdapter.Adapter
         private IPayload unitInfoPayload;
         private Dictionary<string, string> dicHeader = new Dictionary<string, string>();
 
-        private Thread aliveCheckThread;
-        private TimeSpan waitForWork;
-        private ManualResetEventSlim shutdownEvent = new ManualResetEventSlim(false);
-        private ManualResetEvent _pauseEvent = new ManualResetEvent(false);
-        private delegate void SafeCallDelegate();
+        private NpmThread _aliveCheckThread;
 
         public event IAdapter.ShowBallonTip ShowTip;
 
@@ -56,7 +55,7 @@ namespace NpmAdapter.Adapter
 
         public void Dispose()
         {
-            
+            _aliveCheckThread.Dispose();
         }
 
         public bool Initialize()
@@ -81,10 +80,9 @@ namespace NpmAdapter.Adapter
             webport = SysConfig.Instance.HW_Port;
             MyHttpNetwork = NetworkFactory.GetInstance().MakeNetworkControl(NetworkFactory.Adapters.HttpServer, webport);
 
-#if (!DEBUG)
-            aliveCheckThread = new Thread(new ThreadStart(AliveCheck));
-            aliveCheckThread.Name = "Salda thread for alive check";
-            waitForWork = TimeSpan.FromMinutes(40); //40분마다 Alive Check~!
+#if (DEBUG)
+            _aliveCheckThread = new NpmThread("Salda thread for alive check", TimeSpan.FromMinutes(40)); //40분마다 Alive Check~!
+            _aliveCheckThread.ThreadAction = AliveCheck;
 #endif
 
             return true;
@@ -100,49 +98,40 @@ namespace NpmAdapter.Adapter
 
         private void AliveCheck()
         {
-            do
+            //Alive Check 서버로 전달....
+            Log.WriteLog(LogType.Info, $"SaldaAdapter | AliveCheck", $"Alive Check~!");
+
+            try
             {
-                if (shutdownEvent.IsSet) return;
+                Uri uri = new Uri(string.Concat(hostDomain, SND_PING));
+
+                JObject json = new JObject();
+                json["zoneId"] = aptId;
+                json["ip"] = Helper.GetLocalIP();
+                byte[] requestData = ParseDataEncoding(json.ToString());
+                string responseData = string.Empty;
+                string responseHeader = string.Empty;
+
+                Dictionary<string, string> dicReqHeader = new Dictionary<string, string>();
+                dicReqHeader.Add("partner-id", ""); //TODO : 모든 요청시엔 partner-id를 전송해야 함.
+
+                if (NetworkWebClient.Instance.SendData(uri, NetworkWebClient.RequestType.POST, ContentType.Json, requestData, ref responseData, ref responseHeader, header: dicReqHeader))
                 {
-                    //Alive Check 서버로 전달....
-                    Log.WriteLog(LogType.Info, $"SaldaAdapter | AliveCheck", $"Alive Check~!");
-
-                    try
+                    if (responseData.StartsWith("ERR"))
                     {
-                        Uri uri = new Uri(string.Concat(hostDomain, SND_PING));
-                        
-                        JObject json = new JObject();
-                        json["zoneId"] = aptId;
-                        json["ip"] = Helper.GetLocalIP();
-                        byte[] requestData = ParseDataEncoding(json.ToString());
-                        string responseData = string.Empty;
-                        string responseHeader = string.Empty;
-
-                        Dictionary<string, string> dicReqHeader = new Dictionary<string, string>();
-                        dicReqHeader.Add("partner-id", ""); //TODO : 모든 요청시엔 partner-id를 전송해야 함.
-
-                        if (NetworkWebClient.Instance.SendData(uri, NetworkWebClient.RequestType.POST, ContentType.Json, requestData, ref responseData, ref responseHeader, header: dicReqHeader))
-                        {
-                            if (responseData.StartsWith("ERR"))
-                            {
-                                Log.WriteLog(LogType.Error, "SaldaAdapter | SendMessage | WebClientResponse", $"==응답== {responseData}", LogAdpType.HomeNet);
-                            }
-                            else
-                            {
-                                string decVal = AESEncrypt.Decrypt(responseData, aeskey);
-                                Log.WriteLog(LogType.Error, "SaldaAdapter | SendMessage | WebClientResponse", $"==응답== {decVal}", LogAdpType.HomeNet);
-                            }
-                        }
+                        Log.WriteLog(LogType.Error, "SaldaAdapter | SendMessage | WebClientResponse", $"==응답== {responseData}", LogAdpType.HomeNet);
                     }
-                    catch (Exception ex)
+                    else
                     {
-                        Log.WriteLog(LogType.Error, $"SaldaAdapter | AliveCheck", $"{ex.Message}");
+                        string decVal = AESEncrypt.Decrypt(responseData, aeskey);
+                        Log.WriteLog(LogType.Error, "SaldaAdapter | SendMessage | WebClientResponse", $"==응답== {decVal}", LogAdpType.HomeNet);
                     }
                 }
-
-                shutdownEvent.Wait(waitForWork);
             }
-            while (_pauseEvent.WaitOne());
+            catch (Exception ex)
+            {
+                Log.WriteLog(LogType.Error, $"SaldaAdapter | AliveCheck", $"{ex.Message}");
+            }
         }
 
         private Dictionary<string, IPayload> dicTempSearch = new Dictionary<string, IPayload>();
@@ -161,7 +150,9 @@ namespace NpmAdapter.Adapter
 
                 string receiveEncryptMsg = SysConfig.Instance.HomeNet_Encoding.GetString(buffer[..(int)size]);
                 json = JObject.Parse(Helper.ValidateJsonParseingData(AESEncrypt.Decrypt(receiveEncryptMsg, aeskey)));
-                
+
+                Log.WriteLog(LogType.Info, $"SaldaAdapter | MyHttpNetwork_ReceiveFromPeer", $"METHOD : {sMethod}, URL : {urlData}, DATA : {json}", LogAdpType.HomeNet);
+
                 Dictionary<ColName, object> param = new Dictionary<ColName, object>();
                 ModelResult mResult = new ModelResult();
 
@@ -407,19 +398,10 @@ namespace NpmAdapter.Adapter
                 MyHttpNetwork.ReceiveFromPeer += MyHttpNetwork_ReceiveFromPeer;
                 isRun = MyHttpNetwork.Run();
 
-#if (!DEBUG)
+#if (DEBUG)
                 if (isRun)
                 {
-                    //Alive Check Thread 시작
-                    if (aliveCheckThread.IsAlive)
-                    {
-                        _pauseEvent.Set();
-                    }
-                    else
-                    {
-                        aliveCheckThread.Start();
-                        _pauseEvent.Set();
-                    }
+                    _aliveCheckThread.Start();
                 }
 #endif
 
@@ -438,7 +420,7 @@ namespace NpmAdapter.Adapter
             try
             {
                 //Alive Check Thread pause
-                _pauseEvent.Reset();
+                _aliveCheckThread.Stop();
 
                 bool bResult = false;
                 MyHttpNetwork.ReceiveFromPeer -= MyHttpNetwork_ReceiveFromPeer;

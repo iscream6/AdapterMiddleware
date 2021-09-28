@@ -22,11 +22,7 @@ namespace NpmAdapter.Adapter
         private ezHeaderPayload ezHeader;
         private StringBuilder receiveMessageBuffer = new StringBuilder();
         private StringBuilder responseData = new StringBuilder();
-        private Thread aliveCheckThread;
-        private TimeSpan waitForWork;
-        private ManualResetEventSlim shutdownEvent = new ManualResetEventSlim(false);
-        ManualResetEvent _pauseEvent = new ManualResetEvent(false);
-        private delegate void SafeCallDelegate();
+        private NpmThread aliveCheckThread;
 
         private const string ERR_SAVE_CARNUMBER = "#0001&차번저장오류";
         private const string ERR_FAIL_RESERVE = "#0002&예약실패";
@@ -54,9 +50,8 @@ namespace NpmAdapter.Adapter
 
         public void Dispose()
         {
-            _pauseEvent.Set();
-            shutdownEvent.Set();
             StopAdapter();
+            aliveCheckThread.Dispose();
         }
 
         public bool Initialize()
@@ -76,9 +71,8 @@ namespace NpmAdapter.Adapter
                 TcpClientNetwork = NetworkFactory.GetInstance().MakeNetworkControl(NetworkFactory.Adapters.TcpClient, tcpServerIp, tcpport);
 
                 //이지빌은 Default AliveCheck함.
-                aliveCheckThread = new Thread(new ThreadStart(AliveCheck));
-                aliveCheckThread.Name = "Ezv thread for alive check";
-                waitForWork = TimeSpan.FromMinutes(5);
+                aliveCheckThread = new NpmThread("", TimeSpan.FromMinutes(5));
+                aliveCheckThread.ThreadAction = AliveCheck;
 
                 return true;
             }
@@ -98,16 +92,7 @@ namespace NpmAdapter.Adapter
                 
                 if (isRun)
                 {
-                    //Alive Check Thread 시작
-                    if (aliveCheckThread.IsAlive)
-                    {
-                        _pauseEvent.Set();
-                    }
-                    else
-                    {
-                        aliveCheckThread.Start();
-                        _pauseEvent.Set();
-                    }
+                    aliveCheckThread.Start();
                 }
                 
                 return isRun;
@@ -123,8 +108,7 @@ namespace NpmAdapter.Adapter
         {
             try
             {
-                //Alive Check Thread pause
-                _pauseEvent.Reset();
+                aliveCheckThread.Stop();
 
                 TcpClientNetwork.ReceiveFromPeer -= TcpClientNetwork_ReceiveFromPeer;
                 isRun = !TcpClientNetwork.Down();
@@ -160,41 +144,29 @@ namespace NpmAdapter.Adapter
         /// </summary>
         private void AliveCheck()
         {
-            do
+            //Alive Check 서버로 전달....
+            Log.WriteLog(LogType.Info, $"EzvAdapter | AliveCheck", $"Alive Check~!");
+
+            try
             {
-                if (shutdownEvent.IsSet) return;
-
+                if (TcpClientNetwork.Status == NetStatus.Disconnected)
                 {
-                    //Alive Check 서버로 전달....
-                    Log.WriteLog(LogType.Info, $"EzvAdapter | AliveCheck", $"Alive Check~!");
-
-                    try
-                    {
-                        if(TcpClientNetwork.Status == NetStatus.Disconnected)
-                        {
-                            isRun = TcpClientNetwork.Run();
-                        }
-                        else
-                        {
-                            //<start=0072&0>$version=3.0$cmd=10$copy=1-10$dongho=100&900$target=server
-                            string message = GetResponseMessage($"$version=3.0$copy=0-0$dongho={AuthDong}&{AuthHo}$cmd=10$target=server");
-                            Log.WriteLog(LogType.Info, $"EzvAdapter | AliveCheck", $"전송 : {message}", LogAdpType.HomeNet);
-                            byte[] responseData = SysConfig.Instance.HomeNet_Encoding.GetBytes(message);
-                            TcpClientNetwork.SendToPeer(responseData, 0, responseData.Length);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Log.WriteLog(LogType.Error, $"EzvAdapter | AliveCheck", $"{ex.Message}");
-                    }
+                    isRun = TcpClientNetwork.Run();
                 }
-
-                shutdownEvent.Wait(waitForWork);
+                else
+                {
+                    //<start=0072&0>$version=3.0$cmd=10$copy=1-10$dongho=100&900$target=server
+                    string message = GetResponseMessage($"$version=3.0$copy=0-0$dongho={AuthDong}&{AuthHo}$cmd=10$target=server");
+                    Log.WriteLog(LogType.Info, $"EzvAdapter | AliveCheck", $"전송 : {message}", LogAdpType.HomeNet);
+                    byte[] responseData = SysConfig.Instance.HomeNet_Encoding.GetBytes(message);
+                    TcpClientNetwork.SendToPeer(responseData, 0, responseData.Length);
+                }
             }
-            while (_pauseEvent.WaitOne());
+            catch (Exception ex)
+            {
+                Log.WriteLog(LogType.Error, $"EzvAdapter | AliveCheck", $"{ex.Message}");
+            }
         }
-
-        
 
         private void TcpClientNetwork_ReceiveFromPeer(byte[] buffer, long offset, long size, HttpServer.RequestEventArgs pEvent = null, string id = null, System.Net.EndPoint ep = null)
         {

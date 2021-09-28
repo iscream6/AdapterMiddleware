@@ -13,7 +13,7 @@ namespace NpmAdapter.Adapter
     {
         private object objLock = new object();
 
-        private Thread AliveCheckThread;
+        private NpmThread AliveCheckThread;
         private TimeSpan waitForAliveCheckProcess;
         private ManualResetEventSlim shutdownAliveCheckEvent = new ManualResetEventSlim(false);
         private ManualResetEvent _pauseFailAliveCheckEvent = new ManualResetEvent(false);
@@ -55,8 +55,7 @@ namespace NpmAdapter.Adapter
         public void Dispose()
         {
             tcpClient.Down();
-            _pauseFailAliveCheckEvent.Reset();
-            AliveCheckThread.Abort();
+            AliveCheckThread.Dispose();
         }
 
         public bool Initialize()
@@ -74,9 +73,8 @@ namespace NpmAdapter.Adapter
 
                 AliveCheckData = GetInitAliveCheckData();
 
-                AliveCheckThread = new Thread(new ThreadStart(AliveCheckAction));
-                AliveCheckThread.Name = "Alive_Check";
-                waitForAliveCheckProcess = TimeSpan.FromMinutes(1); //1분
+                AliveCheckThread = new NpmThread("Alive_Check", TimeSpan.FromMinutes(1)); //1분
+                AliveCheckThread.ThreadAction = AliveCheckAction;
 
                 Log.WriteLog(LogType.Info, "Hipass | Initialize", "초기화 성공", LogAdpType.HomeNet);
             }
@@ -91,18 +89,7 @@ namespace NpmAdapter.Adapter
         public bool StartAdapter()
         {
             bool bStart = tcpClient.Run();
-
-            if (AliveCheckThread.IsAlive)
-            {
-                _pauseFailAliveCheckEvent.Set();
-            }
-            else
-            {
-                AliveCheckThread.Start();
-                _pauseFailAliveCheckEvent.Set();
-            }
-
-
+            AliveCheckThread.Start();
             return bStart;
         }
 
@@ -113,7 +100,7 @@ namespace NpmAdapter.Adapter
             try
             {
                 bStart = !tcpClient.Down();
-                _pauseFailAliveCheckEvent.Reset();
+                AliveCheckThread.Stop();
 
             }
             catch (Exception ex)
@@ -383,48 +370,39 @@ namespace NpmAdapter.Adapter
 
         private void AliveCheckAction()
         {
-            do
+            try
             {
-                if (shutdownAliveCheckEvent.IsSet) return;
+                if (tcpClient.Status == NetStatus.Disconnected)
                 {
-                    try
+                    Log.WriteLog(LogType.Info, "Hipass | AliveCheck", "Server Disconnected...", LogAdpType.HomeNet);
+                    Log.WriteLog(LogType.Info, "Hipass | AliveCheck", "Retry Connect to Server......", LogAdpType.HomeNet);
+
+                    if (tcpClient.Run())
                     {
-                        if (tcpClient.Status == NetStatus.Disconnected)
-                        {
-                            Log.WriteLog(LogType.Info, "Hipass | AliveCheck", "Server Disconnected...", LogAdpType.HomeNet);
-                            Log.WriteLog(LogType.Info, "Hipass | AliveCheck", "Retry Connect to Server......", LogAdpType.HomeNet);
+                        Log.WriteLog(LogType.Info, "Hipass | AliveCheck", $"전송 : {hiIp} {hiPort}", LogAdpType.HomeNet);
+                        Log.WriteLog(LogType.Info, "Hipass | AliveCheck", $"AliveCheck Data : {SysConfig.Instance.HomeNet_Encoding.GetString(AliveCheckData)}", LogAdpType.HomeNet);
 
-                            if (tcpClient.Run())
-                            {
-                                Log.WriteLog(LogType.Info, "Hipass | AliveCheck", $"전송 : {hiIp} {hiPort}", LogAdpType.HomeNet);
-                                Log.WriteLog(LogType.Info, "Hipass | AliveCheck", $"AliveCheck Data : {SysConfig.Instance.HomeNet_Encoding.GetString(AliveCheckData)}", LogAdpType.HomeNet);
-
-                                tcpClient.SendToPeer(AliveCheckData, 0, AliveCheckData.Length);
-                                Log.WriteLog(LogType.Info, "Hipass | AliveCheck", $"전송완료", LogAdpType.HomeNet);
-                            }
-                            else
-                            {
-                                Log.WriteLog(LogType.Error, "Hipass | AliveCheck", "Connected fail", LogAdpType.HomeNet);
-                            }
-                        }
-                        else
-                        {
-                            Log.WriteLog(LogType.Info, "Hipass | AliveCheck", $"전송 : {hiIp} {hiPort}", LogAdpType.HomeNet);
-                            Log.WriteLog(LogType.Info, "Hipass | AliveCheck", $"AliveCheck Data : {SysConfig.Instance.HomeNet_Encoding.GetString(AliveCheckData)}", LogAdpType.HomeNet);
-
-                            tcpClient.SendToPeer(AliveCheckData, 0, AliveCheckData.Length);
-                            Log.WriteLog(LogType.Info, "Hipass | AliveCheck", $"전송완료", LogAdpType.HomeNet);
-                        }
+                        tcpClient.SendToPeer(AliveCheckData, 0, AliveCheckData.Length);
+                        Log.WriteLog(LogType.Info, "Hipass | AliveCheck", $"전송완료", LogAdpType.HomeNet);
                     }
-                    catch (Exception ex)
+                    else
                     {
-                        Log.WriteLog(LogType.Error, $"KakaoMovilAdapter | AccessTokenAction", $"{ex.StackTrace}");
+                        Log.WriteLog(LogType.Error, "Hipass | AliveCheck", "Connected fail", LogAdpType.HomeNet);
                     }
                 }
+                else
+                {
+                    Log.WriteLog(LogType.Info, "Hipass | AliveCheck", $"전송 : {hiIp} {hiPort}", LogAdpType.HomeNet);
+                    Log.WriteLog(LogType.Info, "Hipass | AliveCheck", $"AliveCheck Data : {SysConfig.Instance.HomeNet_Encoding.GetString(AliveCheckData)}", LogAdpType.HomeNet);
 
-                shutdownAliveCheckEvent.Wait(waitForAliveCheckProcess);
+                    tcpClient.SendToPeer(AliveCheckData, 0, AliveCheckData.Length);
+                    Log.WriteLog(LogType.Info, "Hipass | AliveCheck", $"전송완료", LogAdpType.HomeNet);
+                }
             }
-            while (_pauseFailAliveCheckEvent.WaitOne());
+            catch (Exception ex)
+            {
+                Log.WriteLog(LogType.Error, $"KakaoMovilAdapter | AccessTokenAction", $"{ex.StackTrace}");
+            }
         }
 
         private byte[] GetInitAliveCheckData()

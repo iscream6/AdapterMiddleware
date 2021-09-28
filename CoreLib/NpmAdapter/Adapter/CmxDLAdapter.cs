@@ -41,16 +41,12 @@ namespace NpmAdapter.Adapter
         /// </summary>
         private Status runStatus = Status.Full;
         //==== Alive Check ====
-        private Thread aliveCheckThread;
+        private NpmThread _aliveCheckThread;
         private TimeSpan waitForWork;
-        private ManualResetEventSlim shutdownEvent = new ManualResetEventSlim(false);
-        ManualResetEvent _pauseEvent = new ManualResetEvent(false);
-        private delegate void SafeCallDelegate();
-        private bool isRun;
-
-        public event IAdapter.ShowBallonTip ShowTip;
-
         //==== Alive Check ====
+
+        private bool isRun;
+        public event IAdapter.ShowBallonTip ShowTip;
 
         private INetwork MyTcpNetwork { get; set; }
         private INetwork MyHttpNetwork { get; set; }
@@ -87,16 +83,14 @@ namespace NpmAdapter.Adapter
             //responseResult = new StatusPayload();
 
             //Alive Check
-            if (SysConfig.Instance.Sys_Option.GetValueToUpper("CmxAliveCheckUse").Equals("Y"))
+            if (!TimeSpan.TryParse(SysConfig.Instance.Sys_Option.GetValueToUpper("CmxAliveCheckTime"), out waitForWork))
             {
-                aliveCheckThread = new Thread(new ThreadStart(AliveCheck));
-                aliveCheckThread.Name = "Cmx thread for alive check";
-                if (!TimeSpan.TryParse(SysConfig.Instance.Sys_Option.GetValueToUpper("CmxAliveCheckTime"), out waitForWork))
-                {
-                    //Default 30분
-                    waitForWork = TimeSpan.FromMinutes(30);
-                }
+                //Default 30분
+                waitForWork = TimeSpan.FromMinutes(30);
             }
+            _aliveCheckThread = new NpmThread("alive check", waitForWork);
+            _aliveCheckThread.ThreadAction = AliveCheck;
+
             //Alive Check
 
             return true;
@@ -126,15 +120,7 @@ namespace NpmAdapter.Adapter
                 if (SysConfig.Instance.Sys_Option.GetValueToUpper("CmxAliveCheckUse").Equals("Y"))
                 {
                     //Alive Check Thread 시작
-                    if (aliveCheckThread.IsAlive)
-                    {
-                        _pauseEvent.Set();
-                    }
-                    else
-                    {
-                        aliveCheckThread.Start();
-                        _pauseEvent.Set();
-                    }
+                    _aliveCheckThread.Start();
                 }
             }
             catch (Exception ex)
@@ -169,7 +155,7 @@ namespace NpmAdapter.Adapter
                 }
 
                 //Alive Check Thread pause
-                _pauseEvent.Reset();
+                _aliveCheckThread.Stop();
             }
             catch (Exception ex)
             {
@@ -185,55 +171,45 @@ namespace NpmAdapter.Adapter
         /// </summary>
         private void AliveCheck()
         {
-            do
+            //Alive Check 서버로 전달....
+            Log.WriteLog(LogType.Info, $"CmxDLAdapter | AliveCheck", $"Alive Check~!");
+
+            try
             {
-                if (shutdownEvent.IsSet) return;
+                //s_prod_company : 업체명
+                //s_prod_type : 2002 주차관제
+                //s_prod_version : product version
+                //s_prod_mac : mac address
+                //s_prod_status : 서버상태 (1:OK, 2:NG)
+                string postMessage =
+                    $"s_prod_company=Nexpa" +
+                    $"&s_prod_type=2002" +
+                    $"&s_prod_version={SysConfig.Instance.Version}" +
+                    $"&s_prod_mac={NetworkInterface.GetAllNetworkInterfaces()[0].GetPhysicalAddress().ToString()}" +
+                    $"&s_prod_status={(TargetAdapter.IsRuning ? "1" : "2")}";
+                string responseData = string.Empty;
 
+                if (NetworkWebClient.Instance.SendDataPost(new Uri($"{SysConfig.Instance.Sys_Option.GetValue("CmxAliveCheckURL")}"), SysConfig.Instance.HomeNet_Encoding.GetBytes(postMessage), ref responseData, ContentType.FormData))
                 {
-                    //Alive Check 서버로 전달....
-                    Log.WriteLog(LogType.Info, $"CmxDLAdapter | AliveCheck", $"Alive Check~!");
-                    
-                    try
+                    var serverResponse = JObject.Parse(responseData);
+                    string result = serverResponse.Value<string>("result");
+                    string message = serverResponse.Value<string>("message");
+                    if (!result.StartsWith("2"))
                     {
-                        //s_prod_company : 업체명
-                        //s_prod_type : 2002 주차관제
-                        //s_prod_version : product version
-                        //s_prod_mac : mac address
-                        //s_prod_status : 서버상태 (1:OK, 2:NG)
-                        string postMessage =
-                            $"s_prod_company=Nexpa" +
-                            $"&s_prod_type=2002" +
-                            $"&s_prod_version={SysConfig.Instance.Version}" +
-                            $"&s_prod_mac={NetworkInterface.GetAllNetworkInterfaces()[0].GetPhysicalAddress().ToString()}" +
-                            $"&s_prod_status={(TargetAdapter.IsRuning ? "1" : "2")}";
-                        string responseData = string.Empty;
-
-                        if (NetworkWebClient.Instance.SendDataPost(new Uri($"{SysConfig.Instance.Sys_Option.GetValue("CmxAliveCheckURL")}"), SysConfig.Instance.HomeNet_Encoding.GetBytes(postMessage), ref responseData, ContentType.FormData ))
-                        {
-                            var serverResponse = JObject.Parse(responseData);
-                            string result = serverResponse.Value<string>("result");
-                            string message = serverResponse.Value<string>("message");
-                            if (!result.StartsWith("2"))
-                            {
-                                //2가 아니라면 에러임. Log를 남긴다.
-                                Log.WriteLog(LogType.Info, $"CmxDLAdapter | AliveCheck", $"Error Result:{result}, Error Message:{message}", LogAdpType.HomeNet);
-                            }
-                        }
-                        else
-                        {
-                            //WebClient Send Post 실패
-                            Log.WriteLog(LogType.Error, $"CmxDLAdapter | AliveCheck", $"WebClient Send Post 실패");
-                        }
-                    }
-                    catch (Exception)
-                    {
-
+                        //2가 아니라면 에러임. Log를 남긴다.
+                        Log.WriteLog(LogType.Info, $"CmxDLAdapter | AliveCheck", $"Error Result:{result}, Error Message:{message}", LogAdpType.HomeNet);
                     }
                 }
-
-                shutdownEvent.Wait(waitForWork);
+                else
+                {
+                    //WebClient Send Post 실패
+                    Log.WriteLog(LogType.Error, $"CmxDLAdapter | AliveCheck", $"WebClient Send Post 실패");
+                }
             }
-            while (_pauseEvent.WaitOne());
+            catch (Exception)
+            {
+
+            }
         }
 
         public void TestReceive(byte[] buffer)
@@ -787,8 +763,7 @@ namespace NpmAdapter.Adapter
 
         public void Dispose()
         {
-            _pauseEvent.Set();
-            shutdownEvent.Set();
+            _aliveCheckThread.Dispose();
         }
     }
 }

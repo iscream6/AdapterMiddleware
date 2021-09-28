@@ -19,22 +19,15 @@ namespace NpmAdapter.Adapter
         public static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
         [DllImport("user32.dll")]
         public static extern IntPtr SendMessage(IntPtr hWnd, uint Msg, int wParam);
-        
-        //==== Alive Check ====
-        private Thread aliveCheckThread;
-        private TimeSpan waitForWork;
-        private ManualResetEventSlim shutdownEvent = new ManualResetEventSlim(false);
-        ManualResetEvent _pauseEvent = new ManualResetEvent(false);
-        private delegate void SafeCallDelegate();
+
         private bool isRun;
+
+        //==== Alive Check ====
+        private NpmThread aliveCheckThread;
         //==== Alive Check ====
 
         //==== Process Thread ====
-        private Thread processThread;
-        private TimeSpan waitForProcess;
-        private ManualResetEventSlim shutdownProcessEvent = new ManualResetEventSlim(false);
-        ManualResetEvent _pauseProcessEvent = new ManualResetEvent(false);
-        private delegate void ProcessSafeCallDelegate();
+        private NpmThread processThread;
         //==== Process Thread ====
 
         private bool isProcessing = false;
@@ -54,12 +47,10 @@ namespace NpmAdapter.Adapter
         {
             if (isRun) TcpJavaServer.Down();
 //#if (!DEBUG)
-            _pauseEvent.Set();
-            shutdownEvent.Set();
+            aliveCheckThread.Dispose();
             JClientKill();
 //#endif
-            _pauseProcessEvent.Set();
-            shutdownProcessEvent.Set();
+            processThread.Dispose();
         }
 
         public bool Initialize()
@@ -76,13 +67,11 @@ namespace NpmAdapter.Adapter
                 TcpJavaServer = NetworkFactory.GetInstance().MakeNetworkControl(NetworkFactory.Adapters.TcpServer, SysConfig.Instance.HT_MyPort);
 //#if (!DEBUG)
                 JClientKill();
-                aliveCheckThread = new Thread(new ThreadStart(AliveCheck));
-                aliveCheckThread.Name = "alive check";
-                waitForWork = TimeSpan.FromSeconds(10);
-//#endif
-                processThread = new Thread(new ThreadStart(ProcessAction));
-                processThread.Name = "process";
-                waitForProcess = TimeSpan.FromSeconds(1); //1초
+                aliveCheckThread = new NpmThread("alive check", TimeSpan.FromSeconds(10));
+                aliveCheckThread.ThreadAction = AliveCheck;
+                //#endif
+                processThread = new NpmThread("java process", TimeSpan.FromSeconds(1));
+                processThread.ThreadAction = ProcessAction;
             }
             catch (Exception ex)
             {
@@ -99,27 +88,10 @@ namespace NpmAdapter.Adapter
             isRun = TcpJavaServer.Run();
 
             //Alive Check Thread 시작
-//#if (!DEBUG)
-            if (aliveCheckThread.IsAlive)
-            {
-                _pauseEvent.Set();
-            }
-            else
-            {
-                aliveCheckThread.Start();
-                _pauseEvent.Set();
-            }
-//#endif
-
-            if (processThread.IsAlive)
-            {
-                _pauseProcessEvent.Set();
-            }
-            else
-            {
-                processThread.Start();
-                _pauseProcessEvent.Set();
-            }
+            //#if (!DEBUG)
+            aliveCheckThread.Start();
+            //#endif
+            processThread.Start();
 
             return isRun;
         }
@@ -154,40 +126,31 @@ namespace NpmAdapter.Adapter
 
         private void ProcessAction()
         {
-            do
+            try
             {
-                if (shutdownProcessEvent.IsSet) return;
+                //여기서 큐를 실행하자..
+                if (isProcessRun == false && quePayload.Count > 0)
                 {
-                    try
+                    currentPayload = quePayload.Dequeue();
+                    Log.WriteLog(LogType.Info, $"ULSNServerAdapter | ProcessAction", $"Discount 처리할 Payload : {currentPayload.ToJson()}", LogAdpType.HomeNet);
+
+                    Car car = new Car();
+                    car.carNo = currentPayload.data.car_number;
+
+                    if (!lstCar.Contains(car))
                     {
-                        //여기서 큐를 실행하자..
-                        if (isProcessRun == false && quePayload.Count > 0)
-                        {
-                            currentPayload = quePayload.Dequeue();
-                            Log.WriteLog(LogType.Info, $"ULSNServerAdapter | ProcessAction", $"Discount 처리할 Payload : {currentPayload.ToJson()}", LogAdpType.HomeNet);
-
-                            Car car = new Car();
-                            car.carNo = currentPayload.data.car_number;
-
-                            if (!lstCar.Contains(car))
-                            {
-                                car.tkNo = currentPayload.data.reg_no;
-                                car.DateTime = currentPayload.data.date_time;
-                                lstCar.Add(car);
-                            }
-
-                            DiscountProcess(currentPayload);
-                        }
+                        car.tkNo = currentPayload.data.reg_no;
+                        car.DateTime = currentPayload.data.date_time;
+                        lstCar.Add(car);
                     }
-                    catch (Exception)
-                    {
 
-                    }
+                    DiscountProcess(currentPayload);
                 }
-
-                shutdownProcessEvent.Wait(waitForProcess);
             }
-            while (_pauseProcessEvent.WaitOne());
+            catch (Exception)
+            {
+
+            }
         }
 
         private enum DiscountSuccess
@@ -466,10 +429,11 @@ namespace NpmAdapter.Adapter
         {
             isRun = !TcpJavaServer.Down();
             //Alive Check Thread pause
-//#if (!DEBUG)
-            _pauseEvent.Reset();
-//#endif
-            _pauseProcessEvent.Reset();
+            //#if (!DEBUG)
+            aliveCheckThread.Stop();
+            //#endif
+            processThread.Stop();
+
             return !isRun;
         }
 
@@ -602,30 +566,21 @@ namespace NpmAdapter.Adapter
         /// </summary>
         private void AliveCheck()
         {
-            do
+            try
             {
-                if (shutdownEvent.IsSet) return;
+                Process[] processList = Process.GetProcessesByName("secureclient");
+                if (processList == null || processList.Length == 0)
                 {
-                    try
-                    {
-                        Process[] processList = Process.GetProcessesByName("secureclient");
-                        if (processList == null || processList.Length == 0)
-                        {
-                            JClientKill();
-                            ProcessStartInfo startInfo = new ProcessStartInfo($"{System.IO.Directory.GetCurrentDirectory()}\\secureclient.exe");
-                            startInfo.WindowStyle = ProcessWindowStyle.Hidden;
-                            Process.Start(startInfo);
-                        }
-                    }
-                    catch (Exception)
-                    {
-
-                    }
+                    JClientKill();
+                    ProcessStartInfo startInfo = new ProcessStartInfo($"{System.IO.Directory.GetCurrentDirectory()}\\secureclient.exe");
+                    startInfo.WindowStyle = ProcessWindowStyle.Hidden;
+                    Process.Start(startInfo);
                 }
-
-                shutdownEvent.Wait(waitForWork);
             }
-            while (_pauseEvent.WaitOne());
+            catch (Exception)
+            {
+
+            }
         }
 
         private void JClientKill()

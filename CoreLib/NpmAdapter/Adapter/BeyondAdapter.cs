@@ -86,27 +86,15 @@ namespace NpmAdapter.Adapter
         public event IAdapter.ShowBallonTip ShowTip;
 
         //==== Alive Check ====
-        private Thread aliveCheckThread;
-        private TimeSpan waitForWork;
-        private ManualResetEventSlim shutdownEvent = new ManualResetEventSlim(false);
-        ManualResetEvent _pauseEvent = new ManualResetEvent(false);
-        private delegate void SafeCallDelegate();
+        private NpmThread _aliveCheckThread;
         //==== Alive Check ====
 
         //==== Fail Process Thread ====
-        private Thread failProcessThread;
-        private TimeSpan waitForFailProcess;
-        private ManualResetEventSlim shutdownProcessEvent = new ManualResetEventSlim(false);
-        ManualResetEvent _pauseFailProcessEvent = new ManualResetEvent(false);
-        private delegate void ProcessSafeCallDelegate();
+        private NpmThread _failProcessThread;
         //==== Fail Process Thread ====
 
         //==== Access Token Thread ====
-        private Thread AccessTokenThread;
-        private TimeSpan waitForAccessTokenProcess;
-        private ManualResetEventSlim shutdownAccessTokenEvent = new ManualResetEventSlim(false);
-        ManualResetEvent _pauseFailAccessTokenEvent = new ManualResetEvent(false);
-        private delegate void AccessTokenSafeCallDelegate();
+        private NpmThread _accessTokenThread;
         //==== Fail Process Thread ====
 
         private INetwork MyHttpNetwork { get; set; }
@@ -118,14 +106,10 @@ namespace NpmAdapter.Adapter
 
         public void Dispose()
         {
-            _pauseEvent.Set();
-            shutdownEvent.Set();
-
-            _pauseFailProcessEvent.Set();
-            shutdownProcessEvent.Set();
-
-            _pauseFailAccessTokenEvent.Set();
-            shutdownAccessTokenEvent.Set();
+            _aliveCheckThread.Dispose();
+            _failProcessThread.Dispose();
+            _accessTokenThread.Stop();
+            _accessTokenThread.Dispose();
         }
 
         public bool Initialize()
@@ -140,18 +124,13 @@ namespace NpmAdapter.Adapter
             {
                 lockObj = new object();
                 _Domain = SysConfig.Instance.HW_Domain;
-                
-                aliveCheckThread = new Thread(new ThreadStart(AliveCheckAction));
-                aliveCheckThread.Name = "alive check";
-                waitForWork = TimeSpan.FromSeconds(10); //10초
 
-                failProcessThread = new Thread(new ThreadStart(FailProcessAction));
-                failProcessThread.Name = "process";
-                waitForFailProcess = TimeSpan.FromSeconds(15); //15초
-
-                AccessTokenThread = new Thread(new ThreadStart(AccessTokenAction));
-                AccessTokenThread.Name = "access token";
-                waitForAccessTokenProcess = TimeSpan.FromSeconds(1); //1초
+                _aliveCheckThread = new NpmThread("alive check", TimeSpan.FromSeconds(10)); //10초
+                _aliveCheckThread.ThreadAction = AliveCheckAction;
+                _failProcessThread = new NpmThread("process", TimeSpan.FromSeconds(15)); //15초
+                _failProcessThread.ThreadAction = FailProcessAction;
+                _accessTokenThread = new NpmThread("access token", TimeSpan.FromSeconds(1)); //1초
+                _accessTokenThread.ThreadAction = AccessTokenAction;
 
                 var webport = SysConfig.Instance.HW_Port;
                 MyHttpNetwork = NetworkFactory.GetInstance().MakeNetworkControl(NetworkFactory.Adapters.HttpServer, webport);
@@ -174,35 +153,9 @@ namespace NpmAdapter.Adapter
                 MyHttpNetwork.ReceiveFromPeer += MyHttpNetwork_ReceiveFromPeer;
                 isRun = MyHttpNetwork.Run();
 
-                if (aliveCheckThread.IsAlive)
-                {
-                    _pauseEvent.Set();
-                }
-                else
-                {
-                    aliveCheckThread.Start();
-                    _pauseEvent.Set();
-                }
-
-                if (failProcessThread.IsAlive)
-                {
-                    _pauseFailProcessEvent.Set();
-                }
-                else
-                {
-                    failProcessThread.Start();
-                    _pauseFailProcessEvent.Set();
-                }
-
-                if (AccessTokenThread.IsAlive)
-                {
-                    _pauseFailAccessTokenEvent.Set();
-                }
-                else
-                {
-                    AccessTokenThread.Start();
-                    _pauseFailAccessTokenEvent.Set();
-                }
+                _aliveCheckThread.Start();
+                _failProcessThread.Start();
+                _accessTokenThread.Start();
             }
             catch (Exception ex)
             {
@@ -251,9 +204,9 @@ namespace NpmAdapter.Adapter
         public bool StopAdapter()
         {
             bool bResult = false;
-            
-            _pauseEvent.Reset();
-            _pauseFailProcessEvent.Reset();
+
+            _aliveCheckThread.Stop();
+            _failProcessThread.Stop();
             MyHttpNetwork.ReceiveFromPeer -= MyHttpNetwork_ReceiveFromPeer;
             bResult = MyHttpNetwork.Down();
             isRun = !bResult;
@@ -477,41 +430,32 @@ namespace NpmAdapter.Adapter
         /// </summary>
         private void AccessTokenAction()
         {
-            do
+            try
             {
-                if (shutdownAccessTokenEvent.IsSet) return;
+                if (_AccesExpireSec < 1) //새 Access Token 을 발급 받는다.
                 {
-                    try
+                    //Access Token 발급
+                    string accessToken = "bearer " + GetAccessToken(_Domain);
+                    if (dicHeader.ContainsKey("Authorization"))
                     {
-                        if(_AccesExpireSec < 1) //새 Access Token 을 발급 받는다.
-                        {
-                            //Access Token 발급
-                            string accessToken = "bearer " + GetAccessToken(_Domain);
-                            if (dicHeader.ContainsKey("Authorization"))
-                            {
-                                dicHeader["Authorization"] = accessToken;
-                            }
-                            else
-                            {
-                                dicHeader.Add("Authorization", accessToken);
-                            }
-                            //Alive Check 서버로 전달....
-                            Log.WriteLog(LogType.Info, $"BeyondAdapter | AccessTokenAction", $"AccessToken : {accessToken}, AcceptSecond : {_AccesExpireSec}");
-                        }
-                        else
-                        {
-                            _AccesExpireSec -= 1;
-                        }
+                        dicHeader["Authorization"] = accessToken;
                     }
-                    catch (Exception ex)
+                    else
                     {
-                        Log.WriteLog(LogType.Error, $"BeyondAdapter | AccessTokenAction", $"{ex.Message}");
+                        dicHeader.Add("Authorization", accessToken);
                     }
+                    //Alive Check 서버로 전달....
+                    Log.WriteLog(LogType.Info, $"BeyondAdapter | AccessTokenAction", $"AccessToken : {accessToken}, AcceptSecond : {_AccesExpireSec}");
                 }
-
-                shutdownAccessTokenEvent.Wait(waitForAccessTokenProcess);
+                else
+                {
+                    _AccesExpireSec -= 1;
+                }
             }
-            while (_pauseFailAccessTokenEvent.WaitOne());
+            catch (Exception ex)
+            {
+                Log.WriteLog(LogType.Error, $"BeyondAdapter | AccessTokenAction", $"{ex.Message}");
+            }
         }
 
         private void FailProcessAction()

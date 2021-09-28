@@ -123,7 +123,7 @@ namespace NpmAdapter.Adapter
             lockObj = new object();
             receiveMessageBuffer = new StringBuilder();
 
-            MyTcpServer = NetworkFactory.GetInstance().MakeNetworkControl(NetworkFactory.Adapters.HttpServer, SysConfig.Instance.HT_MyPort);
+            MyTcpServer = NetworkFactory.GetInstance().MakeNetworkControl(NetworkFactory.Adapters.TcpServer, SysConfig.Instance.HT_MyPort);
             return true;
         }
 

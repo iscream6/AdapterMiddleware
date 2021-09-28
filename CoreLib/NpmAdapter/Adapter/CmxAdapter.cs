@@ -84,7 +84,7 @@ namespace NpmAdapter.Adapter
 
         private void MyTcpServerNetwork_ReceiveFromPeer(byte[] buffer, long offset, long size, HttpServer.RequestEventArgs pEvent = null, string id = null, EndPoint ep = null)
         {
-            throw new NotImplementedException();
+            
         }
 
         private void MyTcpClientNetwork_ReceiveFromPeer(byte[] buffer, long offset, long size, HttpServer.RequestEventArgs pEvent = null, string id = null, EndPoint ep = null)
