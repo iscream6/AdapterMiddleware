@@ -8,7 +8,7 @@ namespace NpmAdapter.Model
 {
     class BaseModel
     {
-        protected AbstractDA ConfigDA;
+        //protected AbstractDA ConfigDA;
         protected AbstractDA DA;
         protected IDbTransaction Transaction;
 
@@ -39,6 +39,26 @@ namespace NpmAdapter.Model
             }
             
             Log.WriteLog(LogType.Info, logTarget, LogMessage, LogAdpType.DataBase);
+        }
+
+        public string InvaildParameter(Dictionary<ColName, object> dicParam)
+        {
+            string rtnVal = "";
+
+            foreach (ColName name in dicParam.Keys)
+            {
+                if (Helper.NVL(dicParam[name]) == "")
+                {
+                    rtnVal += name.ToString() + ",";
+                }
+            }
+
+            if (rtnVal.LastIndexOf(',') > 0)
+            {
+                rtnVal = rtnVal.Substring(0, rtnVal.Length - 1);
+            }
+
+            return rtnVal;
         }
     }
 
@@ -132,7 +152,8 @@ namespace NpmAdapter.Model
         NotFound,
         Fail,
         NotAcceptable,
-        Exception
+        Exception,
+        InvalidParameter
     }
 
     public struct ModelResult
@@ -140,5 +161,10 @@ namespace NpmAdapter.Model
         public ModelCode code;
         public string Message;
         public string Description;
+
+        public override string ToString()
+        {
+            return $"Code : {code}, Message : {Message}, Description : {Description}";
+        }
     }
 }
