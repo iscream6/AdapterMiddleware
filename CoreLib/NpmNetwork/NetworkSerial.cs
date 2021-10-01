@@ -157,6 +157,16 @@ namespace NpmNetwork
 
         #region Implements INetwork
 
+        /// <summary>
+        /// 연결을 종료 시킴.
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        public bool DisconnectSession(string id)
+        {
+            return Down();
+        }
+
         public bool Run()
         {
             return Connect();

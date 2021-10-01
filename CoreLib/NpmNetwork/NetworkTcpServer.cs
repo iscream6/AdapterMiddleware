@@ -32,6 +32,24 @@ namespace NpmNetwork
 
         #region Implements IHomeNetServerAdapter
 
+        /// <summary>
+        /// 임의로 Client 연결을 종료 시킴.
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        public bool DisconnectSession(string id)
+        {
+            if (_dicClientSession[Guid.Parse(id)].Disconnect())
+            {
+                _dicClientSession.Remove(Guid.Parse(id));
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
         public bool Down()
         {
             if (!IsStarted) return false;

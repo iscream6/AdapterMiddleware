@@ -20,7 +20,8 @@ namespace NpmAdapter.Adapter
             TcpOnly,
             WebOnly
         }
-
+        
+        private object lockObj = new object();
         private Uri uri = null;
         private Dictionary<string, string> _OptionDetail;
         private Status runStatus = Status.Full;
@@ -28,9 +29,11 @@ namespace NpmAdapter.Adapter
         private byte[] arrSelfResponseData = null;
         private bool bResponseSuccess = true;
         private StringBuilder receiveMessageBuffer;
+        private NpmThread ResponseThread;
 
         public const string REQ_POST_STATUS = "/nexpa/mdl/";
         public const string RSP_POST_STATUS = "/nxpms/v2.0/mdl";
+        public event IAdapter.ShowBallonTip ShowTip;
 
         private INetwork MyTcpNetwork { get; set; }
         private INetwork MyHttpNetwork { get; set; }
@@ -43,7 +46,7 @@ namespace NpmAdapter.Adapter
         {
             runStatus = status;
         }
-
+        
         public bool Initialize()
         {
             int port = 30542;
@@ -67,6 +70,10 @@ namespace NpmAdapter.Adapter
                     MyTcpNetwork = NetworkFactory.GetInstance().MakeNetworkControl(NetworkFactory.Adapters.TcpServer, port.ToString());
                     if (MyTcpNetwork != null) Log.WriteLog(LogType.Info, $"NexpaTcpAdapter | 생성자", $"TcpServer 생성 : Port={port}", LogAdpType.Nexpa);
                     else Log.WriteLog(LogType.Info, $"NexpaAdapter | Initialize", $"TcpServer 생성실패", LogAdpType.Nexpa);
+
+                    //TCP 통신에서만 사용한다.
+                    ResponseThread = new NpmThread("", TimeSpan.FromSeconds(15));
+                    ResponseThread.ThreadAction = ResponseAction;
                 }
 
                 if (runStatus == Status.WebOnly || runStatus == Status.Full)
@@ -97,6 +104,7 @@ namespace NpmAdapter.Adapter
             {
                 case Status.TcpOnly:
                     Log.WriteLog(LogType.Info, "NexpaTcpAdapter | StartAdapter", "넥스파 TCP 서버 시작", LogAdpType.Nexpa);
+                    ResponseThread.Start();
                     MyTcpNetwork.ReceiveFromPeer += MyTcpNetwork_ReceiveFromPeer;
                     isRun = MyTcpNetwork.Run();
                     break;
@@ -107,6 +115,7 @@ namespace NpmAdapter.Adapter
                     break;
                 case Status.Full:
                     Log.WriteLog(LogType.Info, "NexpaTcpAdapter | StartAdapter", "넥스파 Full 서버 시작", LogAdpType.Nexpa);
+                    ResponseThread.Start();
                     MyTcpNetwork.ReceiveFromPeer += MyTcpNetwork_ReceiveFromPeer;
                     MyHttpNetwork.ReceiveFromPeer += MyHttpNetwork_ReceiveFromPeer;
                     isRun = MyTcpNetwork.Run();
@@ -124,6 +133,7 @@ namespace NpmAdapter.Adapter
             switch (runStatus)
             {
                 case Status.TcpOnly:
+                    ResponseThread.Stop();
                     MyTcpNetwork.ReceiveFromPeer -= MyTcpNetwork_ReceiveFromPeer;
                     bResult = MyTcpNetwork.Down();
                     break;
@@ -132,6 +142,7 @@ namespace NpmAdapter.Adapter
                     bResult = MyHttpNetwork.Down();
                     break;
                 case Status.Full:
+                    ResponseThread.Stop();
                     MyHttpNetwork.ReceiveFromPeer -= MyHttpNetwork_ReceiveFromPeer;
                     MyTcpNetwork.ReceiveFromPeer -= MyTcpNetwork_ReceiveFromPeer;
                     bResult = MyTcpNetwork.Down();
@@ -155,7 +166,7 @@ namespace NpmAdapter.Adapter
             {
                 arrSelfResponseData = buffer[..(int)size];
                 bResponseSuccess = true;
-                Log.WriteLog(LogType.Error, "NexpaTcpAdapter | MyTcpNetwork_ReceiveFromPeer", $"???", LogAdpType.Nexpa);
+                Log.WriteLog(LogType.Error, "NexpaTcpAdapter | MyTcpNetwork_ReceiveFromPeer", $"응답대기", LogAdpType.Nexpa);
             }
             else
             {
@@ -163,6 +174,8 @@ namespace NpmAdapter.Adapter
                 {
                     JObject jobj;
                     var strReceiveData = buffer.ToString(SysConfig.Instance.Nexpa_Encoding, size);
+
+                    //Json 전문이 너무 긴 경우 Buffer에서 순차적으로 Data가 들어오므로 아래와같이 연결작업을 실행함.
                     if (strReceiveData.Contains("command")) //전문에 Command 는 반드시 들어가야 함..
                     {
                         receiveMessageBuffer.Clear();
@@ -210,10 +223,20 @@ namespace NpmAdapter.Adapter
                         MyTcpNetwork.SendToPeer(responseBuffer, 0, responseBuffer.Length, id);
 
                         if (Helper.NVL(data) == "alert") return;
-                        else TargetAdapter.reqPid = id;
+                        else
+                        {
+                            //Biz
+                            TargetAdapter.reqPid = id;
+                            this.reqPid = id;
+                        }
                     }
                     else
                     {
+                        if(command != CmdType.alert_incar && command != CmdType.alert_outcar)
+                        {
+                            bCompleteNexpaResponse = true;
+                        }
+
                         byte[] sendBuffer = jobj.ToByteArray(SysConfig.Instance.Nexpa_Encoding);
                         TargetAdapter.SendMessage(sendBuffer, 0, sendBuffer.Length, id);
                     }
@@ -293,14 +316,34 @@ namespace NpmAdapter.Adapter
             }
         }
 
-        private void Worker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
+        /// <summary>
+        /// 홈넷 요청에 대한 넥스파 응답 여부
+        /// </summary>
+        private bool bCompleteNexpaResponse = true;
+        private int bCompleteCount = 0;
+
+        private void ResponseAction()
         {
-            
+            //1초마다 시행함.
+            if (bCompleteNexpaResponse) return;
+            else
+            {
+                bCompleteCount -= 1;
+
+                Log.WriteLog(LogType.Info, "NexpaTcpAdapter | ResponseAction", $"Wait Count-Down{bCompleteCount} ", LogAdpType.Nexpa);
+
+                if (bCompleteCount <= 0)
+                {
+                    Log.WriteLog(LogType.Error, "NexpaTcpAdapter | ResponseAction", $"{reqPid} Disconnect", LogAdpType.Nexpa);
+                    //응답을 기다릴 만큼 기다렸다.
+                    bCompleteCount = 0;
+                    bCompleteNexpaResponse = true;
+                    //연결된 Session을 끊는다.
+                    MyTcpNetwork.DisconnectSession(reqPid);
+                    reqPid = "";
+                }
+            }
         }
-
-        private object lockObj = new object();
-
-        public event IAdapter.ShowBallonTip ShowTip;
 
         /// <summary>
         /// Target Adapter에게 받은 Message 를 Peer에 전달한다.
@@ -326,9 +369,15 @@ namespace NpmAdapter.Adapter
                 {
                     switch (runStatus)
                     {
-
                         case Status.TcpOnly:
                             {
+                                if(cmd != CmdType.alert_incar && cmd != CmdType.alert_outcar)
+                                {
+                                    //응답 Command가 아닐경우 응답이 안되었음.
+                                    if (bCompleteCount <= 0) bCompleteCount = 10; //10초만 기다려주겠음.
+                                    bCompleteNexpaResponse = false;
+                                }
+
                                 MyTcpNetwork.SendToPeer(buffer, offset, size, pid);
                             }
 
@@ -643,6 +692,11 @@ namespace NpmAdapter.Adapter
             }
         }
 
+        private void Worker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
+        {
+            //Do Nothing...
+        }
+
         public void TestReceive(byte[] buffer)
         {
             switch (runStatus)
@@ -662,6 +716,7 @@ namespace NpmAdapter.Adapter
 
         public void Dispose()
         {
+            ResponseThread.Dispose();
         }
     }
 }

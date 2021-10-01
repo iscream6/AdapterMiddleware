@@ -85,6 +85,16 @@ namespace NpmNetwork
             }
         }
 
+        /// <summary>
+        /// 연결을 종료 시킴.
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        public bool DisconnectSession(string id)
+        {
+            return Down();
+        }
+
         private void OnContinueResponseRequested(object sender, RequestEventArgs e)
         {
             //TextCore.INFO(TextCore.INFOS.PROGRAM_INFO, "NPHttpServer | OnErrorPageRequested", "[OnContinueResponseRequested]");

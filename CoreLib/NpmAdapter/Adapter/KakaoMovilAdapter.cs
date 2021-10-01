@@ -6,6 +6,7 @@ using NpmCommon;
 using NpmNetwork;
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Text;
 using System.Threading;
 
@@ -200,12 +201,33 @@ namespace NpmAdapter.Adapter
                             case GET_GATESTATUS: //차단기 상태조회, Alive Check~!
                                 {
                                     MvlResponsePayload payload = new MvlResponsePayload();
-                                    payload.resultCode = MvlResponsePayload.SttCode.OK;
-                                    payload.resultMessage = "SUCCESS";
+
+                                    if (TargetAdapter.reqPid != "")
+                                    {
+                                        payload.resultCode = MvlResponsePayload.SttCode.OK;
+                                        payload.resultMessage = "SUCCESS";
+                                    }
+                                    else
+                                    {
+                                        //Biz가 죽음.
+                                        payload.resultCode = MvlResponsePayload.SttCode.NotFoundPage;
+                                        payload.resultMessage = MvlResponsePayload.SttCode.NotFoundPage.GetDescription();
+                                    }
+                                    
                                     payload.responseTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
                                     Log.WriteLog(LogType.Info, $"KakaoMovilAdapter | HttpServer_ReceiveFromPeer", $"{GET_GATESTATUS}: {payload.ToJson()}", LogAdpType.HomeNet);
 
                                     byte[] result = payload.Serialize();
+
+                                    if(payload.resultCode == MvlResponsePayload.SttCode.OK)
+                                    {
+                                        e.Response.Status = System.Net.HttpStatusCode.OK;
+                                    }
+                                    else
+                                    {
+                                        e.Response.Status = System.Net.HttpStatusCode.NotFound;
+                                    }
+
                                     e.Response.Encoding = SysConfig.Instance.HomeNet_Encoding;
                                     e.Response.ContentType = new ContentTypeHeader("application/json");
                                     e.Response.Add(iHeader);
@@ -400,18 +422,74 @@ namespace NpmAdapter.Adapter
                                 break;
                             case GET_RESERVECAR: //방문신청차량 목록(GET)
                                 {
-                                    RequestVisitSingleListPayload dataPayload = new RequestVisitSingleListPayload();
-                                    dataPayload.car_number = dicParams.GetValue("CARNO");
-                                    dataPayload.dong = dicParams.GetValue("DONG");
-                                    dataPayload.ho = dicParams.GetValue("HO");
+                                    if (nxpAdapter == NexpaAdapterType.Web) 
+                                    {
+                                        RequestVisitSingleListPayload dataPayload = new RequestVisitSingleListPayload();
+                                        dataPayload.car_number = dicParams.GetValue("CARNO");
+                                        dataPayload.dong = dicParams.GetValue("DONG");
+                                        dataPayload.ho = dicParams.GetValue("HO");
 
-                                    RequestPayload<RequestVisitSingleListPayload> payload = new RequestPayload<RequestVisitSingleListPayload>();
-                                    payload.command = CmdType.visit_single_list;
-                                    payload.data = dataPayload;
-                                    Log.WriteLog(LogType.Info, $"KakaoMovilAdapter | HttpServer_ReceiveFromPeer", $"{GET_RESERVECAR}: {payload.ToJson()}", LogAdpType.HomeNet);
+                                        RequestPayload<RequestVisitSingleListPayload> payload = new RequestPayload<RequestVisitSingleListPayload>();
+                                        payload.command = CmdType.visit_single_list;
+                                        payload.data = dataPayload;
+                                        Log.WriteLog(LogType.Info, $"KakaoMovilAdapter | HttpServer_ReceiveFromPeer", $"{GET_RESERVECAR}: {payload.ToJson()}", LogAdpType.HomeNet);
 
-                                    byte[] responseBuffer = payload.Serialize();
-                                    TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length, reqPid);
+                                        byte[] responseBuffer = payload.Serialize();
+                                        TargetAdapter.SendMessage(responseBuffer, 0, responseBuffer.Length, reqPid);
+                                    }
+                                    else
+                                    {
+                                        Log.WriteLog(LogType.Info, $"KakaoMovilAdapter | HttpServer_ReceiveFromPeer", $"{GET_RESERVECAR}: DB 처리 시작 ========", LogAdpType.HomeNet);
+
+                                        Dictionary<ColName, object> param = new Dictionary<ColName, object>();
+                                        param.Add(ColName.CarNo, dicParams.GetValue("CARNO"));
+                                        param.Add(ColName.Dong, dicParams.GetValue("DONG"));
+                                        param.Add(ColName.Ho, dicParams.GetValue("HO"));
+                                        //SelectKM_VisitList
+                                        DataTable resultDt = MDL_VisitInfo.SelectKM_VisitList(param);
+
+                                        Log.WriteLog(LogType.Info, $"KakaoMovilAdapter | HttpServer_ReceiveFromPeer", $"{GET_RESERVECAR}: DB 처리 완료 ========", LogAdpType.HomeNet);
+
+                                        MvlValuePayload<MvlReserveCarPayload> payload = new MvlValuePayload<MvlReserveCarPayload>();
+
+                                        if (resultDt == null)
+                                        {
+                                            //Param 문제 생김. Exception 이거나...\
+                                            payload.resultCode = MvlResponsePayload.SttCode.InvalidParameter;
+                                            payload.resultMessage = MvlResponsePayload.SttCode.InvalidParameter.GetDescription();
+                                        }
+                                        else
+                                        {
+                                            
+                                            payload.resultCode = MvlResponsePayload.SttCode.OK;
+                                            
+                                            if(resultDt.Rows.Count > 0)
+                                            {
+                                                foreach (DataRow dr in resultDt.Rows)
+                                                {
+                                                    MvlReserveCarPayload dataPayload = new MvlReserveCarPayload();
+                                                    dataPayload.Belong = Helper.NVL(dr["TKNo"]);
+                                                    dataPayload.carNo = Helper.NVL(dr["CarNo"]);
+                                                    dataPayload.dong = Helper.NVL(dr["dong"]);
+                                                    dataPayload.ho = Helper.NVL(dr["ho"]);
+                                                    dataPayload.reserveStart = Helper.NVL(dr["StartDate"]);
+                                                    dataPayload.reserveEnd = Helper.NVL(dr["EndDate"]);
+                                                    dataPayload.remark = Helper.NVL(dr["remark"]);
+                                                    payload.list.Add(dataPayload);
+                                                }
+
+                                                payload.resultMessage = MvlResponsePayload.SttCode.OK.GetDescription();
+                                            }
+                                            else
+                                            {
+                                                payload.resultMessage = "There is no data on cars to visit.";
+                                            }
+                                        }
+
+                                        payload.responseTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+                                        responsePayload = payload;
+                                        bResponseSuccess = ResponseStt.success;
+                                    }
                                 }
                                 break;
                             case DEL_RESERVECAR: //방문신청차량 삭제

@@ -69,6 +69,60 @@ namespace NpmAdapter.Model
             return DA.ExecuteDataTable(sQuery.ToString());
         }
 
+        public DataTable SelectKM_VisitList(Dictionary<ColName, object> dicParam)
+        {
+            try
+            {
+                //모든 param이 빈값이면 안됨. Dong, Ho, CarNumber
+                int paramCheckCnt = 3;
+
+                QueryString sQuery = new QueryString();
+                sQuery.Append($"SELECT dong, ho, CarNo, FORMAT(StartDateTime, 'yyyy-MM-dd') StartDate, FORMAT(EndDateTime, 'yyyy-MM-dd') EndDate, TKNo, visit_flag");
+                sQuery.Append($"FROM VisitInfo");
+                sQuery.Append($"WHERE 1 = 1");
+
+                //dong
+                if (dicParam.ContainsKey(ColName.Dong) && Helper.NVL(dicParam[ColName.Dong]) != "")
+                {
+                    sQuery.Append($"AND dong = {Helper.NVL(dicParam[ColName.Dong])}");
+                    paramCheckCnt -= 1;
+                }
+                //ho
+                if (dicParam.ContainsKey(ColName.Ho) && Helper.NVL(dicParam[ColName.Ho]) != "")
+                {
+                    sQuery.Append($"AND ho = {Helper.NVL(dicParam[ColName.Ho])}");
+                    paramCheckCnt -= 1;
+                }
+                //Carno
+                if (dicParam.ContainsKey(ColName.CarNo) && Helper.NVL(dicParam[ColName.CarNo]) != "")
+                {
+                    sQuery.Append($"AND CarNo = '{Helper.NVL(dicParam[ColName.CarNo])}'");
+                    paramCheckCnt -= 1;
+                }
+
+                sQuery.Append($"AND sDelete_YN = 'N'");
+                sQuery.Append($"ORDER BY TKNo");
+
+                Log.WriteLog(LogType.Info, "VisitInfoModel | SelectKM_VisitList", sQuery.ToString(), LogAdpType.DataBase);
+
+                //Param값이 모두 없을경우
+                if (paramCheckCnt == 0)
+                {
+                    Log.WriteLog(LogType.Error, "VisitInfoModel | SelectPaging", "Param값이 없음.", LogAdpType.DataBase);
+                    return null;
+                }
+                else
+                {
+                    return DA.ExecuteDataTable(sQuery.ToString());
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.WriteLog(LogType.Error, "VisitInfoModel | SelectPaging", ex.Message + "\r\n" + ex.StackTrace, LogAdpType.DataBase);
+                return null;
+            }
+        }
+
         public DataTable GetBoothInfo()
         {
             QueryString sQuery = new QueryString();

@@ -26,5 +26,7 @@ namespace NpmNetwork
         bool Run();
 
         bool Down();
+
+        bool DisconnectSession(string id);
     }
 }
