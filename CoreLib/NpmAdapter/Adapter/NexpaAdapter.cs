@@ -49,6 +49,7 @@ namespace NpmAdapter.Adapter
         
         public bool Initialize()
         {
+            reqPid = "";
             int port = 30542;
             receiveMessageBuffer = new StringBuilder();
 
@@ -207,7 +208,6 @@ namespace NpmAdapter.Adapter
                     Thread.Sleep(10);
                     receiveMessageBuffer.Clear();
 
-                    JObject data = jobj["data"] as JObject;
                     string cmd = jobj["command"].ToString();
                     CmdType command = (CmdType)Enum.Parse(typeof(CmdType), cmd);
 
@@ -222,7 +222,11 @@ namespace NpmAdapter.Adapter
                         responseBuffer = responsePayload.Serialize();
                         MyTcpNetwork.SendToPeer(responseBuffer, 0, responseBuffer.Length, id);
 
-                        if (Helper.NVL(data) == "alert") return;
+                        if (Helper.NVL(jobj["data"]) == "alert")
+                        {
+                            Log.WriteLog(LogType.Info, "NexpaTcpAdapter | MyTcpNetwork_ReceiveFromPeer", "수신 완료(Alert) =====", LogAdpType.Nexpa);
+                            return;
+                        }
                         else
                         {
                             //Biz
@@ -334,13 +338,22 @@ namespace NpmAdapter.Adapter
 
                 if (bCompleteCount <= 0)
                 {
-                    Log.WriteLog(LogType.Error, "NexpaTcpAdapter | ResponseAction", $"{reqPid} Disconnect", LogAdpType.Nexpa);
-                    //응답을 기다릴 만큼 기다렸다.
-                    bCompleteCount = 0;
-                    bCompleteNexpaResponse = true;
-                    //연결된 Session을 끊는다.
-                    MyTcpNetwork.DisconnectSession(reqPid);
-                    reqPid = "";
+                    if(reqPid != "")
+                    {
+                        Log.WriteLog(LogType.Error, "NexpaTcpAdapter | ResponseAction", $"{reqPid} Disconnect", LogAdpType.Nexpa);
+                        //응답을 기다릴 만큼 기다렸다.
+                        bCompleteCount = 0;
+                        bCompleteNexpaResponse = true;
+                        //연결된 Session을 끊는다.
+                        MyTcpNetwork.DisconnectSession(reqPid);
+                        reqPid = "";
+                    }
+                    else
+                    {
+                        //PASSING--
+                        bCompleteCount = 0;
+                        bCompleteNexpaResponse = true;
+                    }
                 }
             }
         }

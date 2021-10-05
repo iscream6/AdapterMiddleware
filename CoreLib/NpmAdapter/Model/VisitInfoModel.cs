@@ -218,7 +218,7 @@ namespace NpmAdapter.Model
                 else
                 {
                     Transaction = DA.GetTransaction();
-
+                    
                     sQuery.Clear();
                     sQuery.Append("INSERT INTO VisitInfo(dong, ho, CarNo, StartDateTime, EndDateTime, TkNo)");
                     sQuery.Append("Values(@Dong, @Ho, @CarNo, @StartDt, @EndDt, @TKNo)");
