@@ -105,7 +105,6 @@ namespace NpmAdapter.Adapter
                 try
                 {
                     dicHeader.Add("Authorization",GetAccessToken());
-
                     _AccessTokenThread.Start();
                 }
                 catch (Exception)
@@ -474,7 +473,7 @@ namespace NpmAdapter.Adapter
                                                     dataPayload.ho = Helper.NVL(dr["ho"]);
                                                     dataPayload.reserveStart = Helper.NVL(dr["StartDate"]);
                                                     dataPayload.reserveEnd = Helper.NVL(dr["EndDate"]);
-                                                    dataPayload.remark = Helper.NVL(dr["remark"]);
+                                                    dataPayload.remark = "";
                                                     payload.list.Add(dataPayload);
                                                 }
 

@@ -636,8 +636,16 @@ namespace NpmAdapter
 
         public static string NVL(object obj, string defaultValue = "")
         {
-            if (obj == null) return defaultValue;
-            else return obj.ToString();
+            try
+            {
+                if (obj == null) return defaultValue;
+                else return obj.ToString();
+            }
+            catch (Exception)
+            {
+                return defaultValue;
+            }
+            
         }
 
         public static string NPGetValue(this JObject jObject, NPElements elements, string defaultValue = "")
