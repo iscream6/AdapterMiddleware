@@ -195,27 +195,36 @@ namespace NpmAdapter.Adapter
                         ResponseEzAliveCheckPayload responsePayload = new ResponseEzAliveCheckPayload();
                         responsePayload.dong = AuthDong;
                         responsePayload.ho = AuthHo;
-                        List<string> ips = Helper.GetLocalIPs();
-                        if(ips.Count > 0)
+
+                        if(SysConfig.Instance.ParkName == "")
                         {
-                            foreach (var ip in ips)
+                            responsePayload.ip = SysConfig.Instance.Nexpa_ServerTcpIP;
+                        }
+                        else
+                        {
+                            List<string> ips = Helper.GetLocalIPs();
+                            if (ips.Count > 0)
                             {
-                                //마포프레스티지 자이현장
-                                if(SysConfig.Instance.ParkName == "mapoprestge")
+                                foreach (var ip in ips)
                                 {
-                                    if (ip.StartsWith("10."))
+                                    //마포프레스티지 자이현장
+                                    if (SysConfig.Instance.ParkName == "mapoprestge")
+                                    {
+                                        if (ip.StartsWith("10."))
+                                        {
+                                            responsePayload.ip = ip;
+                                            break;
+                                        }
+                                    }
+                                    else
                                     {
                                         responsePayload.ip = ip;
                                         break;
                                     }
                                 }
-                                else
-                                {
-                                    responsePayload.ip = ip;
-                                    break;
-                                }
                             }
                         }
+
                         //responsePayload.ip = Helper.GetLocalIP();
                         responsePayload.status = "0";
 
